@@ -4,69 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Auxiliares - Laboratorio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 0; }
-        .flash-messages { position: fixed; top: 20px; right: 20px; z-index: 1050; width: 320px; }
-        .alert { padding: 15px; margin-bottom: 10px; border-radius: 5px; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); animation: fadeIn 0.5s, fadeOut 0.5s 4.5s forwards; }
-        .alert-success { background-color: #28a745; }
-        .alert-danger { background-color: #dc3545; }
-        .alert-warning { background-color: #ffc107; color: #212529;}
-        @keyframes fadeIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
-        .top-banner { background-color: #9c0000; color: white; padding: 15px 30px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .logo { height: 50px; margin-right: 20px; }
-        .banner-text h1 { margin: 0; font-size: 1.5em; font-weight: 500; }
-        .banner-text h2 { margin: 0; font-size: 1.1em; font-weight: 300; opacity: 0.9; }
-        .main-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-        .grid-container { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
-        .card { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.07); padding: 30px; }
-        .card h3 { margin-top: 0; font-size: 1.4em; color: #005a9c; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #dee2e6; }
-        th { font-weight: 600; color: #495057; }
-        .actions { display: flex; gap: 10px; }
-        .btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; color: white; font-size: 0.9em; transition: background-color 0.2s; }
-        .btn-edit { background-color: #ffc107; } .btn-edit:hover { background-color: #e0a800; }
-        .btn-delete { background-color: #dc3545; } .btn-delete:hover { background-color: #c82333; }
-        .btn-reset { background-color: #c82333; } .btn-reset:hover { background-color: #a71d2a; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 500; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .btn-submit { background-color: #04458b; width: 100%; padding: 12px; font-size: 1em; } .btn-submit:hover { background-color: #0069d9; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); animation: fadeInModal 0.3s; }
-        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .back-link-container { text-align: center; margin-top: 30px; }
-        .back-link { background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; } .back-link:hover { background-color: #5a6268; }
-        @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
-        @media (max-width: 992px) { .grid-container { grid-template-columns: 1fr; } }
+        :root {
+            --color-principal: #7d0015; /* Guinda ITS */
+            --color-secundario: #a71d2a;
+            --color-texto-claro: white;
+            --color-peligro: #dc3545;
+            --color-aviso: #ffc107;
+            --color-exito: #198754;
+        }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .top-bar { background-color: var(--color-principal); color: white; padding: 10px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .top-bar .logo { height: 50px; }
+        .top-bar h1 { font-size: 1.5em; margin: 0; font-weight: 600; }
+        .container-main { max-width: 1200px; margin: 30px auto; display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+        .card { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 25px; }
+        .card h2 { color: var(--color-principal); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; font-size: 1.3em; font-weight: 600; }
+        .table { margin-bottom: 0; }
+        .table th { font-weight: 600; }
+        .table td .btn { padding: 0.3rem 0.6rem; font-size: 0.9em; margin-right: 5px; }
+        .btn-editar { background-color: var(--color-aviso); color: #333; }
+        .btn-eliminar { background-color: var(--color-peligro); color: white; }
+        .form-label { font-weight: 600; }
+        .form-control:focus { border-color: var(--color-secundario); box-shadow: 0 0 0 0.25rem rgba(167, 29, 42, 0.25); }
+        .btn-primary { background-color: var(--color-principal); border-color: var(--color-principal); }
+        .btn-primary:hover { background-color: var(--color-secundario); border-color: var(--color-secundario); }
+        .btn-danger { background-color: #c82333; border-color: #bd2130; } /* Un rojo un poco más oscuro para reiniciar */
+        .mantenimiento h2 { color: #c82333; }
+        .mantenimiento p { font-size: 0.9em; color: #6c757d; }
+        .flash-messages-container { position: fixed; top: 80px; right: 20px; z-index: 1050; width: 350px; }
+        .btn-regresar { background-color: #6c757d; color: white; margin-top: 20px; }
+        .btn-regresar:hover { background-color: #5a6268; }
+
+        /* Estilos para el Modal */
+        .modal-header { background-color: var(--color-principal); color: white; }
+        .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+        .modal-body .form-text { font-size: 0.85em; }
+
+        /* --- ESTILO NUEVO PARA VALIDACIÓN --- */
+        .invalid-feedback { display: none; color: var(--color-peligro); font-size: 0.8em; }
+        input.is-invalid + .invalid-feedback { display: block; }
+        /* --- FIN ESTILO NUEVO --- */
+
+        @media (max-width: 992px) {
+            .container-main { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
+    <header class="top-bar">
+        <h1>Panel de Administración</h1>
+        <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo ITS" class="logo">
+    </header>
 
-    <div class="flash-messages">
+    <div class="flash-messages-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% for category, msg in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
+                        {{ msg }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
     </div>
 
-    <div class="top-banner">
-        <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo TecNM" class="logo">
-        <div class="banner-text">
-            <h1>Instituto Tecnológico de Saltillo</h1>
-            <h2>Panel de Administración</h2>
-        </div>
-    </div>
-
-    <div class="main-container">
-        <div class="grid-container">
-            <div class="card">
-                <h3>Lista de Auxiliares</h3>
-                <table>
+    <div class="container-main">
+        <div class="card card-lista">
+            <h2><i class="fas fa-users-cog me-2"></i> Lista de Auxiliares</h2>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -79,116 +89,171 @@
                         <tr>
                             <td>{{ aux.ID }}</td>
                             <td>{{ aux.USUARIO }}</td>
-                            <td class="actions">
-                                <button class="btn btn-edit" onclick="openEditModal('{{ aux.ID }}', '{{ aux.USUARIO }}')">Editar</button>
-                                <form action="{{ url_for('eliminar_auxiliar') }}" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres eliminar a este auxiliar? Esta acción no se puede deshacer.');">
+                            <td>
+                                <button class="btn btn-sm btn-editar" onclick="openEditModal({{ aux.ID }}, '{{ aux.USUARIO }}')">
+                                    <i class="fas fa-pencil-alt"></i> Editar
+                                </button>
+                                <form action="{{ url_for('eliminar_auxiliar') }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar a {{ aux.USUARIO }}? Esta acción no se puede deshacer.');">
                                     <input type="hidden" name="id_usuario" value="{{ aux.ID }}">
-                                    <button type="submit" class="btn btn-delete">Eliminar</button>
+                                    <button type="submit" class="btn btn-sm btn-eliminar">
+                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                    </button>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="3" style="text-align: center;">No hay auxiliares registrados.</td>
+                            <td colspan="3" class="text-center text-muted">No hay auxiliares registrados.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            
-            <div>
-                <div class="card">
-                    <h3>Agregar Nuevo Auxiliar</h3>
-                    <form action="{{ url_for('agregar_auxiliar') }}" method="POST">
-                        <div class="form-group">
-                            <label for="usuario">Nombre de Usuario</label>
-                            <input type="text" id="usuario" name="usuario" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="contrasena">Contraseña</label>
-                            <input type="password" id="contrasena" name="contrasena" required>
-                        </div>
-                        <button type="submit" class="btn btn-submit">Agregar Auxiliar</button>
-                    </form>
-                </div>
-                <!-- NUEVO: Sección de Mantenimiento del Sistema -->
-                <div class="card" style="margin-top: 30px;">
-                    <h3>Mantenimiento del Sistema</h3>
-                    <p>Esta acción eliminará permanentemente todos los registros de préstamos, daños y actividad. El inventario se restaurará a su estado inicial. Esta acción es irreversible.</p>
-                    <button class="btn btn-reset" style="width: 100%;" onclick="openResetModal()">Reiniciar Registros del Semestre</button>
-                </div>
+        </div>
+
+        <div class="card card-formularios">
+            <div class="agregar-auxiliar mb-4">
+                <h2><i class="fas fa-user-plus me-2"></i> Agregar Nuevo Auxiliar</h2>
+                <form action="{{ url_for('agregar_auxiliar') }}" method="POST" id="formAgregarAuxiliar" novalidate>
+                    <div class="mb-3">
+                        <label for="add_usuario" class="form-label">Nombre de Usuario</label>
+                        <!-- ✅ ACTUALIZACIÓN: Se añadió pattern y el div de feedback -->
+                        <input type="text" class="form-control" id="add_usuario" name="usuario" required pattern="^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$">
+                        <div class="invalid-feedback">El nombre solo debe contener letras y espacios.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_contrasena" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="add_contrasena" name="contrasena" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Agregar Auxiliar</button>
+                </form>
+            </div>
+
+            <hr>
+
+            <div class="mantenimiento mt-4">
+                <h2><i class="fas fa-exclamation-triangle me-2"></i> Mantenimiento del Sistema</h2>
+                <p>Esta acción eliminará permanentemente todos los registros de préstamos, daños y actividad. El inventario se restaurará a su estado inicial. Esta acción es irreversible.</p>
+                <form action="{{ url_for('reiniciar_sistema') }}" method="POST" onsubmit="return confirm('¡ADVERTENCIA!\n\nEstás a punto de borrar TODOS los registros (préstamos, daños, actividad).\nEl inventario se reseteará.\n\n¿Estás ABSOLUTAMENTE SEGURO de querer continuar?');">
+                    <div class="mb-3">
+                        <label for="confirmacion_reinicio" class="form-label">Escribe "REINICIAR" para confirmar:</label>
+                        <input type="text" class="form-control" id="confirmacion_reinicio" name="confirmacion" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">Reiniciar Registros del Semestre</button>
+                </form>
             </div>
         </div>
-        <div class="back-link-container">
-            <a href="{{ url_for('interface_admin') }}" class="back-link">Volver al Panel Principal</a>
-        </div>
+    </div>
+
+    <div class="text-center mb-4">
+        <a href="{{ url_for('interface_admin') }}" class="btn btn-regresar"><i class="fas fa-arrow-left me-2"></i> Regresar al Menú Principal</a>
     </div>
 
     <!-- Modal para Editar Auxiliar -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeEditModal()">&times;</span>
-            <h3>Editar Auxiliar</h3>
-            <form action="{{ url_for('modificar_auxiliar') }}" method="POST">
-                <input type="hidden" id="edit-id-usuario" name="id_usuario">
-                <div class="form-group">
-                    <label for="edit-usuario">Nombre de Usuario</label>
-                    <input type="text" id="edit-usuario" name="usuario" required>
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Editar Auxiliar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="form-group">
-                    <label for="edit-contrasena">Nueva Contraseña (opcional)</label>
-                    <input type="password" id="edit-contrasena" name="contrasena" placeholder="Dejar en blanco para no cambiar">
-                </div>
-                <button type="submit" class="btn btn-submit">Guardar Cambios</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- NUEVO: Modal para Reiniciar Sistema -->
-    <div id="resetModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeResetModal()">&times;</span>
-            <h3>Confirmar Reinicio del Sistema</h3>
-            <p>Esta acción es <strong>irreversible</strong> y eliminará todos los préstamos, detalles de préstamos, registros de daños y registros de actividad. Para confirmar, por favor escribe <strong>REINICIAR</strong> en el campo de abajo.</p>
-            <form action="{{ url_for('reiniciar_sistema') }}" method="POST">
-                <div class="form-group">
-                    <label for="confirmacion">Palabra de confirmación</label>
-                    <input type="text" id="confirmacion" name="confirmacion" onkeyup="validateReset()">
-                </div>
-                <button type="submit" id="reset-confirm-btn" class="btn btn-reset" style="width: 100%;" disabled>Confirmar Reinicio</button>
-            </form>
+                <form action="{{ url_for('modificar_auxiliar') }}" method="POST" id="formEditarAuxiliar" novalidate>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_id_usuario" name="id_usuario">
+                        <div class="mb-3">
+                            <label for="edit_usuario" class="form-label">Nombre de Usuario</label>
+                             <!-- ✅ ACTUALIZACIÓN: Se añadió pattern y el div de feedback -->
+                            <input type="text" class="form-control" id="edit_usuario" name="usuario" required pattern="^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$">
+                            <div class="invalid-feedback">El nombre solo debe contener letras y espacios.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_contrasena" class="form-label">Nueva Contraseña (opcional)</label>
+                            <input type="password" class="form-control" id="edit_contrasena" name="contrasena">
+                            <div class="form-text">Dejar en blanco para no cambiar</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const editModal = document.getElementById('editModal');
-        const resetModal = document.getElementById('resetModal');
-
+        // Prepara el modal de edición con los datos del auxiliar
         function openEditModal(id, usuario) {
-            document.getElementById('edit-id-usuario').value = id;
-            document.getElementById('edit-usuario').value = usuario;
-            editModal.style.display = "block";
+            document.getElementById('edit_id_usuario').value = id;
+            document.getElementById('edit_usuario').value = usuario;
+            document.getElementById('edit_contrasena').value = ''; // Limpiar campo contraseña
+            // Limpiar validación previa si existía
+            document.getElementById('edit_usuario').classList.remove('is-invalid'); 
+            var myModal = new bootstrap.Modal(document.getElementById('editModal'));
+            myModal.show();
         }
-        function closeEditModal() {
-            editModal.style.display = "none";
+
+        // --- JAVASCRIPT NUEVO PARA VALIDACIÓN ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Selecciona ambos campos de nombre de usuario
+            const inputsUsuario = [
+                document.getElementById('add_usuario'),
+                document.getElementById('edit_usuario')
+            ];
+
+            inputsUsuario.forEach(input => {
+                if(input){ // Asegurarse que el input existe
+                     // 1. Validar al perder el foco (blur) o al enviar (submit)
+                    input.addEventListener('input', validateInput); // Validar mientras escribe
+                    input.addEventListener('blur', validateInput);
+                }
+            });
+
+            // Validación al enviar los formularios
+            const formAgregar = document.getElementById('formAgregarAuxiliar');
+             const formEditar = document.getElementById('formEditarAuxiliar');
+
+            if(formAgregar){
+                formAgregar.addEventListener('submit', function(event) {
+                    const input = document.getElementById('add_usuario');
+                    if (!validateInput({ target: input })) { // Llama a la validación
+                        event.preventDefault(); // Detiene el envío si es inválido
+                        event.stopPropagation();
+                    }
+                    // Bootstrap maneja el resto de campos required
+                    formAgregar.classList.add('was-validated'); 
+                }, false);
+            }
+             if(formEditar){
+                formEditar.addEventListener('submit', function(event) {
+                     const input = document.getElementById('edit_usuario');
+                    if (!validateInput({ target: input })) { // Llama a la validación
+                        event.preventDefault(); // Detiene el envío si es inválido
+                        event.stopPropagation();
+                    }
+                     // Bootstrap maneja el resto de campos required
+                    formEditar.classList.add('was-validated');
+                }, false);
+             }
+
+        });
+
+        // Función reutilizable para validar un input de nombre
+        function validateInput(event) {
+            const input = event.target;
+            const regex = /^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/; // Solo letras, espacios y acentos/ñ
+
+            if (!regex.test(input.value) && input.value !== '') { // Si no cumple Y no está vacío
+                input.classList.add('is-invalid'); // Muestra error
+                return false; // Inválido
+            } else {
+                input.classList.remove('is-invalid'); // Quita error
+                 return true; // Válido
+            }
         }
-        function openResetModal() {
-            resetModal.style.display = "block";
-        }
-        function closeResetModal() {
-            resetModal.style.display = "none";
-            document.getElementById('confirmacion').value = '';
-            document.getElementById('reset-confirm-btn').disabled = true;
-        }
-        function validateReset() {
-            const input = document.getElementById('confirmacion');
-            const btn = document.getElementById('reset-confirm-btn');
-            btn.disabled = input.value !== 'REINICIAR';
-        }
-        window.onclick = function(event) {
-            if (event.target == editModal) closeEditModal();
-            if (event.target == resetModal) closeResetModal();
-        }
+        // --- FIN JAVASCRIPT NUEVO ---
+
     </script>
 </body>
 </html>

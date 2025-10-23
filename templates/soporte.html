@@ -20,8 +20,7 @@
             background-color: #ffffff;
             padding: 40px;
             border-radius: 8px;
-            box-shadow: 0 4px
- 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             box-sizing: border-box;
         }
 
@@ -32,159 +31,58 @@
             padding-bottom: 20px;
         }
 
-        header h1 {
-            font-size: 2em;
-            color: #005a9c;
-            margin: 0;
-        }
+        header h1 { font-size: 2em; color: #005a9c; margin: 0; }
+        header p { font-size: 1.1em; color: #555; }
 
-        header p {
-            font-size: 1.1em;
-            color: #555;
-        }
-
-        .support-content {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 40px;
-        }
-
-        .contact-info, .contact-form {
-            flex: 1;
-            min-width: 300px;
-        }
-
-        .contact-info h2, .contact-form h2 {
-            font-size: 1.5em;
-            color: #005a9c;
-            margin-top: 0;
-        }
-
-        .contact-info p {
-            font-size: 1em;
-            line-height: 1.6;
-        }
-
-        .contact-info strong {
-            color: #333;
-        }
+        .support-content { display: flex; flex-wrap: wrap; gap: 40px; }
+        .contact-info, .contact-form { flex: 1; min-width: 300px; }
+        .contact-info h2, .contact-form h2 { font-size: 1.5em; color: #005a9c; margin-top: 0; }
+        .contact-info p { font-size: 1em; line-height: 1.6; }
+        .contact-info strong { color: #333; }
         
-        .form-group {
-            margin-bottom: 20px;
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #007bff; }
+        
+        .form-group input.invalid, .form-group textarea.invalid { border-color: #dc3545; }
+        .error-message { color: #dc3545; font-size: 0.875em; margin-top: 5px; display: none; }
+        
+        /* --- NUEVO: Estilos para el contador de caracteres --- */
+        .char-counter {
+            font-size: 0.8em;
+            color: #6c757d;
+            text-align: right;
+            margin-top: 4px;
         }
+        .char-counter.warning { color: #fd7e14; }
+        .char-counter.limit { color: #dc3545; font-weight: bold; }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #444;
-        }
+        textarea { resize: vertical; min-height: 120px; }
+        button { width: 100%; padding: 15px; background-color: #007bff; color: #ffffff; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
 
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 1em;
-            transition: border-color 0.2s;
-        }
+        .back-button-container { text-align: center; margin-top: 30px; }
+        .back-button { display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; transition: background-color 0.2s; }
+        .back-button:hover { background-color: #5a6268; }
 
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        button {
-            width: 100%;
-            padding: 15px;
-            background-color: #910000;
-            color: #ffffff;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #b30000;
-        }
-
-        /* --- NUEVO: Estilos para el botón de regresar --- */
-        .back-button-container {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .back-button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #6c757d;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.2s;
-        }
-
-        .back-button:hover {
-            background-color: #5a6268;
-        }
-
-        /* --- NUEVO: Estilos para las alertas flotantes --- */
-        .flash-messages {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            width: 300px;
-        }
-
-        .alert {
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            color: #fff;
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
-            animation: fadeIn 0.5s, fadeOut 0.5s 4.5s forwards;
-        }
-
+        .flash-messages { position: fixed; top: 20px; right: 20px; z-index: 9999; width: 300px; }
+        .alert { padding: 15px; margin-bottom: 10px; border-radius: 5px; color: #fff; opacity: 1; animation: fadeIn 0.5s, fadeOut 0.5s 4.5s forwards; }
         .alert-success { background-color: #28a745; }
         .alert-danger { background-color: #dc3545; }
         .alert-warning { background-color: #ffc107; color: #212529;}
 
-        @keyframes fadeIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; display: none; }
-        }
+        @keyframes fadeIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-            .support-content {
-                flex-direction: column;
-            }
+            .container { padding: 20px; }
+            .support-content { flex-direction: column; }
         }
     </style>
 </head>
 <body>
     
-    <!-- --- NUEVO: Contenedor para los mensajes flash --- -->
     <div class="flash-messages">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -205,48 +103,148 @@
             <div class="contact-info">
                 <h2>Información de Contacto</h2>
                 <p>Si tienes un problema urgente o prefieres hablar directamente con nosotros, puedes utilizar los siguientes medios:</p>
-                <p><strong>Correo Electrónico:</strong><br>mirandaneyra@gmail.com<br>yoshio99@live.com.mx</p>
-                <p><strong>Teléfono:</strong><br> +52 (844) 276-4871 <br> +52 (844) 448-4848</p>
+                <p><strong>Correo Electrónico:</strong><br> soporte.laboratorio@itsaltillo.edu.mx</p>
+                <p><strong>Teléfono:</strong><br> +52 (844) 123-4567</p>
                 <p><strong>Horario de Atención:</strong><br> Lunes a Viernes de 9:00 AM a 5:00 PM</p>
             </div>
 
             <div class="contact-form">
                 <h2>Envíanos un Mensaje</h2>
-                <form action="{{ url_for('soporte') }}" method="post">
+                <form id="support-form" action="{{ url_for('soporte') }}" method="post">
                     <div class="form-group">
                         <label for="name">Nombre Completo</label>
-                        <input type="text" id="name" name="name" required>
+                        <input type="text" id="name" name="name" required 
+                               pattern="[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+"
+                               title="Solo se permiten letras y espacios."
+                               maxlength="100" value="{{ form_data.name if form_data }}">
+                        <span id="name-error" class="error-message">No se permiten números ni caracteres especiales.</span>
                     </div>
                     <div class="form-group">
                         <label for="email">Correo Electrónico</label>
-                        <input type="email" id="email" name="email" required>
+                        <input type="email" id="email" name="email" required value="{{ form_data.email if form_data }}">
+                        <span id="email-error" class="error-message">Por favor, introduce un correo electrónico válido.</span>
                     </div>
                     <div class="form-group">
                         <label for="subject">Asunto</label>
-                        <input type="text" id="subject" name="subject" required>
+                        <input type="text" id="subject" name="subject" required maxlength="150" value="{{ form_data.subject if form_data }}">
+                        <div id="subject-counter" class="char-counter">0/150</div>
+                        <span id="subject-error" class="error-message">El asunto no puede estar vacío.</span>
                     </div>
                     <div class="form-group">
                         <label for="message">Mensaje</label>
-                        <textarea id="message" name="message" required></textarea>
+                        <textarea id="message" name="message" required maxlength="2000">{{ form_data.message if form_data }}</textarea>
+                        <div id="message-counter" class="char-counter">0/2000</div>
+                        <span id="message-error" class="error-message">El mensaje no puede estar vacío.</span>
                     </div>
                     <button type="submit">Enviar Mensaje</button>
                 </form>
             </div>
         </div>
 
-        <!-- --- MODIFICADO: Botón de regresar inteligente --- -->
         <div class="back-button-container">
             {% if session.get('user_rol') == 'admin' %}
                 <a href="{{ url_for('interface_admin') }}" class="back-button">Volver al Panel de Administrador</a>
             {% elif session.get('user_rol') == 'auxiliar' %}
                 <a href="{{ url_for('interface_aux') }}" class="back-button">Volver al Panel de Auxiliar</a>
             {% else %}
-                <!-- Fallback por si se accede sin sesión -->
                 <a href="{{ url_for('login') }}" class="back-button">Volver al Inicio</a>
             {% endif %}
         </div>
-
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('support-form');
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const subjectInput = document.getElementById('subject');
+            const messageInput = document.getElementById('message');
+
+            const nameError = document.getElementById('name-error');
+            const emailError = document.getElementById('email-error');
+            const subjectError = document.getElementById('subject-error');
+            const messageError = document.getElementById('message-error');
+            
+            const subjectCounter = document.getElementById('subject-counter');
+            const messageCounter = document.getElementById('message-counter');
+
+            // --- Función para actualizar contadores ---
+            function updateCounter(input, counterElement) {
+                const maxLength = input.maxLength;
+                const currentLength = input.value.length;
+                counterElement.textContent = `${currentLength}/${maxLength}`;
+                
+                counterElement.classList.remove('warning', 'limit');
+                if (currentLength > maxLength) {
+                    counterElement.classList.add('limit');
+                } else if (currentLength > maxLength * 0.9) {
+                    counterElement.classList.add('warning');
+                }
+            }
+            
+            // --- Eventos de Input para contadores y validación en tiempo real ---
+            subjectInput.addEventListener('input', () => updateCounter(subjectInput, subjectCounter));
+            messageInput.addEventListener('input', () => updateCounter(messageInput, messageCounter));
+            
+            // Disparar una vez al cargar por si hay datos precargados
+            updateCounter(subjectInput, subjectCounter);
+            updateCounter(messageInput, messageCounter);
+
+            nameInput.addEventListener('input', () => {
+                if (nameInput.validity.patternMismatch) {
+                    nameInput.classList.add('invalid');
+                    nameError.style.display = 'block';
+                } else {
+                    nameInput.classList.remove('invalid');
+                    nameError.style.display = 'none';
+                }
+            });
+
+            // --- Validación robusta al enviar el formulario ---
+            form.addEventListener('submit', function(event) {
+                // Al presionar enviar, detenemos el envío para validar manualmente.
+                event.preventDefault();
+
+                let isValid = true;
+                
+                // Ocultar todos los mensajes de error al inicio de la validación
+                document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+
+                if (!nameInput.checkValidity()) {
+                    nameInput.classList.add('invalid');
+                    nameError.textContent = nameInput.validationMessage || "Formato de nombre no válido.";
+                    nameError.style.display = 'block';
+                    isValid = false;
+                }
+                
+                if (!emailInput.checkValidity()) {
+                    emailInput.classList.add('invalid');
+                    emailError.textContent = emailInput.validationMessage || "Formato de correo no válido.";
+                    emailError.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (subjectInput.value.trim() === '') {
+                    subjectInput.classList.add('invalid');
+                    subjectError.textContent = "El asunto no puede estar vacío.";
+                    subjectError.style.display = 'block';
+                    isValid = false;
+                }
+                
+                if (messageInput.value.trim() === '') {
+                    messageInput.classList.add('invalid');
+                    messageError.textContent = "El mensaje no puede estar vacío.";
+                    messageError.style.display = 'block';
+                    isValid = false;
+                }
+                
+                if (isValid) {
+                    form.submit();
+                }
+            });
+        });
+    </script>
 
 </body>
 </html>

@@ -4,18 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Inventario</title>
-    <!-- Font Awesome para los iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bootstrap CSS (Aunque tienes estilos custom, Bootstrap ayuda con la estructura) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* COLORES INSTITUCIONALES (Basado en tu código de Reportes/Préstamos) */
         :root {
-            --color-principal: #7d0015; /* Rojo/Vino del ITC */
-            --color-secundario: #a0a0a0; /* Gris para contrastar */
+            --color-principal: #7d0015;
+            --color-secundario: #a71d2a;
             --color-texto-claro: white;
             --color-activo: #28a745;
             --color-peligro: #dc3545;
+            --color-aviso: #ffc107;
         }
 
         body { 
@@ -24,7 +22,6 @@
             margin: 0; 
         }
         
-        /* Estilos del Banner Superior */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -36,13 +33,13 @@
             margin-bottom: 20px;
         }
         .breadcrumb { font-size: 1.1em; margin: 0; }
-        .breadcrumb a { color: var(--color-secundario); text-decoration: none; transition: color 0.3s; }
-        .breadcrumb a:hover { color: var(--color-texto-claro); text-decoration: underline; }
-        .breadcrumb span { margin: 0 10px; color: #dee2e6; }
+        .breadcrumb a { color: #dee2e6; text-decoration: none; transition: color 0.3s; }
+        .breadcrumb a:hover { color: var(--color-texto-claro); }
+        .breadcrumb span { margin: 0 10px; }
         .top-bar .logo { height: 50px; }
         
         .container { 
-            max-width: 1200px; 
+            max-width: 1400px; 
             margin: 20px auto; 
             padding: 20px; 
             background-color: #fff; 
@@ -64,10 +61,9 @@
             align-items: center; 
             margin-bottom: 20px; 
             flex-wrap: wrap; 
-            gap: 10px; 
+            gap: 20px; 
         }
         
-        /* Estilos de Botones de Acción */
         .actions button { 
             background-color: var(--color-principal); 
             color: white; 
@@ -77,55 +73,34 @@
             cursor: pointer; 
             font-size: 1em; 
             transition: background-color 0.3s;
+            margin-right: 10px;
         }
         .actions button:hover {
             background-color: #4a000a;
         }
+        .actions button.btn-log { background-color: #17a2b8; }
+        .actions button.btn-log:hover { background-color: #138496; }
         .actions button.delete { background-color: var(--color-peligro); }
         .actions button.edit { background-color: #ffc107; color: #212529; }
         
-        /* Búsqueda */
-        .search-bar { display: flex; }
-        .search-bar input { border: 1px solid #ced4da; padding: 10px; border-radius: 5px 0 0 5px; width: 250px; }
-        .search-bar button { border: 1px solid #ced4da; background-color: #e9ecef; padding: 10px; border-radius: 0 5px 5px 0; cursor: pointer; }
+        .search-section { flex-grow: 1; max-width: 500px; }
+        .search-bar input { border: 1px solid #ced4da; padding: 10px; border-radius: 5px; width: 100%; }
         
-        /* Tabla */
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
         th { background-color: #f8f9fa; font-weight: 600; color: #343a40; }
         
-        /* Puntos de Estado */
         .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .disponible { background-color: var(--color-activo); } /* Verde */
-        .en-uso { background-color: #ffc107; } /* Amarillo */
-        .sin-stock { background-color: var(--color-peligro); } /* Rojo */
+        .disponible { background-color: var(--color-activo); }
+        .en-uso { background-color: var(--color-aviso); }
+        .sin-stock { background-color: var(--color-peligro); }
         
-        /* Mensajes Flash */
-        .flash {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border: 1px solid transparent;
-            border-radius: .25rem;
-            opacity: 1; /* Valor inicial para JS fade-out */
-        }
-        .success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
-        .danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
-        .warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
+        .flash-messages-container { position: fixed; top: 80px; right: 20px; z-index: 1050; width: 350px; }
         
-        .btn-regresar { 
-            display: inline-block; 
-            background-color: #6c757d; 
-            color: white; 
-            padding: 10px 20px; 
-            text-decoration: none; 
-            border-radius: 5px; 
-            font-weight: 600; 
-            transition: background-color 0.3s; 
-        }
+        .btn-regresar { display: inline-block; background-color: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; transition: background-color 0.3s; }
         .btn-regresar:hover { background-color: #5a6268; }
 
-        /* Modales (Bootstrap-like structure for manual CSS) */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
         .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
@@ -135,12 +110,14 @@
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
         .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
         .btn-submit { background-color: var(--color-activo); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        
+        .filter-container { display: flex; gap: 15px; margin-bottom: 1rem; flex-wrap: wrap; padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
+        .filter-container label { font-size: 0.9em; cursor: pointer; }
     </style>
 </head>
 <body>
     <header class="top-bar">
         <nav class="breadcrumb">
-            <!-- 🔑 Navegación Condicional -->
             {% if usuario_rol == 'admin' or usuario_rol == 'jefe' or usuario_rol == '0' %}
                 <a href="{{ url_for('interface_admin') }}">Inicio Admin</a>
             {% elif usuario_rol == 'auxiliar' or usuario_rol == '1' %}
@@ -151,28 +128,55 @@
             <span>></span>
             <span>Inventario</span>
         </nav>
-        <!-- Asumo que itislogo.png es el logo del Tecnológico -->
         <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo" class="logo">
     </header>
 
     <div class="container">
-        <h1><i class="fas fa-boxes"></i> Gestión de Materiales</h1>
+        <div class="flash-messages-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                        <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
+                            {{ msg }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, msg in messages %}
-                    <div class="flash {{ category }}">{{ msg }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <h1><i class="fas fa-boxes"></i> Gestión de Materiales</h1>
 
         <div class="toolbar">
             <div class="actions">
-                <button onclick="openModal('agregarModal')"><i class="fas fa-plus"></i> Agregar material</button>
+                <button onclick="openModal('agregarModal')"><i class="fas fa-plus"></i> Agregar Material</button>
+                {% if usuario_rol == 'admin' %}
+                <button class="btn-log" onclick="openLogModal()"><i class="fas fa-history"></i> Ver Movimientos</button>
+                {% endif %}
             </div>
-            <div class="search-bar">
-                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Buscar por nombre...">
-                <button><i class="fas fa-search"></i></button>
+            <div class="search-section">
+                <div class="filter-container">
+                    <label class="fw-bold me-2">Buscar por:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroId" value="id" checked>
+                        <label class="form-check-label" for="filtroId">ID</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroNombre" value="nombre" checked>
+                        <label class="form-check-label" for="filtroNombre">Nombre</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroTipo" value="tipo">
+                        <label class="form-check-label" for="filtroTipo">Tipo</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroMarca" value="marca">
+                        <label class="form-check-label" for="filtroMarca">Marca/Modelo</label>
+                    </div>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Buscar...">
+                </div>
             </div>
         </div>
 
@@ -186,44 +190,39 @@
                         <th>Marca/Modelo</th>
                         <th>Total</th>
                         <th>Disponibles</th>
-                        <th>Dañados</th> <!-- 🌟 NUEVA COLUMNA -->
+                        <th>Dañados</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for material in materiales %}
-                    <tr>
+                    <tr data-id="{{ material.ID_MATERIAL }}" data-nombre="{{ material.NOMBRE or '' }}" data-tipo="{{ material.TIPO or '' }}" data-marca="{{ material.MARCA_MODELO or '' }}">
                         <td>{{ material.ID_MATERIAL }}</td>
                         <td>{{ material.NOMBRE }}</td>
                         <td>{{ material.TIPO or 'N/A' }}</td>
                         <td>{{ material.MARCA_MODELO or 'N/A' }}</td>
                         <td>{{ material.CANTIDAD_TOTAL }}</td>
                         <td>{{ material.CANTIDAD_DISPONIBLE }}</td>
-                        <td>{{ material.CANTIDAD_DANADA or 0 }}</td> <!-- 🌟 NUEVO DATO -->
+                        <td>{{ material.CANTIDAD_DANADA or 0 }}</td>
                         <td>
-                            <!-- 🔑 CORRECCIÓN DE LA LÓGICA DE COLOR (Uso de .toUpperCase()) -->
                             {% set status_upper = material.ESTATUS | upper %}
                             {% if status_upper == 'DISPONIBLE' %}
                                 <span class="status-dot disponible"></span> Disponible
                             {% elif status_upper == 'EN USO' %}
-                                <span class="status-dot en-uso"></span> En uso
+                                <span class="status-dot en-uso"></span> En uso ({{ material.CANTIDAD_EN_USO }})
                             {% else %}
                                 <span class="status-dot sin-stock"></span> Sin stock
                             {% endif %}
                         </td>
                         <td>
-                            <!-- Botón de Editar -->
-                            <button class="edit" 
-                                    data-material='{{ material | tojson | safe }}'
-                                    onclick="openEditModal(this)">
-                                <i class="fas fa-pencil-alt"></i>
-                            </button>
-                            <!-- Formulario de Eliminar -->
+                            {% if usuario_rol == 'admin' %}
+                            <button class="edit" data-material='{{ material | tojson | safe }}' onclick="openEditModal(this)"><i class="fas fa-pencil-alt"></i></button>
                             <form action="{{ url_for('eliminar_material') }}" method="POST" style="display:inline;">
                                 <input type="hidden" name="id_material" value="{{ material.ID_MATERIAL }}">
                                 <button type="submit" class="delete" onclick="return confirm('¿Estás seguro de que deseas eliminar este material?');"><i class="fas fa-trash-alt"></i></button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -231,13 +230,11 @@
             </table>
         </div>
         <br>
-        <!-- 🔑 Botón Regresar Condicional -->
         <a href="{{ url_for('interface_admin' if usuario_rol == 'admin' or usuario_rol == '0' else 'interface_aux') }}" class="btn-regresar">
             <i class="fas fa-arrow-left"></i> Regresar
         </a>
     </div>
 
-    <!-- Modal para Agregar Material -->
     <div id="agregarModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -266,7 +263,6 @@
         </div>
     </div>
 
-    <!-- Modal para Editar Material -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -289,97 +285,132 @@
                 </div>
                 <div class="form-group">
                     <label for="edit_cantidad">Cantidad Total</label>
-                    <!-- NOTA: Usamos el campo CANTIDAD_TOTAL del material para poblar este input -->
                     <input type="number" id="edit_cantidad" name="cantidad" min="0" required> 
                 </div>
                 <button type="submit" class="btn-submit">Actualizar Material</button>
             </form>
         </div>
     </div>
+    
+    <div id="logModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-history"></i> Registro de Movimientos de Inventario</h2>
+                <span class="close" onclick="closeModal('logModal')">&times;</span>
+            </div>
+            <div class="table-responsive" style="max-height: 500px;">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Material</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        function openModal(modalId) { document.getElementById(modalId).style.display = "block"; }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+        
+        function openEditModal(button) {
+            const material = JSON.parse(button.getAttribute('data-material'));
+            document.getElementById('edit_id_material').value = material.ID_MATERIAL;
+            document.getElementById('edit_nombre').value = material.NOMBRE;
+            document.getElementById('edit_tipo').value = material.TIPO || '';
+            document.getElementById('edit_marca_modelo').value = material.MARCA_MODELO || '';
+            document.getElementById('edit_cantidad').value = material.CANTIDAD_TOTAL; 
+            openModal('editModal');
+        }
 
-            // Nueva funcionalidad para ocultar los mensajes flash
-            const flashMessages = document.querySelectorAll('.flash');
-            flashMessages.forEach(function(message) {
-                // Haz que los mensajes desaparezcan después de 30 segundos
-                setTimeout(function() {
-                    message.style.opacity = '0';
-                    setTimeout(function() {
-                        message.style.display = 'none';
-                    }, 500); 
-                }, 30000); 
-            });
-
-        });
-
-        function filterTable() {
-            let input, filter, table, tr, td, i, txtValue;
-            input = document.getElementById("searchInput");
-            filter = input.value.toUpperCase();
-            table = document.getElementById("inventoryTable");
-            tr = table.getElementsByTagName("tr");
+        async function openLogModal() {
+            const logTableBody = document.getElementById('logTableBody');
+            logTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Cargando...</td></tr>';
+            openModal('logModal');
             
-            // Empezamos en 1 para omitir el encabezado de la tabla (<thead>)
-            for (i = 1; i < tr.length; i++) {
-                // td[1] es la columna 'Nombre'
-                td = tr[i].getElementsByTagName("td")[1]; 
-                if (td) {
-                    txtValue = td.textContent || td.innerText;
-                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                        tr[i].style.display = "";
-                    } else {
-                        tr[i].style.display = "none";
+            try {
+                const response = await fetch("{{ url_for('movimientos_inventario') }}");
+                if (!response.ok) throw new Error('Error al cargar los datos.');
+                const movimientos = await response.json();
+                
+                logTableBody.innerHTML = '';
+                if (movimientos.length === 0) {
+                    logTableBody.innerHTML = '<tr><td colspan="5" class="text-center">No hay movimientos registrados.</td></tr>';
+                    return;
+                }
+                
+                movimientos.forEach(mov => {
+                    const tr = document.createElement('tr');
+                    const fecha = new Date(mov.FECHA_MOVIMIENTO.replace(' ', 'T')).toLocaleString('es-MX');
+                    tr.innerHTML = `
+                        <td>${fecha}</td>
+                        <td>${mov.USUARIO || 'Sistema'}</td>
+                        <td>${mov.TIPO_ACCION}</td>
+                        <td>${mov.NOMBRE_MATERIAL_AFECTADO}</td>
+                        <td>${mov.DETALLE}</td>
+                    `;
+                    logTableBody.appendChild(tr);
+                });
+            } catch (error) {
+                logTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const checkboxesFiltro = document.querySelectorAll('.filter-container .form-check-input');
+        
+        function filterTable() {
+            const filtroTexto = searchInput.value.toUpperCase();
+            const filtrosActivos = Array.from(checkboxesFiltro).filter(cb => cb.checked).map(cb => cb.value);
+            const table = document.getElementById("inventoryTable");
+            const tr = table.getElementsByTagName("tr");
+            
+            for (let i = 1; i < tr.length; i++) {
+                const fila = tr[i];
+                if (!fila.dataset.id) continue;
+
+                let encontrado = false;
+                if (filtrosActivos.length === 0 && filtroTexto === '') {
+                    // Si no hay filtros ni texto, mostrar todo (o manejar como prefieras)
+                    encontrado = true;
+                } else if (filtrosActivos.length > 0 && filtroTexto === '') {
+                    // Si hay filtros pero no texto, mostrar todo (o manejar como prefieras)
+                    encontrado = true;
+                } else if (filtrosActivos.length === 0 && filtroTexto !== '') {
+                    // Si no hay filtros seleccionados pero sí hay texto, no buscar en nada
+                    encontrado = false;
+                }
+                else {
+                     for (const filtro of filtrosActivos) {
+                        const textoCelda = fila.dataset[filtro] || '';
+                        if (textoCelda.toUpperCase().includes(filtroTexto)) {
+                            encontrado = true;
+                            break; 
+                        }
                     }
                 }
+                fila.style.display = encontrado ? "" : "none";
             }
         }
 
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = "block";
-        }
+        searchInput.addEventListener('keyup', filterTable);
+        checkboxesFiltro.forEach(cb => cb.addEventListener('change', filterTable));
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = "none";
-        }
-        
-        // Lógica para poblar el modal de edición
-        function openEditModal(button) {
-            try {
-                // Obtener el JSON del material
-                const materialJson = button.getAttribute('data-material');
-                if (!materialJson) {
-                    throw new Error("No se encontraron datos de material en el botón.");
-                }
-                const material = JSON.parse(materialJson);
-    
-                // Llenar el formulario del modal
-                document.getElementById('edit_id_material').value = material.ID_MATERIAL;
-                document.getElementById('edit_nombre').value = material.NOMBRE;
-                document.getElementById('edit_tipo').value = material.TIPO || '';
-                document.getElementById('edit_marca_modelo').value = material.MARCA_MODELO || '';
-                // Usamos CANTIDAD_TOTAL para la edición
-                document.getElementById('edit_cantidad').value = material.CANTIDAD_TOTAL; 
-                
-                openModal('editModal');
-            } catch (e) {
-                console.error("Error al abrir el modal de edición:", e);
-                // Si tienes un sistema de alertas, podrías mostrar un mensaje aquí.
-            }
-        }
-
-        // Cierra los modales al hacer clic fuera de ellos
         window.onclick = function(event) {
-            const modals = document.getElementsByClassName('modal');
-            for (let i = 0; i < modals.length; i++) {
-                if (event.target == modals[i]) {
-                    modals[i].style.display = "none";
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (event.target == modal) {
+                    closeModal(modal.id);
                 }
-            }
+            });
         }
     </script>
 </body>
 </html>
-
-

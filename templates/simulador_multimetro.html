@@ -3,131 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Multímetro</title>
+    <title>Simulador de Multímetro Avanzado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background-color: #111827; /* Dark background */
+            overflow: hidden;
+        }
         #game-container {
-            max-width: 1200px;
-            height: 80vh;
-            min-height: 600px;
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            position: relative; /* Necesario para posicionar el SVG de las sondas */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        #circuit-panel {
+            background-color: #1F2937;
+            border: 1px solid #374151;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            flex-basis: 60%;
+        }
+        #multimeter-panel {
+             flex-basis: 40%;
+             height: 100%;
         }
         .multimeter-dial {
-            transform-origin: 50% 50%;
-            cursor: pointer;
+            cursor: grab;
+        }
+        .multimeter-dial:active {
+            cursor: grabbing;
         }
         .probe { cursor: grab; }
         .probe:active { cursor: grabbing; }
 
-        /* Ya no necesita la propiedad 'r', se define en el HTML */
         .probe-tip { 
             stroke-width: 2;
+            filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
         }
         .target {
-            stroke: #374151;
-            fill: #ffffff;
+            stroke: #9ca3af;
+            fill: #374151;
             stroke-width: 2;
             cursor: pointer;
-            transition: fill 0.2s, stroke 0.2s;
+            transition: all 0.2s ease-in-out;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
         }
         .target:hover {
-            stroke: #2563eb;
-            fill: #eff6ff;
+            stroke: #f59e0b;
+            fill: #4b5563;
+            transform: scale(1.1);
         }
-        .target-connected {
-            fill: #10b981;
-            stroke: #059669;
+        .target-connected-red, .target-connected-black {
+            stroke: #ef4444;
+            fill: #f87171;
+            animation: pulse 1.5s infinite;
         }
-        #lcd-display { fill: #9CA3AF; font-family: monospace; }
-        #lcd-text { fill: #111827; font-size: 32px; font-weight: bold; }
+        .target-connected-black {
+            stroke: #6b7280;
+            fill: #9ca3af;
+            animation: none; /* GND no necesita pulsar */
+        }
+
+        @keyframes pulse {
+            0% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.7)); }
+            50% { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 1)); }
+            100% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.7)); }
+        }
+
+        #lcd-text { 
+            fill: #111827; 
+            font-family: 'Orbitron', monospace;
+            font-size: 38px; 
+            font-weight: 700; 
+            letter-spacing: 2px;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
         .flash-message {
             opacity: 0;
-            transition: opacity 0.5s, transform 0.5s;
-            transform: translateY(10px);
+            transform: translateY(-20px);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .flash-visible { opacity: 1; transform: translateY(0); }
+        .flash-visible { 
+            opacity: 1; 
+            transform: translateY(0);
+        }
+        
+        .wire-pulse {
+            stroke-dasharray: 10 20;
+            animation: dash 2s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -30; }
+        }
+
     </style>
 </head>
 <body class="p-4">
 
-    <div id="feedback-message" class="flash-message fixed top-4 right-4 p-4 rounded-lg shadow-xl text-white z-50"></div>
+    <div id="feedback-message" class="flash-message fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 text-center"></div>
 
-    <div id="game-container" class="mx-auto flex bg-white border border-gray-200 overflow-hidden">
+    <div id="game-container">
         
-        <div id="circuit-panel" class="w-2/3 p-8 border-r border-gray-200 flex flex-col justify-between">
+        <div id="circuit-panel" class="p-8 rounded-2xl flex flex-col justify-between h-full">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">Simulador de Multímetro Seguro</h1>
-                <p class="text-gray-500 mb-6">Arrastra la sonda roja y gira la perilla para medir.</p>
+                <h1 class="text-3xl font-bold text-gray-100 mb-2">Simulador de Multímetro Avanzado</h1>
+                <p class="text-gray-400 mb-6">Arrastra las sondas y gira la perilla para medir. Activa el sonido para una mejor experiencia.</p>
 
-                <svg id="circuit-svg" viewBox="0 0 600 300" class="w-full h-auto bg-white border border-gray-300 rounded-lg shadow-inner">
-                    <rect x="50" y="50" width="500" height="200" fill="#E5E7EB" rx="10"/>
-                    <rect x="70" y="80" width="40" height="100" fill="#FBBF24" rx="5"/>
-                    <text x="90" y="140" fill="#1F2937" font-size="12" text-anchor="middle">12 V</text>
-                    <rect x="150" y="130" width="100" height="20" fill="#EF4444" rx="5"/>
-                    <text x="200" y="145" fill="#1F2937" font-size="12" text-anchor="middle">100 Ω</text>
-                    <rect x="350" y="130" width="100" height="20" fill="#10B981" rx="5"/>
-                    <text x="400" y="145" fill="#1F2937" font-size="12" text-anchor="middle">50 Ω</text>
-                    <circle id="targetA" class="target" cx="110" cy="180" r="12" data-type="V" data-value="12.0" data-label="Punto A"/>
-                    <text x="110" y="205" fill="#1F2937" font-size="14" text-anchor="middle">A</text>
-                    <circle id="targetB" class="target" cx="250" cy="140" r="12" data-type="V" data-value="8.0" data-label="Punto B"/>
-                    <text x="250" y="165" fill="#1F2937" font-size="14" text-anchor="middle">B</text>
-                    <circle id="targetC" class="target" cx="450" cy="140" r="12" data-type="R" data-value="150" data-label="Punto C"/>
-                    <text x="450" y="165" fill="#1F2937" font-size="14" text-anchor="middle">C</text>
-                    <circle id="targetGND" class="target" cx="70" cy="180" r="12" data-type="GND" data-value="0.0" data-label="GND"/>
-                    <text x="70" y="205" fill="#1F2937" font-size="14" text-anchor="middle">GND</text>
+                <svg id="circuit-svg" viewBox="0 0 600 400" class="w-full h-auto bg-[#0d1117] border-2 border-gray-700 rounded-lg shadow-inner">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <rect x="50" y="150" width="60" height="120" fill="#4B5563" rx="5"/>
+                    <rect x="55" y="155" width="50" height="110" fill="#374151" rx="3"/>
+                    <text x="80" y="215" fill="#FBBF24" font-size="16" font-weight="bold" text-anchor="middle">12 V</text>
+                    <circle cx="80" cy="130" r="10" fill="#111827" stroke="#EF4444" stroke-width="2"/>
+                    <text x="80" y="120" fill="#EF4444" font-size="12" text-anchor="middle">+</text>
+                    <circle cx="80" cy="290" r="10" fill="#111827" stroke="#9CA3AF" stroke-width="2"/>
+                    
+                    <path d="M 80 130 H 180" stroke="#9CA3AF" stroke-width="3" fill="none"/>
+                    <path d="M 80 290 H 520 V 180" stroke="#9CA3AF" stroke-width="3" fill="none"/>
+                    
+                    <path d="M 80 130 H 180" stroke="#FBBF24" stroke-width="2" fill="none" class="wire-pulse" filter="url(#glow)"/>
+
+                    <rect x="180" y="120" width="120" height="20" fill="#EF4444" rx="5"/>
+                    <text x="240" y="135" fill="#FFFFFF" font-size="12" text-anchor="middle">100 Ω</text>
+                    <path d="M 300 130 H 400" stroke="#9CA3AF" stroke-width="3" fill="none"/>
+                    
+                    <rect x="400" y="170" width="120" height="20" fill="#10B981" rx="5"/>
+                    <text x="460" y="185" fill="#FFFFFF" font-size="12" text-anchor="middle">50 Ω</text>
+
+                    <circle id="targetA" class="target" cx="180" cy="130" r="12" data-type="V" data-value="12.0" data-label="Punto A"/>
+                    <text x="180" y="105" fill="#E5E7EB" font-size="14" text-anchor="middle">A</text>
+                    
+                    <circle id="targetB" class="target" cx="400" cy="130" r="12" data-type="V" data-value="8.0" data-label="Punto B"/>
+                    <text x="400" y="105" fill="#E5E7EB" font-size="14" text-anchor="middle">B</text>
+                    
+                    <circle id="targetC" class="target" cx="400" cy="180" r="12" data-type="R" data-value="50" data-label="Punto C"/>
+                    <text x="400" y="215" fill="#E5E7EB" font-size="14" text-anchor="middle">C</text>
+                    
+                    <circle id="targetGND" class="target" cx="80" cy="290" r="12" data-type="GND" data-value="0.0" data-label="GND"/>
+                    <text x="80" y="325" fill="#E5E7EB" font-size="14" text-anchor="middle">GND</text>
                 </svg>
             </div>
             <div class="mt-8">
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">Instrucciones</h3>
-                <ul class="list-disc list-inside text-sm text-gray-600">
-                    <li>Voltaje (V): Mide entre dos puntos del circuito.</li>
-                    <li>Resistencia (Ω): Mide en un circuito **SIN ENERGÍA**.</li>
-                    <li class="font-bold text-red-500">Advertencia: Medir voltaje en modo Amperaje (A) quemará el fusible.</li>
+                <h3 class="text-xl font-semibold text-gray-300 mb-2">Instrucciones</h3>
+                <ul class="list-disc list-inside text-sm text-gray-400 space-y-1">
+                    <li>Gira la perilla para seleccionar una función.</li>
+                    <li>Arrastra las puntas de las sondas a los puntos de medición (A, B, C, GND).</li>
+                    <li class="font-bold text-yellow-400">Medir Resistencia (Ω): Teóricamente, el circuito debe estar sin energía.</li>
+                    <li class="font-bold text-red-500">Advertencia: Medir Voltaje (V) en modo Amperaje (A) quemará el fusible.</li>
                 </ul>
             </div>
         </div>
 
-        <div id="multimeter-panel" class="w-1/3 p-6 flex flex-col items-center bg-gray-100">
-            <h2 class="text-2xl font-bold text-gray-700 mb-4">Multímetro Digital</h2>
-            <svg viewBox="0 0 300 350" class="w-full h-auto">
-                <rect x="20" y="20" width="260" height="310" rx="20" fill="#374151" stroke="#1F2937" stroke-width="4"/>
-                <rect x="40" y="40" width="220" height="70" rx="5" id="lcd-display"/>
-                <text x="150" y="88" id="lcd-text" text-anchor="middle">OFF</text>
-                <circle cx="150" cy="200" r="60" fill="#1F2937" stroke="#4B5563" stroke-width="3"/>
-                <circle cx="150" cy="200" r="50" fill="#9CA3AF"/>
-                <text x="180" y="130" font-size="14" fill="white">V~</text>
-                <text x="210" y="170" font-size="14" fill="white">V</text>
-                <text x="210" y="235" font-size="14" fill="white">Ω</text>
-                <text x="180" y="275" font-size="14" fill="white">A</text>
-                <g id="dial-indicator" class="multimeter-dial" transform="rotate(270, 150, 200)">
-                    <rect x="140" y="145" width="20" height="55" fill="#DC2626" rx="5"/>
+        <div id="multimeter-panel" class="p-6 flex flex-col items-center justify-center">
+             <svg viewBox="0 0 300 450" class="w-full h-auto" style="filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));">
+                <defs>
+                    <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4B5563;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#1F2937;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+
+                <rect x="10" y="10" width="280" height="430" rx="30" fill="url(#bodyGradient)" />
+                <rect x="15" y="15" width="270" height="420" rx="25" fill="none" stroke="#111827" stroke-width="2"/>
+                
+                <rect x="35" y="35" width="230" height="90" rx="5" fill="#2D3748" />
+                <rect x="40" y="40" width="220" height="80" rx="3" fill="#9AE6B4" style="filter: inset(0 2px 4px rgba(0,0,0,0.5));"/>
+                <text x="150" y="98" id="lcd-text" text-anchor="middle">OFF</text>
+
+                <text x="150" y="175" text-anchor="middle" font-size="18" fill="#FBBF24" font-weight="bold">V~</text>
+                <text x="225" y="225" text-anchor="middle" font-size="18" fill="white" font-weight="bold">V-</text>
+                <text x="225" y="325" text-anchor="middle" font-size="18" fill="#6EE7B7" font-weight="bold">Ω</text>
+                <text x="75" y="325" text-anchor="middle" font-size="18" fill="#F87171" font-weight="bold">A-</text>
+                <text x="75" y="225" text-anchor="middle" font-size="18" fill="#9CA3AF" font-weight="bold">OFF</text>
+                
+                <g id="dial-group" class="multimeter-dial">
+                    <!-- CORREGIDO: Círculo invisible para capturar eventos de arrastre -->
+                    <circle cx="150" cy="270" r="75" fill="transparent"/>
+                    <circle cx="150" cy="270" r="70" fill="#374151" stroke="#111827" stroke-width="2"/>
+                    <circle cx="150" cy="270" r="65" fill="#1F2937"/>
+                    <polygon points="150,200 147,220 153,220" fill="#DC2626"/>
                 </g>
-                <circle cx="110" cy="295" r="15" fill="#262626" id="com-port"/>
-                <circle cx="190" cy="295" r="15" fill="#DC2626" id="main-port"/>
+
+                <circle cx="90" cy="390" r="15" fill="#111827" id="com-port"/>
+                <text x="90" y="425" text-anchor="middle" font-size="12" fill="white">COM</text>
+                
+                <circle cx="210" cy="390" r="15" fill="#111827" id="main-port"/>
+                <text x="210" y="425" text-anchor="middle" font-size="12" fill="white">VΩmA</text>
             </svg>
         </div>
 
         <svg id="probe-svg" class="absolute w-full h-full top-0 left-0 pointer-events-none">
-            <line id="probeBlackLine" stroke="#111827" stroke-width="2.5"/>
-            <circle id="probeBlackTip" class="probe-tip" fill="#111827" r="5"/>
+            <defs>
+                <filter id="cableShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.5" />
+                </filter>
+            </defs>
+            <line id="probeBlackLine" stroke="#111827" stroke-width="4" filter="url(#cableShadow)"/>
+            <circle id="probeBlackTip" class="probe-tip" fill="#374151" stroke="#111827" r="8"/>
             
-            <line id="probeRedLine" stroke="#DC2626" stroke-width="2.5"/>
-             <circle id="probeRedTip" class="probe probe-tip" fill="#DC2626" r="5" style="pointer-events: all;"/>
+            <line id="probeRedLine" stroke="#DC2626" stroke-width="4" filter="url(#cableShadow)"/>
+            <circle id="probeRedTip" class="probe probe-tip" fill="#F87171" stroke="#DC2626" r="8" style="pointer-events: all;"/>
+
+            <circle id="spark" cx="0" cy="0" r="5" fill="yellow" opacity="0" filter="url(#glow)"/>
         </svg>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        await Tone.start();
         gsap.registerPlugin(Draggable);
 
-        // --- ELEMENTOS DEL DOM ---
-        const dialIndicator = document.getElementById('dial-indicator');
+        const dialGroup = document.getElementById('dial-group');
         const lcdText = document.getElementById('lcd-text');
         const targets = Array.from(document.querySelectorAll('.target'));
         const feedbackMessage = document.getElementById('feedback-message');
@@ -137,101 +241,120 @@
         const probeBlackLine = document.getElementById('probeBlackLine');
         const mainPort = document.getElementById('main-port');
         const comPort = document.getElementById('com-port');
+        const spark = document.getElementById('spark');
 
-        // --- ESTADO DE LA SIMULACIÓN ---
-        let currentFunction = 'OFF';
-        let connectedTargets = { red: null, black: 'targetGND' };
+        const dialClick = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.02, sustain: 0, release: 0.1 } }).toDestination();
+        const connectSound = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+        const errorSound = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 } }).toDestination();
+        
+        let state = {
+            currentFunction: 'OFF',
+            connectedTargets: { red: null, black: 'targetGND' },
+            dialAngle: -90
+        };
+        const dialPositions = { 'OFF': -90, 'V~': -45, 'V-': 45, 'Ω': 135, 'A-': -135 };
+        const dialPositionsArray = Object.values(dialPositions);
 
-        // --- FUNCIONES ---
         const getAbsCoords = (element) => {
             const rect = element.getBoundingClientRect();
-            return {
-                x: rect.left + rect.width / 2 + window.scrollX,
-                y: rect.top + rect.height / 2 + window.scrollY
-            };
+            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
         }
 
-        function showFeedback(message, type) {
+        function showFeedback(message, type = 'info') {
             feedbackMessage.textContent = message;
-            feedbackMessage.className = 'flash-message fixed top-4 right-4 p-4 rounded-lg shadow-xl text-white z-50 flash-visible';
-            const colorClass = type === 'success' ? 'bg-green-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-red-600';
+            feedbackMessage.className = 'flash-message fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 text-center flash-visible';
+            const colorClass = { success: 'bg-green-500', warning: 'bg-yellow-500 text-black', error: 'bg-red-600', info: 'bg-blue-500' }[type];
             feedbackMessage.classList.add(colorClass);
-
-            gsap.to(feedbackMessage, {
-                opacity: 0, y: -10, duration: 0.5, delay: 3,
-                onComplete: () => feedbackMessage.className = 'flash-message fixed top-4 right-4 p-4 rounded-lg shadow-xl text-white z-50'
-            });
+            gsap.to(feedbackMessage, { opacity: 0, y: -20, duration: 0.4, delay: 2.5 });
         }
         
-        function performMeasurement() {
-            // Lógica de medición (sin cambios)
-            if (currentFunction === 'OFF') { lcdText.textContent = 'OFF'; return; }
-            if (!connectedTargets.red || !connectedTargets.black) { lcdText.textContent = '---'; return; }
+        function animateLCD(text) {
+            gsap.to(lcdText, { opacity: 0, duration: 0.1, onComplete: () => {
+                lcdText.textContent = text;
+                gsap.to(lcdText, { opacity: 1, duration: 0.1 });
+            }});
+        }
+        
+        function playSpark(x, y) {
+            gsap.set(spark, { attr: { cx: x, cy: y } });
+            gsap.fromTo(spark, { opacity: 1, scale: 0.5 }, { opacity: 0, scale: 2, duration: 0.3, ease: 'power2.out' });
+        }
 
-            const targetRed = document.getElementById(connectedTargets.red);
-            const targetBlack = document.getElementById(connectedTargets.black);
+        function performMeasurement() {
+            if (state.currentFunction === 'OFF') { animateLCD('OFF'); return; }
+            if (!state.connectedTargets.red || !state.connectedTargets.black) { animateLCD('----'); return; }
+
+            const targetRed = document.getElementById(state.connectedTargets.red);
+            const targetBlack = document.getElementById(state.connectedTargets.black);
             
             const valueRed = parseFloat(targetRed.dataset.value), typeRed = targetRed.dataset.type;
             const valueBlack = parseFloat(targetBlack.dataset.value), typeBlack = targetBlack.dataset.type;
 
-            if (connectedTargets.red === connectedTargets.black) { lcdText.textContent = currentFunction === 'Ω' ? "0.00 Ω" : "0.00 V"; return; }
-            if (currentFunction === 'A' && (typeRed === 'V' || typeBlack === 'V')) {
-                gsap.to(probeRedTip, { fill: '#FFD700', repeat: 5, yoyo: true, duration: 0.1 });
-                lcdText.textContent = "FUSE";
-                showFeedback("¡FUSIBLE QUEMADO! No se mide voltaje en modo Amperaje.", 'error'); return;
+            if (state.connectedTargets.red === state.connectedTargets.black) {
+                animateLCD(state.currentFunction === 'Ω' ? "0.00 Ω" : "0.00 V");
+                return;
             }
-            if (currentFunction === 'V' || currentFunction === 'V~') {
+            if (state.currentFunction === 'A-' && (typeRed === 'V' || typeBlack === 'V')) {
+                animateLCD("FUSE");
+                showFeedback("¡FUSIBLE QUEMADO! No se mide voltaje en modo Amperaje.", 'error');
+                errorSound.triggerAttackRelease('C3', '0.2s');
+                gsap.to("#multimeter-panel", { x: '+=5', yoyo: true, repeat: 5, duration: 0.08 });
+                return;
+            }
+            if (state.currentFunction === 'V-' || state.currentFunction === 'V~') {
                 if ((typeRed === 'V' || typeRed === 'GND') && (typeBlack === 'V' || typeBlack === 'GND')) {
-                    lcdText.textContent = `${Math.abs(valueRed - valueBlack).toFixed(2)} V`;
-                } else { lcdText.textContent = "OL"; }
+                    animateLCD(`${Math.abs(valueRed - valueBlack).toFixed(2)} V`);
+                } else { animateLCD("OL"); }
                 return;
             }
-            if (currentFunction === 'Ω') {
+            if (state.currentFunction === 'Ω') {
                 if (typeRed === 'R' && typeBlack === 'GND') {
-                    lcdText.textContent = `${valueRed.toFixed(1)} Ω`;
+                    animateLCD(`${valueRed.toFixed(1)} Ω`);
                 } else if (typeRed === 'V' || typeBlack === 'V') {
-                    lcdText.textContent = "OL";
+                    animateLCD("OL");
                     showFeedback("¡ERROR! Mide resistencia solo en circuitos SIN energía.", 'warning');
-                } else { lcdText.textContent = "OL"; }
+                    errorSound.triggerAttackRelease('A3', '0.1s', '+0.1');
+                } else { animateLCD("OL"); }
                 return;
             }
-            lcdText.textContent = "---";
+            animateLCD("----");
         }
 
-        // --- INTERACCIONES ---
-        Draggable.create(dialIndicator, {
+        Draggable.create(dialGroup, {
             type: "rotation",
-            bounds: { minRotation: 270, maxRotation: 420 },
-            liveSnap: true,
-            snap: [270, 300, 330, 360 + 30, 360 + 60],
+            inertia: true,
             onDragEnd: function() {
-                let r = this.rotation % 360;
-                r = r < 0 ? r + 360 : r;
-                let fn = 'OFF';
-                if (r >= 290 && r < 315) fn = 'V~';
-                else if (r >= 315 && r < 345) fn = 'V';
-                else if (r >= 15 && r < 45) fn = 'Ω';
-                else if (r >= 45 && r < 75) fn = 'A';
-                if (fn !== currentFunction) {
-                    currentFunction = fn;
-                    showFeedback(`Función: ${currentFunction}`, 'warning');
+                let newRotation = gsap.utils.snap(dialPositionsArray, this.rotation);
+                
+                if (state.dialAngle !== newRotation) {
+                    state.dialAngle = newRotation;
+                    for (const key in dialPositions) {
+                        if (dialPositions[key] === newRotation) {
+                            state.currentFunction = key;
+                            break;
+                        }
+                    }
+                    dialClick.triggerAttackRelease("C5", "8n");
+                    showFeedback(`Función: ${state.currentFunction}`, 'info');
                     performMeasurement();
                 }
+                
+                gsap.to(this.target, { rotation: state.dialAngle, duration: 0.4, ease: "elastic.out(1, 0.75)" });
             }
         });
 
         Draggable.create(probeRedTip, {
-            bounds: window,
-            onPress: function() { gsap.to(this.target, { attr: { r: 8 }, duration: 0.1 }); },
+            bounds: "#game-container",
+            onPress: function() { gsap.to(this.target, { attr: { r: 12 }, duration: 0.1, ease: 'power2.out' }); },
             onDrag: function() {
                 const portCoords = getAbsCoords(mainPort);
                 gsap.set(probeRedLine, { attr: { x1: portCoords.x, y1: portCoords.y, x2: this.pointerX, y2: this.pointerY } });
             },
             onRelease: function() {
-                gsap.to(this.target, { attr: { r: 5 }, duration: 0.1 });
-                if (connectedTargets.red) document.getElementById(connectedTargets.red).classList.remove('target-connected');
+                gsap.to(this.target, { attr: { r: 8 }, duration: 0.2, ease: 'power2.out' });
+                if (state.connectedTargets.red) document.getElementById(state.connectedTargets.red).classList.remove('target-connected-red');
                 
-                let closestTarget = null, minDistance = 40;
+                let closestTarget = null, minDistance = 50;
                 targets.forEach(target => {
                     const targetCoords = getAbsCoords(target);
                     const distance = Math.hypot(this.pointerX - targetCoords.x, this.pointerY - targetCoords.y);
@@ -242,22 +365,23 @@
                 });
 
                 if (closestTarget) {
-                    connectedTargets.red = closestTarget.id;
-                    closestTarget.classList.add('target-connected');
+                    connectSound.triggerAttackRelease("G5", "8n");
+                    state.connectedTargets.red = closestTarget.id;
+                    closestTarget.classList.add('target-connected-red');
                     const targetCoords = getAbsCoords(closestTarget);
-                    gsap.to(this.target, { attr: { cx: targetCoords.x, cy: targetCoords.y }, duration: 0.2 });
-                    gsap.to(probeRedLine, { attr: { x2: targetCoords.x, y2: targetCoords.y }, duration: 0.2 });
+                    playSpark(targetCoords.x, targetCoords.y);
+                    gsap.to(this.target, { attr: { cx: targetCoords.x, cy: targetCoords.y }, duration: 0.2, ease: "power2.out" });
+                    gsap.to(probeRedLine, { attr: { x2: targetCoords.x, y2: targetCoords.y }, duration: 0.2, ease: "power2.out" });
                 } else {
-                    connectedTargets.red = null;
+                    state.connectedTargets.red = null;
                     const portCoords = getAbsCoords(mainPort);
-                    gsap.to(this.target, { attr: { cx: portCoords.x, cy: portCoords.y }, duration: 0.3 });
-                    gsap.to(probeRedLine, { attr: { x2: portCoords.x, y2: portCoords.y }, duration: 0.3 });
+                    gsap.to(this.target, { attr: { cx: portCoords.x, cy: portCoords.y }, duration: 0.3, ease: "elastic.out(1, 0.5)" });
+                    gsap.to(probeRedLine, { attr: { x2: portCoords.x, y2: portCoords.y }, duration: 0.3, ease: "elastic.out(1, 0.5)" });
                 }
                 performMeasurement();
             }
         });
 
-        // --- INICIALIZACIÓN ---
         function updateProbePositions() {
             const mainPortCoords = getAbsCoords(mainPort);
             const comPortCoords = getAbsCoords(comPort);
@@ -266,16 +390,27 @@
             gsap.set(probeBlackTip, { attr: { cx: gndTargetCoords.x, cy: gndTargetCoords.y } });
             gsap.set(probeBlackLine, { attr: { x1: comPortCoords.x, y1: comPortCoords.y, x2: gndTargetCoords.x, y2: gndTargetCoords.y } });
 
-            if (!connectedTargets.red) {
-                gsap.set(probeRedTip, { attr: { cx: mainPortCoords.x, cy: mainPortCoords.y } });
-                gsap.set(probeRedLine, { attr: { x1: mainPortCoords.x, y1: mainPortCoords.y, x2: mainPortCoords.x, y2: mainPortCoords.y } });
-            }
+            const redTarget = state.connectedTargets.red ? document.getElementById(state.connectedTargets.red) : mainPort;
+            const redTargetCoords = getAbsCoords(redTarget);
+            gsap.set(probeRedTip, { attr: { cx: redTargetCoords.x, cy: redTargetCoords.y } });
+            gsap.set(probeRedLine, { attr: { x1: mainPortCoords.x, y1: mainPortCoords.y, x2: redTargetCoords.x, y2: redTargetCoords.y } });
         }
 
         function initialize() {
-            document.getElementById('targetGND').classList.add('target-connected');
+            document.getElementById('targetGND').classList.add('target-connected-black');
+            
+            // CORREGIDO: Aplicamos la rotación inicial y el origen con GSAP para mayor fiabilidad
+            gsap.set(dialGroup, { 
+                rotation: state.dialAngle, 
+                transformOrigin: "150px 270px" 
+            });
+
             updateProbePositions();
             window.addEventListener('resize', updateProbePositions);
+            
+            gsap.from("#circuit-panel", { x: -200, opacity: 0, duration: 0.8, ease: 'power2.out' });
+            gsap.from("#multimeter-panel", { x: 200, opacity: 0, duration: 0.8, ease: 'power2.out' });
+            
             showFeedback("Simulador listo. ¡A medir!", 'success');
         }
 

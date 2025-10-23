@@ -5,28 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bienvenido Administrador</title>
     <link rel="stylesheet" href="/static/css/stile_inadmin.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #inactivityModal .modal-header { background-color: #ffc107; color: #333; }
+        /* Footer visible por defecto */
+    </style>
 </head>
 <body>
-    
+
     <header>
         <div class="menu container">
-            <!-- 🔑 CORREGIDO: Vuelve al menú principal del Admin (Refresh) -->
             <a href="{{ url_for('interface_admin') }}" class="logo">Instituto Tecnológico de Saltillo</a>
             <input type="text" id="menu">
-            <label for="menu">
-                <img src="/static/sources/menu.png" class="menu-icono" alt="">
-                
-            </label>
+            <label for="menu"> <img src="/static/sources/menu.png" class="menu-icono" alt=""></label>
             <nav class="navbar">
                 <ul>
-                    <!-- 🔑 CORREGIDO: Vuelve al menú principal del Admin (Refresh) -->
                     <li><a href="{{ url_for('interface_admin') }}">Inicio</a></li>
                     <li><a href="{{ url_for('prestamos') }}">Prestamos</a></li>
                     <li><a href="{{ url_for('inventario') }}">Inventario</a></li>
                     <li><a href="{{ url_for('reportes') }}">Generar reportes</a></li>
                     <li><a href="{{ url_for('gestion_auxiliares') }}">Gestión de auxiliares</a></li>
                     <li><a href="{{ url_for('gestion_danos') }}">Daños</a></li>
-                    <!-- ❌ ELIMINADO de aquí: El botón se mueve al final del cuerpo -->
                 </ul>
             </nav>
         </div>
@@ -34,58 +33,204 @@
             <div class="content">
                 <h1>Laboratorio de Electrónica / Analógica</h1>
                 <p>Bienvenido Administrador 💻</p>
-                <!-- 🔗 Botón Contacto -->
                 <a href="{{ url_for('soporte') }}" class="btn-1">Contacto</a>
             </div>
             <img class="banner" src="/static/sources/itislogo.png" alt="">
-            </div>
+        </div>
     </header>
     <main class="info container">
         <div class="box">
             <img src="/static/sources/prestamos.png" alt="">
             <h3>Prestamos</h3>
-            <div class="description-content"> <!-- ESTA LÍNEA ES CRUCIAL -->
-                <p>Este módulo permite registrar, modificar y controlar el flujo de entrada y salida de todo el material solicitado por los alumnos.</p>
-            </div>
+            <div class="description-content"><p>Este módulo permite registrar, modificar y controlar el flujo de entrada y salida de todo el material solicitado por los alumnos.</p></div>
             <a href="{{ url_for('prestamos') }}" class="btn-1">IR</a>
         </div>
         <div class="box">
             <img src="/static/sources/inventario.png" alt="">
             <h3>Inventario</h3>
-            <div class="description-content"> <!-- ESTA LÍNEA ES CRUCIAL -->
-                <p>Accede al inventario central para dar de alta, modificar y eliminar materiales. Controla el stock total, disponible y dañado.</p>
-            </div>
+            <div class="description-content"><p>Accede al inventario central para dar de alta, modificar y eliminar materiales. Controla el stock total, disponible y dañado.</p></div>
             <a href="{{ url_for('inventario') }}" class="btn-1">IR</a>
         </div>
         <div class="box">
             <img src="/static/sources/reportes.png" alt="">
             <h3>Reportes</h3>
-            <div class="description-content"> <!-- ESTA LÍNEA ES CRUCIAL -->
-                <p>Muestra el panel de control con estadísticas de uso de material, actividad auxiliar, y los principales materiales solicitados y dañados.</p>
-            </div>
+            <div class="description-content"><p>Muestra el panel de control con estadísticas de uso de material, actividad auxiliar, y los principales materiales solicitados y dañados.</p></div>
             <a href="{{ url_for('reportes') }}" class="btn-1">IR</a>
         </div>
         <div class="box">
             <img class="gestion" src="/static/sources/gestion-aux.png" alt="">
             <h3>Gestión de Auxiliares</h3>
-            <div class="description-content"> <!-- ESTA LÍNEA ES CRUCIAL -->
-                <p>Administra las cuentas de los auxiliares de laboratorio. Puedes crear nuevos usuarios y gestionar el acceso y los permisos de inicio de sesión.</p>
-            </div>
+            <div class="description-content"><p>Administra las cuentas de los auxiliares de laboratorio. Puedes crear nuevos usuarios y gestionar el acceso y los permisos de inicio de sesión.</p></div>
             <a href="{{ url_for('gestion_auxiliares') }}" class="btn-1">IR</a>
         </div>
         <div class="box">
             <img class="daño" src="/static/sources/chat_8532893.png" alt="">
             <h3>Daños</h3>
-            <div class="description-content"> <!-- ESTA LÍNEA ES CRUCIAL -->
-                <p>Gestiona los registros de material dañado o extraviado. Permite marcar la reposición por parte del alumno para actualizar el inventario total.</p>
-            </div>
+            <div class="description-content"> <p>Gestiona los registros de material dañado o extraviado. Permite marcar la reposición por parte del alumno para actualizar el inventario total.</p></div>
             <a href="{{ url_for('gestion_danos') }}" class="btn-1">IR</a>
         </div>
     </main>
 
-    <!-- 🌟 NUEVO: Contenedor para el botón de Cerrar Sesión fijo -->
     <div class="logout-fixed">
-        <a href="{{ url_for('login') }}" class="btn-logout">Cerrar Sesión</a>
+        <a href="{{ url_for('logout') }}" class="btn-logout">Cerrar Sesión</a>
     </div>
+
+    <!-- Modal de Advertencia de Inactividad (CON BOTONES) -->
+    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Tu sesión está a punto de expirar debido a inactividad.</p>
+                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                    <p>Realiza alguna acción (clic, mover mouse) o haz clic en "Continuar Sesión" para evitar ser desconectado.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión Ahora</button>
+                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script Corregido v3: Timer de Inactividad (CON BOTONES Y RESET CORRECTO) -->
+    <script>
+        const inactivityLimitSeconds = {{ inactivity_limit | default(300) }};
+        const warningTimeSeconds = 60;
+
+        let inactivityTimer; // Timer principal (setTimeout)
+        let warningTimer;    // Timer de cuenta regresiva del modal (setInterval)
+        let countdownValue;  // Segundos restantes mostrados en el modal
+        let inactivityModal; // Instancia del modal de Bootstrap
+        let isWarningModalShown = false; // Flag para saber si el modal está visible
+
+        // Inicializa la instancia del modal de Bootstrap
+        function initializeModalInstance() {
+             if (!inactivityModal) {
+                 const modalElement = document.getElementById('inactivityModal');
+                 if(modalElement){
+                     inactivityModal = new bootstrap.Modal(modalElement, {
+                         backdrop: 'static', keyboard: false });
+                 } else { console.error("Modal element #inactivityModal not found!"); }
+            }
+        }
+
+        // Función principal que se llama con cualquier actividad del usuario
+        function handleUserActivity() {
+            // Siempre limpia el timer principal anterior
+            clearTimeout(inactivityTimer);
+
+            // Si el modal de advertencia estaba visible, ocúltalo
+            if (isWarningModalShown) {
+                //console.log("Activity detected while modal is shown. Hiding modal.");
+                hideInactivityWarning();
+                // OJO: No llamamos a keepalive aquí, la interacción normal lo hará implícitamente al cargar la siguiente página o al hacer clic en botones que hagan requests.
+                // Si la "actividad" es solo mover el mouse sin hacer clic en nada, no es necesario hacer un keepalive extra.
+            }
+
+            // Inicia/reinicia el timer principal que disparará la advertencia
+           // console.log("Resetting main inactivity timer.");
+            inactivityTimer = setTimeout(showInactivityWarning, (inactivityLimitSeconds - warningTimeSeconds) * 1000);
+        }
+
+
+        // Muestra el modal de advertencia e inicia la cuenta regresiva
+        function showInactivityWarning() {
+           // console.log("Showing inactivity warning modal.");
+            isWarningModalShown = true;
+            countdownValue = warningTimeSeconds;
+
+            const timeLeftElement = document.getElementById('inactiveTimeLeft');
+            if(timeLeftElement) timeLeftElement.textContent = countdownValue;
+            else return; // Salir si no se encuentra el elemento del contador
+
+            initializeModalInstance(); // Asegura que la instancia exista
+            if (inactivityModal) {
+                try {
+                    inactivityModal.show(); // Muestra el modal
+                } catch(e) { console.error("Error showing modal:", e); return; }
+            } else { return; } // Salir si el modal no se pudo inicializar
+
+            clearInterval(warningTimer); // Limpia timer de cuenta regresiva anterior por si acaso
+            warningTimer = setInterval(() => {
+                countdownValue--;
+                 if(timeLeftElement) timeLeftElement.textContent = countdownValue;
+                if (countdownValue <= 0) {
+                    forceLogout(); // Cierra sesión si el contador llega a 0
+                }
+            }, 1000); // Actualiza cada segundo
+        }
+
+        // Oculta el modal y detiene la cuenta regresiva
+        function hideInactivityWarning() {
+            if (isWarningModalShown && inactivityModal) {
+               // console.log("Hiding inactivity warning modal.");
+                 try {
+                     const modalElement = document.getElementById('inactivityModal');
+                     const existingModalInstance = bootstrap.Modal.getInstance(modalElement);
+                     // Solo oculta si la instancia existe Y el modal está actualmente mostrado ('show')
+                     if (modalElement && existingModalInstance && modalElement.classList.contains('show')) {
+                          existingModalInstance.hide();
+                     }
+                 } catch (e) { console.error("Error hiding modal:", e); }
+            }
+             isWarningModalShown = false; // Marca como no visible
+             clearInterval(warningTimer); // Detiene la cuenta regresiva
+        }
+
+
+        // Función llamada por el botón "Continuar Sesión"
+        async function resetInactivityTimer() {
+           // console.log("User clicked 'Continue Session'. Hiding modal, calling keepalive, resetting client timer.");
+            hideInactivityWarning(); // Oculta el modal inmediatamente
+
+             // Llama a /keepalive para resetear el timer del servidor Flask
+             try {
+                 const response = await fetch("{{ url_for('keepalive') }}");
+                 if (!response.ok) {
+                     // Si la respuesta no es OK (ej. 401 Unauthorized), la sesión ya expiró en el servidor
+                     console.warn("Server session seems expired. Redirecting to login.");
+                     forceLogout(); // Redirige a logout
+                     return; // No intentes reiniciar el timer local si falló
+                 }
+                 // Si keepalive fue exitoso, reinicia el timer del cliente explícitamente
+                 //console.log("Keepalive successful. Restarting client timer.");
+                 handleUserActivity(); // Llama a la función principal de actividad para reiniciar
+             } catch (error) {
+                 console.error("Error calling keepalive:", error);
+                 // Como fallback, reinicia el timer local de todos modos
+                 handleUserActivity();
+             }
+        }
+
+        // Función para forzar el cierre de sesión
+        function forceLogout() {
+           // console.log("Logging out due to inactivity or button press.");
+            clearTimeout(inactivityTimer); // Limpia timer principal
+            clearInterval(warningTimer);   // Limpia timer de advertencia
+            // Redirige a la ruta de logout de Flask
+            window.location.href = "{{ url_for('logout') }}?reason=inactivity";
+        }
+
+        // Eventos que detectan actividad del usuario y llaman a handleUserActivity
+        document.addEventListener('click', handleUserActivity, true);
+        document.addEventListener('mousemove', handleUserActivity, true);
+        document.addEventListener('keypress', handleUserActivity, true);
+        document.addEventListener('scroll', handleUserActivity, true);
+
+        // Inicia el ciclo cuando la página carga
+        document.addEventListener('DOMContentLoaded', () => {
+             initializeModalInstance(); // Prepara la instancia del modal por si se necesita
+             handleUserActivity();      // Inicia el primer timer
+        });
+
+    </script>
+
 </body>
 </html>
+
+

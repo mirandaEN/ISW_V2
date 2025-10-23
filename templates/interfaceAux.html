@@ -5,26 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bienvenido Auxiliar</title>
     <link rel="stylesheet" href="/static/css/stile_inadmin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     
     <header>
         <div class="menu container">
-            <!-- 🔑 CORREGIDO: Vuelve al menú principal del Auxiliar (Refresh) -->
             <a href="{{ url_for('interface_aux') }}" class="logo">Instituto Tecnológico de Saltillo</a>
             <input type="text" id="menu">
             <label for="menu">
                 <img src="/static/sources/menu.png" class="menu-icono" alt="">
-                
             </label>
             <nav class="navbar">
                 <ul>
-                    <!-- 🔑 CORREGIDO: Vuelve al menú principal del Auxiliar (Refresh) -->
                     <li><a href="{{ url_for('interface_aux') }}">Inicio</a></li>
                     <li><a href="{{ url_for('prestamos') }}">Prestamos</a></li>
                     <li><a href="{{ url_for('inventario') }}">Inventario</a></li>
                     <li><a href="{{ url_for('gestion_danos') }}">Daños</a></li>
-                </ul>
+                    
+                    {% if login_time %}
+                    <li style="color: #6d0a0a; padding: 14px 20px; font-size: 0.9em; align-self: center;">
+                        <i class="fas fa-clock"></i> Sesión: 
+                        <span id="session-timer" style="font-weight: bold;">00:00:00</span>
+                    </li>
+                    {% endif %}
+                    </ul>
             </nav>
         </div>
         <div class="header-content container">
@@ -54,7 +59,7 @@
         <div class="box">
             <img class="daño" src="/static/sources/chat_8532893.png" alt="">
             <h3>Daños</h3>
-            <div class="description-content"> <!-- ESTA LÍNEA ES CRUCIAL -->
+            <div class="description-content">
                 <p>Gestiona los registros de material dañado o extraviado. Permite marcar la reposición por parte del alumno para actualizar el inventario total.</p>
             </div>
             <a href="{{ url_for('gestion_danos') }}" class="btn-1">IR</a>
@@ -63,5 +68,46 @@
     <div class="logout-fixed">
         <a href="{{ url_for('logout') }}" class="btn-logout">Cerrar Sesión</a>
     </div>
-</body>
+
+
+    <script>
+    // Revisa si el elemento del timer y la variable de Flask existen
+    const timerElement = document.getElementById('session-timer');
+    const loginTimeISO = '{{ login_time | safe }}'; 
+
+    if (timerElement && loginTimeISO && loginTimeISO !== 'None') {
+        
+        // 1. Convierte el string de la hora de login (de Flask) en un objeto Date de JS
+        const loginTime = new Date(loginTimeISO);
+
+        // 2. Función que se ejecutará cada segundo
+        function updateSessionTimer() {
+            // Obtiene la hora actual
+            const now = new Date();
+            
+            // Calcula los segundos totales que han pasado
+            const elapsedSeconds = Math.floor((now - loginTime) / 1000);
+            
+            // 3. Convierte los segundos a formato HH:MM:SS
+            const hours = Math.floor(elapsedSeconds / 3600);
+            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const seconds = elapsedSeconds % 60;
+            
+            // Añade un '0' al inicio si es menor de 10 (ej. 09:05:01)
+            const formattedHours = String(hours).padStart(2, '0');
+            const formattedMinutes = String(minutes).padStart(2, '0');
+            const formattedSeconds = String(seconds).padStart(2, '0');
+            
+            // 4. Actualiza el texto en el HTML
+            timerElement.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        }
+
+        // 5. Inicia el temporizador. Llama a la función 'updateSessionTimer' cada 1000ms (1 segundo)
+        setInterval(updateSessionTimer, 1000);
+        
+        // Llama la función una vez al cargar la página
+        updateSessionTimer();
+    }
+    </script>
+    </body>
 </html>

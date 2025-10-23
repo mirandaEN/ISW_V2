@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes - Laboratorio</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Iconos de FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
         .main-header { max-width: 1400px; margin: 0 auto 30px auto; background: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #005a9c; }
@@ -19,6 +21,7 @@
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; max-width: 1400px; margin: 20px auto; }
         .card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.07); }
         .card h3 { margin-top: 0; font-size: 1.2em; color: #005a9c; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .card h3 i { margin-right: 8px; color: #007bff; } /* Estilo para íconos en títulos */
         .kpi-card { text-align: center; }
         .kpi-value { font-size: 2.5em; font-weight: 700; color: #005a9c; }
         .kpi-label { font-size: 1em; color: #6c757d; margin-top: 5px; }
@@ -27,6 +30,52 @@
         .list .value { font-weight: 600; background-color: #920000; color: white; padding: 3px 8px; border-radius: 10px; font-size: 0.9em; }
         .list .date { font-size: 0.85em; color: #888; }
         .grid-col-span-2 { grid-column: span 2; }
+        
+        .table-wrapper {
+            max-height: 400px; 
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .report-table th, .report-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .report-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #343a40;
+            position: sticky; 
+            top: 0;
+        }
+        .report-table tr:last-child td {
+            border-bottom: none;
+        }
+        .report-table tr:hover {
+            background-color: #fdfdfd;
+        }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-dot.Activo { background-color: #ffc107; }
+        .status-dot.Devuelto { background-color: #28a745; }
+
+        /* --- ESTILO NUEVO PARA EL TIMER DE ADMIN --- */
+        .list .timer {
+            background-color: #28a745; /* Verde */
+            color: white;
+            min-width: 70px;
+            text-align: center;
+        }
+        /* --- FIN ESTILO NUEVO --- */
+
+        /* Media query para asegurar que grid-col-span-2 funcione */
+        @media (min-width: 768px) { /* Ajusta este breakpoint si es necesario */
+           .grid-col-span-2 { grid-column: span 2; } 
+        }
         @media (max-width: 1200px) { .grid-col-span-2 { grid-column: span 1; } }
     </style>
 </head>
@@ -41,20 +90,52 @@
             </div>
         </div>
         <div class="header-actions">
-            <a href="{{ url_for('interface_admin') }}">Volver al Panel</a>
+            <a href="{{ url_for('interface_admin') }}">Regresar</a>
             <a href="{{ url_for('descargar_reporte_excel') }}" class="excel-btn">Descargar Reporte en Excel</a>
         </div>
     </header>
 
     <div class="dashboard-grid">
-        <!-- KPI: Tiempo Promedio de Préstamo -->
+    
+        <!-- Tarjeta KPI 1: Préstamos Activos (Ahora) -->
         <div class="card kpi-card">
-            <h3>Tiempo Promedio de Préstamo</h3>
-            <div class="kpi-value">{{ datos.tiempo_promedio_prestamo }}</div>
-            <div class="kpi-label">Minutos</div>
+            <h3>Préstamos Activos (Ahora)</h3>
+            <div class="kpi-value">{{ datos.activos_ahora }}</div>
+            <div class="kpi-label">Materiales en uso</div>
         </div>
 
-        <!-- Tabla: Préstamos Vencidos -->
+        <!-- Tarjeta KPI 2: Total de Préstamos (Hoy) -->
+        <div class="card kpi-card">
+            <h3>Total de Préstamos (Hoy)</h3>
+            <div class="kpi-value">{{ datos.total_prestamos_hoy }}</div>
+            <div class="kpi-label">Vales generados hoy</div>
+        </div>
+        
+        <!-- --- TARJETA MODIFICADA (TIMER) --- -->
+        <!-- ✅ CORRECCIÓN: Se añadió la clase grid-col-span-2 -->
+        <div class="card grid-col-span-2">
+            <h3><i class="fas fa-user-clock"></i> Auxiliares Activos</h3>
+            <ul id="lista-auxiliares-activos" class="list">
+                <!-- Los datos se insertan desde Flask -->
+                {% if datos.auxiliares_activos %}
+                    {% for aux in datos.auxiliares_activos %}
+                    <li>
+                        <span>{{ aux.USUARIO }}</span>
+                        <!-- El JS leerá 'data-login-time' para iniciar el contador -->
+                        <span class="value timer" data-login-time="{{ aux.FECHA_HORA }}">
+                            Calculando...
+                        </span>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li style="justify-content: center;">No hay auxiliares activos.</li>
+                {% endif %}
+            </ul>
+        </div>
+        <!-- --- FIN TARJETA MODIFICADA --- -->
+
+
+        <!-- Préstamos Vencidos -->
         <div class="card">
             <h3>Alumnos con Préstamos Vencidos</h3>
             {% if datos.prestamos_vencidos %}
@@ -71,19 +152,54 @@
             {% endif %}
         </div>
 
-        <!-- Gráfico: Top 5 Materiales Más Pedidos -->
+        <!--Top 5 Materiales Más Pedidos -->
         <div class="card">
             <h3>Top 5 Materiales Más Pedidos</h3>
             <canvas id="topMaterialesChart"></canvas>
         </div>
         
-        <!-- Gráfico: Préstamos por Hora (Hoy) -->
+        <!-- Préstamos Realizados Hoy (Detalle) -->
         <div class="card grid-col-span-2">
-            <h3>Préstamos por Hora (Día de Hoy)</h3>
-            <canvas id="prestamosHoraChart"></canvas>
+            <h3>Préstamos Realizados Hoy (Detalle)</h3>
+            <div class="table-wrapper">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID Vale</th>
+                            <th>Hora</th>
+                            <th>Alumno</th>
+                            <th>No. Control</th>
+                            <th>Auxiliar</th>
+                            <th>Estatus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if datos.prestamos_de_hoy %}
+                            {% for prestamo in datos.prestamos_de_hoy %}
+                            <tr>
+                                <td>{{ prestamo.ID_PRESTAMO }}</td>
+                                <td>{{ prestamo.FECHA_HORA[11:19] }}</td>
+                                <td>{{ prestamo.ALUMNO }}</td>
+                                <td>{{ prestamo.NUMEROCONTROL }}</td>
+                                <td>{{ prestamo.AUXILIAR }}</td>
+                                <td>
+                                    <span class="status-dot {{ prestamo.ESTATUS }}"></span>
+                                    {{ prestamo.ESTATUS }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align: center;">No se han registrado préstamos hoy.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Tabla: Top 5 Semestres -->
+
+        <!--Top 5 Semestres -->
         <div class="card">
             <h3>Top 5 Semestres (Más Préstamos)</h3>
             {% if datos.top_semestres %}
@@ -97,7 +213,7 @@
             {% endif %}
         </div>
 
-        <!-- Tabla: Materiales más Dañados -->
+        <!--Materiales más Dañados -->
         <div class="card">
             <h3>Top 5 Materiales Más Dañados</h3>
             {% if datos.top_danos %}
@@ -111,7 +227,7 @@
             {% endif %}
         </div>
 
-        <!-- Tabla: Stock Muerto -->
+        <!--Stock Muerto -->
         <div class="card">
             <h3>Materiales Nunca Prestados (Stock Muerto)</h3>
             {% if datos.stock_muerto %}
@@ -125,7 +241,7 @@
             {% endif %}
         </div>
         
-        <!-- Tabla: Logins Fallidos de Auxiliares -->
+        <!--Logins Fallidos de Auxiliares -->
         <div class="card">
             <h3>Intentos de Login Fallidos (Auxiliares)</h3>
             {% if datos.logins_fallidos %}
@@ -143,70 +259,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Datos para el gráfico de préstamos por hora
-            const prestamosData = {{ datos.prestamos_por_hora | tojson | safe }};
-            const labels = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00');
-            const data = Array(24).fill(0);
-            const auxiliaresPorHora = Array(24).fill(''); // Nuevo array para los nombres de auxiliares
-
-            if (prestamosData) {
-                prestamosData.forEach(item => {
-                    const hourIndex = parseInt(item.HORA, 10);
-                    if (hourIndex >= 0 && hourIndex < 24) {
-                        data[hourIndex] = item.TOTAL;
-                        auxiliaresPorHora[hourIndex] = item.AUXILIARES || ''; // Guardamos los nombres
-                    }
-                });
-            }
-
-            const ctx = document.getElementById('prestamosHoraChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Número de Préstamos',
-                        data: data,
-                        backgroundColor: 'rgba(0, 90, 156, 0.6)',
-                        borderColor: 'rgba(0, 90, 156, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                // Esta función personaliza el texto del tooltip
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ' + context.parsed.y;
-                                    }
-                                    const index = context.dataIndex;
-                                    const auxiliares = auxiliaresPorHora[index];
-                                    if (auxiliares) {
-                                        // Devuelve un array de strings para un tooltip multilínea
-                                        return [label, 'Auxiliares: ' + auxiliares];
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
+            
             // Datos para el gráfico de Top Materiales Pedidos
             const topMaterialesData = {{ datos.top_materiales_pedidos | tojson | safe }};
             if (topMaterialesData && topMaterialesData.length > 0) {
@@ -242,6 +295,47 @@
                     }
                 });
             }
+
+            // --- SCRIPT NUEVO PARA EL TIMER DEL ADMIN ---
+            function updateAllTimers() {
+                // 1. Busca todos los spans que tienen la clase 'timer' y el atributo 'data-login-time'
+                const timerElements = document.querySelectorAll('.timer[data-login-time]');
+                
+                timerElements.forEach(timerElement => {
+                    const loginTimeString = timerElement.getAttribute('data-login-time');
+                    if (!loginTimeString) return;
+
+                    // 2. Convierte el string de Oracle (ej: "2025-10-21 23:30:00.0") a un objeto Date de JS
+                    // Reemplazamos el espacio por una 'T' para compatibilidad
+                    const loginTime = new Date(loginTimeString.replace(' ', 'T'));
+                    const now = new Date();
+                    
+                    // 3. Calcula el tiempo transcurrido
+                    const elapsedSeconds = Math.floor((now - loginTime) / 1000);
+                    
+                    if (elapsedSeconds < 0) {
+                        timerElement.textContent = "Error: Reloj";
+                        return;
+                    }
+
+                    const hours = Math.floor(elapsedSeconds / 3600);
+                    const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                    const seconds = elapsedSeconds % 60;
+                    
+                    const formattedHours = String(hours).padStart(2, '0');
+                    const formattedMinutes = String(minutes).padStart(2, '0');
+                    const formattedSeconds = String(seconds).padStart(2, '0');
+                    
+                    // 4. Actualiza el HTML
+                    timerElement.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+                });
+            }
+
+            // Inicia el intervalo para que se actualice cada segundo
+            setInterval(updateAllTimers, 1000);
+            // Ejecuta la función una vez tan pronto como carga la página
+            updateAllTimers();
+            // --- FIN SCRIPT NUEVO ---
         });
     </script>
 </body>

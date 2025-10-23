@@ -46,6 +46,7 @@ header {
     font-weight: 670;
     font-size: 20px;
     color: rgb(67, 67, 67);
+    text-decoration: none;   
 
 }
 
@@ -60,6 +61,7 @@ header {
     color: rgb(55, 55, 55);
     padding: 20px;
     display: block;
+    text-decoration: none;   
 }
 
 .menu .navbar ul li a:hover{
@@ -138,6 +140,7 @@ header {
     padding: 15px 25px;
     color: white;
     border-radius: 25px;
+    text-decoration: none;   
 }
 .btn-1:hover{
     background-color: #9f9f9f;

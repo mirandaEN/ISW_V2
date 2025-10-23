@@ -71,7 +71,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             height: 100%;
         }
-        /* Estilos para la lista de materiales seleccionados */
         #listaMaterialSeleccionado li {
             display: flex;
             justify-content: space-between;
@@ -80,7 +79,7 @@
             border-bottom: 1px solid #eee;
         }
         .materials-table-container {
-            max-height: 450px;
+            max-height: 380px; /* Reducido para dar espacio a los filtros */
             overflow-y: auto;
         }
         .status-badge {
@@ -106,7 +105,6 @@
             width: 350px;
         }
 
-        /* Estilos para modales de Reporte de Daño */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
         .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
@@ -115,13 +113,38 @@
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
+        
+        .form-control.invalid {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875em;
+            margin-top: 5px;
+            display: none;
+            font-weight: 500;
+        }
+        /* --- NUEVO: Estilos para el filtro de búsqueda --- */
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .filter-container label {
+            font-size: 0.9em;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
     <div class="top-banner">
         <div class="d-flex align-items-center breadcrumb-nav">
-            <!-- Lógica de Regreso Condicional -->
             {% if usuario_rol == 'admin' or usuario_rol == 'jefe' or usuario_rol == '0' %}
                 <a href="{{ url_for('interface_admin') }}">Inicio Admin</a>
             {% elif usuario_rol == 'auxiliar' or usuario_rol == '1' %}
@@ -135,7 +158,6 @@
         <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo Tecnológico Saltillo" class="logo-img">
     </div>
 
-    <!-- Contenedor para mostrar mensajes flash -->
     <div class="flash-messages-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -160,7 +182,12 @@
                     <input type="hidden" name="materiales_seleccionados" id="materialesSeleccionadosInput">
                     <div class="mb-3">
                         <label for="noControl" class="form-label">No. de Control del Alumno *</label>
-                        <input type="text" class="form-control" id="noControl" name="no_control" placeholder="Escribe y presiona Enter para buscar" required>
+                        <input type="text" class="form-control" id="noControl" name="no_control" placeholder="Ej: 22050751 o C22050751" 
+                               required 
+                               pattern="^([A-Z]\d{8}|\d{8})$"
+                               maxlength="9"
+                               title="Formato: 8 números o 1 letra y 8 números.">
+                        <span id="noControl-error" class="error-message">Formato inválido.</span>
                     </div>
                     <div class="row">
                         <div class="col-md-8 mb-3">
@@ -199,7 +226,7 @@
                         </div>
                          <div class="col-md-6 mb-3">
                             <label for="auxiliar" class="form-label">Auxiliar de Laboratorio</label>
-                            <input type="text" class="form-control" id="auxiliar" value="{{ current_user.nombre }}" readonly>
+                            <input type="text" class="form-control" id="auxiliar" value="{{ current_user.nombre if current_user else session.user_nombre }}" readonly>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -219,8 +246,28 @@
             <div class="card-section">
                 <h5><i class="fas fa-boxes"></i> Material Disponible</h5>
                 <hr>
+                <!-- NUEVO: Filtros de búsqueda -->
+                <div class="filter-container">
+                    <label class="fw-bold me-2">Buscar por:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroId" value="id" checked>
+                        <label class="form-check-label" for="filtroId">ID</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroNombre" value="nombre" checked>
+                        <label class="form-check-label" for="filtroNombre">Nombre</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroTipo" value="tipo">
+                        <label class="form-check-label" for="filtroTipo">Tipo</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="filtroMarca" value="marca">
+                        <label class="form-check-label" for="filtroMarca">Marca/Modelo</label>
+                    </div>
+                </div>
                 <div class="input-group mb-3">
-                    <input type="text" id="busquedaMaterial" class="form-control" placeholder="Buscar material por nombre o tipo...">
+                    <input type="text" id="busquedaMaterial" class="form-control" placeholder="Buscar material...">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                 </div>
                 <div class="materials-table-container">
@@ -233,9 +280,12 @@
                             </tr>
                         </thead>
                         <tbody id="tablaMaterialesBody">
-                            <!-- 🔑 CORRECCIÓN APLICADA AQUÍ: Se asegura el uso de nombres en MAYÚSCULAS -->
                             {% for material in materiales_disponibles %}
-                            <tr data-id="{{ material.ID_MATERIAL }}" data-nombre="{{ material.NOMBRE }}" data-disponibles="{{ material.CANTIDAD_DISPONIBLE }}">
+                            <tr data-id="{{ material.ID_MATERIAL }}" 
+                                data-nombre="{{ material.NOMBRE or '' }}" 
+                                data-tipo="{{ material.TIPO or '' }}"
+                                data-marca="{{ material.MARCA_MODELO or '' }}"
+                                data-disponibles="{{ material.CANTIDAD_DISPONIBLE }}">
                                 <td>{{ material.NOMBRE }}</td>
                                 <td>{{ material.CANTIDAD_DISPONIBLE }}</td>
                                 <td><button class="btn btn-sm btn-success btn-agregar-material"><i class="fas fa-plus"></i></button></td>
@@ -304,7 +354,6 @@
         </div>
     </div>
     
-    <!-- Modal para Reportar Daño -->
     <div id="danoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -315,7 +364,6 @@
                 <input type="hidden" id="dano_id_prestamo" name="id_prestamo">
                 <div class="form-group">
                     <label for="dano_material">Material Dañado</label>
-                    <!-- Este select se llena dinámicamente con JS -->
                     <select id="dano_material" name="id_material" class="form-control" required>
                         <option value="">Cargando materiales...</option>
                     </select>
@@ -339,14 +387,48 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-    // Variables globales para la gestión de estado
     let materialesSeleccionados = {};
-    const materialesDisponiblesData = {}; // Para guardar el stock real por ID
+    const materialesDisponiblesData = {};
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function buscarAlumno() {
         const noControlInput = document.getElementById('noControl');
         const nombreAlumnoInput = document.getElementById('nombreAlumno');
         const semestreInput = document.getElementById('semestre');
+        const noControl = noControlInput.value.trim();
+
+        if (noControl && noControlInput.checkValidity()) {
+            nombreAlumnoInput.value = 'Buscando...';
+            semestreInput.value = '';
+            fetch(`/api/alumno/${noControl}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Alumno no encontrado.');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        limpiarDatosAlumno();
+                    } else {
+                        nombreAlumnoInput.value = data.NOMBRE;
+                        semestreInput.value = data.SEMESTRE;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la búsqueda:', error);
+                    alert('Número de control no encontrado o error en la conexión.');
+                    limpiarDatosAlumno();
+                });
+        }
+    }
+    
+    function limpiarDatosAlumno(){
+        document.getElementById('nombreAlumno').value = '';
+        document.getElementById('semestre').value = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const noControlInput = document.getElementById('noControl');
+        const noControlError = document.getElementById('noControl-error');
         const tablaMaterialesBody = document.getElementById('tablaMaterialesBody');
         const listaMaterialSeleccionado = document.getElementById('listaMaterialSeleccionado');
         const materialesSeleccionadosInput = document.getElementById('materialesSeleccionadosInput');
@@ -354,45 +436,64 @@
         const busquedaMaterialInput = document.getElementById('busquedaMaterial');
         const danoMaterialSelect = document.getElementById('dano_material');
         const danoCantidadInput = document.getElementById('dano_cantidad');
+        const checkboxesFiltro = document.querySelectorAll('.filter-container .form-check-input');
 
-
-        // Llenar el mapa de stock disponible
         document.querySelectorAll('#tablaMaterialesBody tr').forEach(fila => {
             const id = fila.dataset.id;
-            const disponibles = parseInt(fila.dataset.disponibles, 10);
-            materialesDisponiblesData[id] = disponibles;
+            if (id) {
+                const disponibles = parseInt(fila.dataset.disponibles, 10);
+                materialesDisponiblesData[id] = disponibles;
+            }
         });
 
+        noControlInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+            if (this.checkValidity()) {
+                noControlInput.classList.remove('invalid');
+                noControlError.style.display = 'none';
+            } else {
+                noControlInput.classList.add('invalid');
+                noControlError.textContent = 'Formato inválido: 8 números o 1 letra y 8 números.';
+                noControlError.style.display = 'block';
+                limpiarDatosAlumno();
+            }
+        });
 
-        // Función para abrir y llenar el modal de Reportar Daño
+        noControlInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                if (this.checkValidity()) {
+                    buscarAlumno();
+                } else {
+                    noControlError.textContent = 'Formato inválido. Por favor, corrígelo antes de buscar.';
+                    noControlError.style.display = 'block';
+                }
+            }
+        });
+
         window.openDanoModal = function(button) {
             const idPrestamo = button.getAttribute('data-id-prestamo');
             document.getElementById('dano_id_prestamo').value = idPrestamo;
             
-            // 1. Limpiar y deshabilitar temporalmente el select
             danoMaterialSelect.innerHTML = '<option value="">Cargando materiales...</option>';
             danoMaterialSelect.disabled = true;
             danoCantidadInput.value = 1;
             danoCantidadInput.max = 1;
 
-
-            // 2. Obtener los materiales específicos de ese préstamo
-            // Esto requiere una llamada AJAX a una nueva ruta en Flask: /api/prestamo/<id_prestamo>/materiales
             fetch(`/api/prestamo/${idPrestamo}/materiales`)
                 .then(response => {
-                    if (!response.ok) throw new Error('Error al obtener materiales del préstamo');
+                    if (!response.ok) throw new Error('Error al obtener materiales.');
                     return response.json();
                 })
                 .then(materiales => {
-                    danoMaterialSelect.innerHTML = '<option value="" selected disabled>Selecciona el material dañado...</option>';
+                    danoMaterialSelect.innerHTML = '<option value="" selected disabled>Selecciona el material...</option>';
                     materiales.forEach(m => {
                         const option = document.createElement('option');
                         option.value = m.ID_MATERIAL;
-                        // Mostrar cuánto de ese material está AÚN activo en el préstamo
                         option.textContent = `${m.NOMBRE} (Activo: ${m.CANTIDAD_PRESTADA})`;
+                        option.dataset.max = m.CANTIDAD_PRESTADA;
                         danoMaterialSelect.appendChild(option);
                     });
-
                     danoMaterialSelect.disabled = false;
                     openModal('danoModal');
                 })
@@ -403,62 +504,19 @@
                 });
         }
         
-        // 3. Establecer la cantidad máxima del material dañado al seleccionar
         danoMaterialSelect.addEventListener('change', function() {
-            const selectedId = this.value;
-            const option = this.querySelector(`option[value="${selectedId}"]`);
-            // Extraer la cantidad activa del texto del option (ej: "Activo: 5")
-            if (option) {
-                const text = option.textContent;
-                const match = text.match(/\(Activo:\s*(\d+)\)/);
-                if (match && match[1]) {
-                    const maxCant = parseInt(match[1], 10);
-                    danoCantidadInput.max = maxCant;
-                    danoCantidadInput.value = 1;
-                    if (maxCant === 0) {
-                        alert("No hay unidades activas restantes para reportar daño en este material.");
-                        danoCantidadInput.value = 0;
-                    }
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.dataset.max) {
+                const maxCant = parseInt(selectedOption.dataset.max, 10);
+                danoCantidadInput.max = maxCant;
+                danoCantidadInput.value = 1;
+                if (maxCant === 0) {
+                    alert("No hay unidades activas para reportar daño.");
+                    danoCantidadInput.value = 0;
                 }
             }
         });
 
-
-        // ✅ --- LÓGICA BUSCAR ALUMNO --- ✅
-        noControlInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const noControl = this.value.trim();
-                if (noControl) {
-                    nombreAlumnoInput.value = 'Buscando...';
-                    semestreInput.value = '';
-
-                    fetch(`/api/alumno/${noControl}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error('Alumno no encontrado o error en el servidor.');
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.error) {
-                                alert(data.error);
-                                nombreAlumnoInput.value = '';
-                                semestreInput.value = '';
-                            } else {
-                                nombreAlumnoInput.value = data.NOMBRE;
-                                semestreInput.value = data.SEMESTRE;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error en la búsqueda:', error);
-                            alert('Número de control no encontrado o error en la conexión.');
-                            nombreAlumnoInput.value = '';
-                            semestreInput.value = '';
-                        });
-                }
-            }
-        });
-        
-        // ✅ --- LÓGICA SELECCIÓN DE MATERIAL --- ✅
         tablaMaterialesBody.addEventListener('click', function(e) {
             if (e.target && e.target.closest('.btn-agregar-material')) {
                 const fila = e.target.closest('tr');
@@ -466,7 +524,7 @@
                 const nombre = fila.dataset.nombre;
                 const maxDisponibles = materialesDisponiblesData[id];
 
-                if (materialesSeleccionados[id] >= maxDisponibles) {
+                if ((materialesSeleccionados[id] || 0) >= maxDisponibles) {
                     alert(`No hay más stock disponible para "${nombre}".`);
                     return;
                 }
@@ -508,8 +566,8 @@
                 }
             }
 
-            if (!hayMaterial) {
-                 listaMaterialSeleccionado.appendChild(placeholderMaterial);
+            if (!hayMaterial && placeholderMaterial) {
+                listaMaterialSeleccionado.appendChild(placeholderMaterial);
             }
 
             materialesSeleccionadosInput.value = JSON.stringify(materialesSeleccionados);
@@ -523,30 +581,44 @@
             }
         });
 
-        // ✅ --- LÓGICA DE BÚSQUEDA/FILTRO DE MATERIAL --- ✅
-        busquedaMaterialInput.addEventListener('keyup', function() {
-            const filtro = this.value.toUpperCase();
+        // --- NUEVO: LÓGICA DE BÚSQUEDA/FILTRO MULTICOLUMNA ---
+        function filtrarMateriales() {
+            const filtroTexto = busquedaMaterialInput.value.toUpperCase();
+            const filtrosActivos = Array.from(checkboxesFiltro)
+                                        .filter(cb => cb.checked)
+                                        .map(cb => cb.value);
+
             const filas = tablaMaterialesBody.getElementsByTagName('tr');
             
             for (let i = 0; i < filas.length; i++) {
-                let textoNombre = filas[i].getElementsByTagName('td')[0].textContent || filas[i].getElementsByTagName('td')[0].innerText;
-                if (textoNombre.toUpperCase().indexOf(filtro) > -1) {
-                    filas[i].style.display = "";
-                } else {
-                    filas[i].style.display = "none";
-                }
-            }
-        });
+                const fila = filas[i];
+                if (!fila.dataset.id) continue; // Saltar si no es una fila de material
 
-        // ✅ --- LÓGICA DE MODALES GENERALES --- ✅
+                let encontrado = false;
+                if (filtrosActivos.length === 0) {
+                    encontrado = true; // Si no hay filtros, mostrar todo
+                } else {
+                    for (const filtro of filtrosActivos) {
+                        const textoCelda = fila.dataset[filtro] || '';
+                        if (textoCelda.toUpperCase().indexOf(filtroTexto) > -1) {
+                            encontrado = true;
+                            break; 
+                        }
+                    }
+                }
+                fila.style.display = encontrado ? "" : "none";
+            }
+        }
+
+        busquedaMaterialInput.addEventListener('keyup', filtrarMateriales);
+        checkboxesFiltro.forEach(cb => cb.addEventListener('change', filtrarMateriales));
+
         window.openModal = function(modalId) {
             document.getElementById(modalId).style.display = "block";
         }
-
         window.closeModal = function(modalId) {
             document.getElementById(modalId).style.display = "none";
         }
-
         window.onclick = function(event) {
             const modals = document.getElementsByClassName('modal');
             for (let i = 0; i < modals.length; i++) {
@@ -559,4 +631,3 @@
     </script>
 </body>
 </html>
-
