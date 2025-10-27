@@ -1,113 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido Auxiliar</title>
-    <link rel="stylesheet" href="/static/css/stile_inadmin.css">
+    <title>Dashboard Auxiliar - LabFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+     <style>
+        #inactivityModal .modal-header { background-color: #ffc107; color: #333; }
+        /* Estilo para el spinner de carga */
+        #mainContentArea .spinner-border { width: 3rem; height: 3rem; }
+    </style>
 </head>
-<body>
-    
-    <header>
-        <div class="menu container">
-            <a href="{{ url_for('interface_aux') }}" class="logo">Instituto Tecnológico de Saltillo</a>
-            <input type="text" id="menu">
-            <label for="menu">
-                <img src="/static/sources/menu.png" class="menu-icono" alt="">
-            </label>
-            <nav class="navbar">
-                <ul>
-                    <li><a href="{{ url_for('interface_aux') }}">Inicio</a></li>
-                    <li><a href="{{ url_for('prestamos') }}">Prestamos</a></li>
-                    <li><a href="{{ url_for('inventario') }}">Inventario</a></li>
-                    <li><a href="{{ url_for('gestion_danos') }}">Daños</a></li>
-                    
-                    {% if login_time %}
-                    <li style="color: #6d0a0a; padding: 14px 20px; font-size: 0.9em; align-self: center;">
-                        <i class="fas fa-clock"></i> Sesión: 
-                        <span id="session-timer" style="font-weight: bold;">00:00:00</span>
-                    </li>
-                    {% endif %}
-                    </ul>
-            </nav>
+<body class="dashboard-layout"> <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('interface_aux') }}" class="logo-text">ITS</a>
         </div>
-        <div class="header-content container">
-            <div class="content">
-                <h1>Laboratorio de Electrónica / Analógica</h1>
-                <p>Bienvenido Auxiliar ⚙️</p>
-                <a href="{{ url_for('soporte') }}" class="btn-1">Contacto</a>
-            </div>
-            <img class="banner" src="/static/sources/itislogo.png" alt="">
-            </div>
-    </header>
-    <main class="info container">
-        <div class="box">
-            <img src="/static/sources/prestamos.png" alt="">
-            <h3>Prestamos</h3>
-            <p>Este módulo permite registrar, modificar y controlar el flujo de entrada y salida de todo el material solicitado por los alumnos.
-            </p>
-            <a href="{{ url_for('prestamos') }}" class="btn-1">IR</a>
+        <ul class="sidebar-nav">
+            <li>
+                <a href="{{ url_for('profile') }}" onclick="event.preventDefault(); loadContent('{{ url_for('profile') }}'); highlightActiveLink(this);">
+                    <i class="fas fa-user-circle nav-icon"></i> Perfil
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('prestamos') }}" onclick="event.preventDefault(); loadContent('{{ url_for('prestamos') }}'); highlightActiveLink(this);">
+                    <i class="fas fa-exchange-alt nav-icon"></i> Préstamos
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('inventario') }}" onclick="event.preventDefault(); loadContent('{{ url_for('inventario') }}'); highlightActiveLink(this);">
+                    <i class="fas fa-boxes nav-icon"></i> Inventario
+                </a>
+            </li>
+             <li>
+                <a href="{{ url_for('gestion_danos') }}" onclick="event.preventDefault(); loadContent('{{ url_for('gestion_danos') }}'); highlightActiveLink(this);">
+                    <i class="fas fa-tools nav-icon"></i> Daños
+                </a>
+            </li>
+             <li>
+                <a href="{{ url_for('soporte') }}" onclick="event.preventDefault(); loadContent('{{ url_for('soporte') }}'); highlightActiveLink(this);">
+                     <i class="fas fa-headset nav-icon"></i> Soporte
+                </a>
+            </li>
+             {% if login_time %} {# Revisa si la variable existe #}
+             <li class="session-timer-item"> <i class="fas fa-clock"></i> Tiempo Sesión:
+                 <span id="session-timer">00:00:00</span>
+             </li>
+             {% endif %}
+        </ul>
+         <div class="sidebar-footer">
+             <a href="{{ url_for('logout') }}" class="btn btn-logout">
+                 <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+             </a>
         </div>
-        <div class="box">
-            <img src="/static/sources/inventario.png" alt="">
-            <h3>Inventario</h3>
-            <p>Accede al inventario central para dar de alta, modificar y eliminar materiales. Controla el stock total, disponible y dañado.
-            </p>
-            <a href="{{ url_for('inventario') }}" class="btn-1">IR</a>
-        </div>
-        <div class="box">
-            <img class="daño" src="/static/sources/chat_8532893.png" alt="">
-            <h3>Daños</h3>
-            <div class="description-content">
-                <p>Gestiona los registros de material dañado o extraviado. Permite marcar la reposición por parte del alumno para actualizar el inventario total.</p>
-            </div>
-            <a href="{{ url_for('gestion_danos') }}" class="btn-1">IR</a>
+    </aside>
+
+    <main class="main-content" id="mainContentArea">
+        <div class="welcome-header">
+            <h1>Bienvenido Auxiliar ⚙️</h1>
+            <p>Panel de control del Laboratorio de Electrónica / Analógica.</p>
         </div>
     </main>
-    <div class="logout-fixed">
-        <a href="{{ url_for('logout') }}" class="btn-logout">Cerrar Sesión</a>
+
+    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                </div>
+                 <div class="modal-body">
+                    <p>Tu sesión está a punto de expirar debido a inactividad.</p>
+                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión Ahora</button>
+                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar Sesión</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Revisa si el elemento del timer y la variable de Flask existen
-    const timerElement = document.getElementById('session-timer');
-    const loginTimeISO = '{{ login_time | safe }}'; 
+        // --- SCRIPT DEL TIMER DE SESIÓN ACTIVA ---
+        const timerElement = document.getElementById('session-timer');
+        // Usamos la variable de sesión directamente aquí también para más seguridad
+        const loginTimeISO = '{{ session.get("login_time_iso", "None") | safe }}';
+        if (timerElement && loginTimeISO && loginTimeISO !== 'None') {
+            const loginTime = new Date(loginTimeISO);
+            function updateSessionTimer() {
+                const now = new Date();
+                const elapsedSeconds = Math.floor((now - loginTime) / 1000);
+                const hours = Math.floor(elapsedSeconds / 3600);
+                const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                const seconds = elapsedSeconds % 60;
+                const formattedHours = String(hours).padStart(2, '0');
+                const formattedMinutes = String(minutes).padStart(2, '0');
+                const formattedSeconds = String(seconds).padStart(2, '0');
+                timerElement.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+            }
+            setInterval(updateSessionTimer, 1000);
+            updateSessionTimer(); // Llama una vez al cargar
+        }
+        // --- FIN SCRIPT TIMER SESIÓN ---
+    </script>
+    <script>
+        // --- INICIO SCRIPT INACTIVIDAD ---
+        const inactivityLimitSeconds = {{ inactivity_limit | default(300) }};
+        const warningTimeSeconds = 60;
+        let inactivityTimer, warningTimer, countdownValue, inactivityModal, isWarningModalShown = false;
+        function initializeModalInstance(){if(!inactivityModal){const e=document.getElementById("inactivityModal");e?inactivityModal=new bootstrap.Modal(e,{backdrop:"static",keyboard:!1}):console.error("Modal element #inactivityModal not found!")}}function handleUserActivity(){clearTimeout(inactivityTimer),isWarningModalShown&&hideInactivityWarning(),inactivityTimer=setTimeout(showInactivityWarning,(inactivityLimitSeconds-warningTimeSeconds)*1e3)}function showInactivityWarning(){isWarningModalShown=!0,countdownValue=warningTimeSeconds;const e=document.getElementById("inactiveTimeLeft");if(!e)return;e.textContent=countdownValue,initializeModalInstance();if(!inactivityModal)return;try{inactivityModal.show()}catch(e){return void console.error("Error showing modal:",e)}clearInterval(warningTimer),warningTimer=setInterval(()=>{countdownValue--,e&&(e.textContent=countdownValue),countdownValue<=0&&forceLogout()},1e3)}function hideInactivityWarning(){if(isWarningModalShown&&inactivityModal)try{const e=document.getElementById("inactivityModal"),t=bootstrap.Modal.getInstance(e);e&&t&&e.classList.contains("show")&&t.hide()}catch(e){console.error("Error hiding modal:",e)}isWarningModalShown=!1,clearInterval(warningTimer)}async function resetInactivityTimer(){hideInactivityWarning();try{const e=await fetch("{{ url_for('keepalive') }}");if(!e.ok)return console.warn("Server session seems expired. Redirecting to login."),void forceLogout();handleUserActivity()}catch(e){console.error("Error calling keepalive:",e),handleUserActivity()}}function forceLogout(){clearTimeout(inactivityTimer),clearInterval(warningTimer),window.location.href="{{ url_for('logout') }}?reason=inactivity"}document.addEventListener("click",handleUserActivity,!0),document.addEventListener("mousemove",handleUserActivity,!0),document.addEventListener("keypress",handleUserActivity,!0),document.addEventListener("scroll",handleUserActivity,!0),document.addEventListener("DOMContentLoaded",()=>{initializeModalInstance(),handleUserActivity()});
+        // --- FIN SCRIPT INACTIVIDAD ---
+    </script>
+    <script>
+        const mainContentArea = document.getElementById('mainContentArea');
+        const sidebarLinks = document.querySelectorAll('.sidebar-nav a'); // Selecciona todos los enlaces
 
-    if (timerElement && loginTimeISO && loginTimeISO !== 'None') {
-        
-        // 1. Convierte el string de la hora de login (de Flask) en un objeto Date de JS
-        const loginTime = new Date(loginTimeISO);
-
-        // 2. Función que se ejecutará cada segundo
-        function updateSessionTimer() {
-            // Obtiene la hora actual
-            const now = new Date();
-            
-            // Calcula los segundos totales que han pasado
-            const elapsedSeconds = Math.floor((now - loginTime) / 1000);
-            
-            // 3. Convierte los segundos a formato HH:MM:SS
-            const hours = Math.floor(elapsedSeconds / 3600);
-            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
-            const seconds = elapsedSeconds % 60;
-            
-            // Añade un '0' al inicio si es menor de 10 (ej. 09:05:01)
-            const formattedHours = String(hours).padStart(2, '0');
-            const formattedMinutes = String(minutes).padStart(2, '0');
-            const formattedSeconds = String(seconds).padStart(2, '0');
-            
-            // 4. Actualiza el texto en el HTML
-            timerElement.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        async function loadContent(url) {
+            try {
+                mainContentArea.innerHTML = '<div class="d-flex justify-content-center align-items-center" style="min-height: 300px;"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                // --- AJUSTA ESTE SELECTOR SI ES NECESARIO ---
+                const newContent = doc.querySelector('main') || doc.querySelector('.container-main') || doc.querySelector('.container.main-content') || doc.body; // Busca <main> o clases comunes
+                // --- FIN AJUSTE ---
+                if (newContent) {
+                    mainContentArea.innerHTML = newContent.innerHTML;
+                    executeScriptsInElement(mainContentArea);
+                } else {
+                     mainContentArea.innerHTML = '<div class="alert alert-danger">Error: No se pudo extraer el contenido principal.</div>';
+                }
+            } catch (error) {
+                console.error('Error al cargar el contenido:', error);
+                mainContentArea.innerHTML = `<div class="alert alert-danger">Error al cargar la sección: ${error.message}</div>`;
+            }
         }
 
-        // 5. Inicia el temporizador. Llama a la función 'updateSessionTimer' cada 1000ms (1 segundo)
-        setInterval(updateSessionTimer, 1000);
-        
-        // Llama la función una vez al cargar la página
-        updateSessionTimer();
-    }
+        function highlightActiveLink(clickedLink) {
+            sidebarLinks.forEach(link => link.classList.remove('active'));
+            if (clickedLink) clickedLink.classList.add('active');
+        }
+
+        function executeScriptsInElement(element) {
+            const scripts = element.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                if (oldScript.innerHTML) newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialUrl = "{{ url_for('profile') }}"; // Carga el perfil al inicio
+            const profileLink = document.querySelector('.sidebar-nav a[href="' + initialUrl + '"]');
+            if (initialUrl && profileLink) {
+                 loadContent(initialUrl);
+                 highlightActiveLink(profileLink);
+            } else {
+                 // Si no se carga nada, muestra el mensaje inicial
+                 // (ya está en el HTML por defecto)
+            }
+        });
     </script>
     </body>
 </html>

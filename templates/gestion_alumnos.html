@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Estilos específicos para esta sección (ajustados) */
+        main#gestionAlumnosContent { /* ID para asegurar selección */
+            padding: 1.5rem;
+            /* No necesita fondo blanco si el .main-content ya lo tiene */
+        }
+        main#gestionAlumnosContent h2 { /* Estilo título */
+            color: #343a40; /* Color estándar */
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            font-size: 1.8em;
+        }
+        .table th { background-color: #343a40; color: white; } /* Cabecera oscura como en tu imagen */
+        .table td { vertical-align: middle; }
+        /* Botón regresar eliminado */
+         .flash-messages-container-local { /* Contenedor local por si se carga solo */
+             margin-bottom: 1.5rem;
+         }
+         /* Estilos para el modal de inactividad (se mantiene por si acaso) */
+        #inactivityModal .modal-header { background-color: #ffc107; color: #333; }
+    </style>
+</head>
+<body> <main class="container-fluid main-content" id="gestionAlumnosContent"> <h2 class="mb-4"><i class="fas fa-user-graduate me-2"></i>Gestión de Alumnos</h2>
+
+        <div class="flash-messages-container-local">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-dark"> <tr>
+                                <th>Nombre</th>
+                                <th>N° Control</th>
+                                <th>Correo</th>
+                                <th>Carrera</th>
+                                <th>Sem.</th>
+                                <th>Estatus</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumno in alumnos %}
+                            <tr>
+                                <td>{{ alumno.NOMBRE }}</td>
+                                <td>{{ alumno.NUMEROCONTROL }}</td>
+                                <td>{{ alumno.CORREO }}</td>
+                                <td>{{ alumno.ESPECIALIDAD }}</td>
+                                <td>{{ alumno.SEMESTRE }}</td>
+                                <td>
+                                    {% if alumno.ACTIVO == 1 %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalModificarAlumno"
+                                            data-id="{{ alumno.ID_ALUMNO }}"
+                                            data-nombre="{{ alumno.NOMBRE }}"
+                                            data-nc="{{ alumno.NUMEROCONTROL }}"
+                                            data-correo="{{ alumno.CORREO }}"
+                                            data-carrera="{{ alumno.ESPECIALIDAD }}"
+                                            data-semestre="{{ alumno.SEMESTRE }}">
+                                        <i class="fas fa-edit"></i> Modificar
+                                    </button>
+
+                                    <form action="{{ url_for('desactivar_alumno') }}" method="POST" style="display: inline-block; margin-left: 5px;" class="form-desactivar">
+                                        <input type="hidden" name="id_alumno" value="{{ alumno.ID_ALUMNO }}">
+
+                                        {% if alumno.ACTIVO == 1 %}
+                                            <button type="submit" class="btn btn-warning btn-sm" title="Desactivar Alumno" onclick="return confirm('¿Estás seguro de DESACTIVAR a este alumno? No podrá solicitar préstamos.');">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-success btn-sm" title="Activar Alumno">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted fst-italic py-3">No hay alumnos registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div class="modal fade" id="modalModificarAlumno" tabindex="-1" aria-labelledby="modalModificarLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white"> <h5 class="modal-title" id="modalModificarLabel">Modificar Alumno</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('modificar_alumno') }}" method="POST" novalidate id="formModificarAlumno">
+                    <div class="modal-body">
+                        <input type="hidden" id="modal-id_alumno" name="id_alumno">
+
+                        <div class="mb-3">
+                            <label for="modal-nombre" class="form-label">Nombre Completo</label>
+                            <input type="text" class="form-control" id="modal-nombre" name="nombre" required
+                                   pattern="^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$"
+                                   title="El nombre solo debe contener letras y espacios.">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="modal-nc" class="form-label">Número de Control</label>
+                                <input type="text" class="form-control" id="modal-nc" name="numero_control" required
+                                       pattern="^([A-Z]\d{8}|\d{8})$"
+                                       oninput="this.value = this.value.toUpperCase()"
+                                       title="Formato: 8 dígitos (ej: 21040350) o 1 Letra + 8 dígitos (ej: L21040350).">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="modal-correo" class="form-label">Correo Institucional</label>
+                                <input type="email" class="form-control" id="modal-correo" name="correo" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="modal-carrera" class="form-label">Carrera</label>
+                                <select class="form-select" id="modal-carrera" name="carrera" required>
+                                    <option value="">Selecciona tu carrera</option>
+                                    <option value="ISC">Sistemas</option>
+                                    <option value="II">Industrial</option>
+                                    <option value="IG">Gestión</option>
+                                    <option value="IM">Materiales</option>
+                                    <option value="EL">Electrónica</option>
+                                    <option value="MECA">Mecatrónica</option>
+                                    <option value="ELEC">Eléctrica</option>
+                                    <option value="MEC">Mecánica</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="modal-semestre" class="form-label">Semestre</label>
+                                <select class="form-select" id="modal-semestre" name="semestre" required>
+                                    <option value="">Selecciona tu semestre</option>
+                                    {% for i in range(1,14) %}
+                                        <option value="{{ i }}">{{ i }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Tu sesión está a punto de expirar debido a inactividad.</p>
+                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión Ahora</button>
+                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- INICIO LÓGICA JAVASCRIPT GESTION ALUMNOS ---
+
+        // Función de inicialización
+        function initializeGestionAlumnosScripts() {
+            var modalModificar = document.getElementById('modalModificarAlumno');
+            
+            // Listener para llenar el modal (necesario si se carga por AJAX)
+            if (modalModificar) {
+                // Remover listener previo si existe para evitar duplicados en recargas AJAX
+                modalModificar.removeEventListener('show.bs.modal', fillEditModal); 
+                // Añadir el listener
+                modalModificar.addEventListener('show.bs.modal', fillEditModal);
+            }
+
+            // Podrías añadir aquí listeners para los formularios si necesitas validación extra con JS
+            // o manejo AJAX para los submits (más avanzado)
+            
+            // Ejemplo: Manejo AJAX para desactivar (más avanzado, opcional)
+            /*
+            document.querySelectorAll('.form-desactivar').forEach(form => {
+                form.addEventListener('submit', async function(event) {
+                    event.preventDefault(); // Prevenir envío normal
+                    if (!confirm('¿Estás seguro?')) return; 
+
+                    const formData = new FormData(this);
+                    const url = this.action;
+                    
+                    try {
+                        const response = await fetch(url, { method: 'POST', body: formData });
+                        // Aquí procesarías la respuesta, mostrarías flash y recargarías contenido si es necesario
+                        // Por simplicidad, recargamos la sección actual:
+                         window.loadContent(window.location.pathname); // Asume que loadContent es global
+                    } catch (error) {
+                        console.error("Error al desactivar:", error);
+                        alert("Error al procesar la solicitud.");
+                    }
+                });
+            });
+            */
+
+        } // Fin initializeGestionAlumnosScripts
+
+        // Función separada para llenar el modal
+        function fillEditModal(event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var nombre = button.getAttribute('data-nombre');
+            var nc = button.getAttribute('data-nc');
+            var correo = button.getAttribute('data-correo');
+            var carrera = button.getAttribute('data-carrera');
+            var semestre = button.getAttribute('data-semestre');
+            
+            var modal = event.target; // El modal que disparó el evento
+            modal.querySelector('#modal-id_alumno').value = id;
+            modal.querySelector('#modal-nombre').value = nombre;
+            modal.querySelector('#modal-nc').value = nc;
+            modal.querySelector('#modal-correo').value = correo;
+            modal.querySelector('#modal-carrera').value = carrera;
+            modal.querySelector('#modal-semestre').value = semestre;
+        }
+
+        // Ejecutar scripts al cargar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeGestionAlumnosScripts);
+        } else {
+            initializeGestionAlumnosScripts();
+        }
+
+        // --- FIN LÓGICA JAVASCRIPT ---
+    </script>
+    <script>
+        // --- INICIO SCRIPT INACTIVIDAD ---
+        // (Pega aquí el mismo script de inactividad que tienes en las otras plantillas)
+        // ...
+        const inactivityLimitSeconds = {{ inactivity_limit | default(300) }};
+        const warningTimeSeconds = 60; 
+        let inactivityTimer, warningTimer, countdownValue, inactivityModal, isWarningModalShown = false;
+        function initializeModalInstance(){if(!inactivityModal){const e=document.getElementById("inactivityModal");e?inactivityModal=new bootstrap.Modal(e,{backdrop:"static",keyboard:!1}):console.error("Modal element #inactivityModal not found!")}}function handleUserActivity(){clearTimeout(inactivityTimer),isWarningModalShown&&hideInactivityWarning(),inactivityTimer=setTimeout(showInactivityWarning,(inactivityLimitSeconds-warningTimeSeconds)*1e3)}function showInactivityWarning(){isWarningModalShown=!0,countdownValue=warningTimeSeconds;const e=document.getElementById("inactiveTimeLeft");if(!e)return;e.textContent=countdownValue,initializeModalInstance();if(!inactivityModal)return;try{inactivityModal.show()}catch(e){return void console.error("Error showing modal:",e)}clearInterval(warningTimer),warningTimer=setInterval(()=>{countdownValue--,e&&(e.textContent=countdownValue),countdownValue<=0&&forceLogout()},1e3)}function hideInactivityWarning(){if(isWarningModalShown&&inactivityModal)try{const e=document.getElementById("inactivityModal"),t=bootstrap.Modal.getInstance(e);e&&t&&e.classList.contains("show")&&t.hide()}catch(e){console.error("Error hiding modal:",e)}isWarningModalShown=!1,clearInterval(warningTimer)}async function resetInactivityTimer(){hideInactivityWarning();try{const e=await fetch("{{ url_for('keepalive') }}");if(!e.ok)return console.warn("Server session seems expired. Redirecting to login."),void forceLogout();handleUserActivity()}catch(e){console.error("Error calling keepalive:",e),handleUserActivity()}}function forceLogout(){clearTimeout(inactivityTimer),clearInterval(warningTimer),window.location.href="{{ url_for('logout') }}?reason=inactivity"}document.addEventListener("click",handleUserActivity,!0),document.addEventListener("mousemove",handleUserActivity,!0),document.addEventListener("keypress",handleUserActivity,!0),document.addEventListener("scroll",handleUserActivity,!0),document.addEventListener("DOMContentLoaded",()=>{initializeModalInstance(),handleUserActivity()});
+        // --- FIN SCRIPT INACTIVIDAD ---
+    </script>
+
+</body>
+</html>

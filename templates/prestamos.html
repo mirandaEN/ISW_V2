@@ -1,168 +1,113 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Préstamos - Laboratorio</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Paleta de Colores */
-        :root {
-            --color-principal: #7d0015; /* Vino Tinto */
-            --color-secundario: #a71d2a; /* Rojo un poco más claro */
-            --color-texto-claro: white;
-            --color-activo: #28a745; /* Verde */
-            --color-devuelto: #6c757d; /* Gris */
-            --color-fondo: #f7f9fc;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: var(--color-fondo);
-        }
-        .top-banner {
-            background-color: var(--color-principal);
-            color: var(--color-texto-claro);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: -20px -20px 20px -20px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .logo-img { max-height: 50px; }
-        .breadcrumb-nav a {
-            color: #dee2e6;
-            text-decoration: none;
-            padding: 5px;
-            border-radius: 5px;
-            transition: color 0.2s, background-color 0.2s;
-        }
-        .breadcrumb-nav a:hover {
-            color: var(--color-texto-claro);
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .breadcrumb-nav span {
-            color: #dee2e6;
-            margin: 0 5px;
-        }
-        .breadcrumb-nav .active-page {
-            color: var(--color-texto-claro);
-            font-weight: bold;
-        }
-        .main-title {
-            font-weight: 700;
-            color: rgb(24, 80, 143);
-        }
-        .btn-principal {
-            background-color: var(--color-principal) !important; 
-            border-color: var(--color-principal) !important;
-            color: var(--color-texto-claro) !important;
-            transition: background-color 0.2s;
-        }
-        .btn-principal:hover {
-            background-color: var(--color-secundario) !important;
-        }
-        .card-section {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            height: 100%;
-        }
-        #listaMaterialSeleccionado li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-        .materials-table-container {
-            max-height: 380px; /* Reducido para dar espacio a los filtros */
-            overflow-y: auto;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 0.35em 0.65em;
-            font-size: .75em;
-            font-weight: 700;
-            line-height: 1;
-            color: #fff;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: baseline;
-            border-radius: 50rem;
-        }
-        .status-badge.activo { background-color: var(--color-activo); }
-        .status-badge.devuelto { background-color: var(--color-devuelto); }
-        
-        .flash-messages-container {
-            position: fixed;
-            top: 80px; 
-            right: 20px;
-            z-index: 1050;
-            width: 350px;
-        }
+{% extends "base_dashboard.html" %}
 
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
-        .modal-header h2 { margin: 0; }
-        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
-        
-        .form-control.invalid {
-            border-color: #dc3545;
-            background-color: #f8d7da;
-        }
-        .error-message {
-            color: #dc3545;
-            font-size: 0.875em;
-            margin-top: 5px;
-            display: none;
-            font-weight: 500;
-        }
-        /* --- NUEVO: Estilos para el filtro de búsqueda --- */
-        .filter-container {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        .filter-container label {
-            font-size: 0.9em;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
+{% block title %}Registro de Préstamos{% endblock %}
 
-    <div class="top-banner">
-        <div class="d-flex align-items-center breadcrumb-nav">
-            {% if usuario_rol == 'admin' or usuario_rol == 'jefe' or usuario_rol == '0' %}
-                <a href="{{ url_for('interface_admin') }}">Inicio Admin</a>
-            {% elif usuario_rol == 'auxiliar' or usuario_rol == '1' %}
-                <a href="{{ url_for('interface_aux') }}">Inicio Auxiliar</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Inicio</a>
-            {% endif %}
-            <span>></span>
-            <span class="active-page">Préstamos</span>
-        </div>
-        <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo Tecnológico Saltillo" class="logo-img">
-    </div>
+{% block page_styles %}
+<style>
+    .modal {
+        display: none; /* Oculto por defecto */
+        position: fixed; /* Posición fija */
+        z-index: 1055; /* Encima de otros elementos (Bootstrap usa 1050) */
+        left: 0;
+        top: 0;
+        width: 100%; /* Ancho completo */
+        height: 100%; /* Alto completo */
+        overflow: auto; /* Scroll si el contenido es muy largo */
+        background-color: rgba(0,0,0,0.5); /* Fondo semitransparente */
+        /* Añadir padding para centrar mejor el contenido */
+        padding-top: 50px; 
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto; /* Centrado vertical (aproximado) y horizontal */
+        padding: 25px; /* Más padding interno */
+        border: 1px solid #ddd;
+        border-radius: 8px; /* Bordes redondeados */
+        width: 90%; /* Ancho relativo */
+        max-width: 550px; /* Ancho máximo fijo */
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2); /* Sombra más definida */
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 15px; /* Más espacio */
+        margin-bottom: 20px; /* Espacio antes del formulario */
+        /* Quitar fondo amarillo, hacerlo estándar */
+        background-color: transparent; 
+        color: #333; /* Texto oscuro */
+    }
+    .modal-header h2 { margin: 0; font-size: 1.4em; color: #dc3545; /* Título en rojo */}
+    .close {
+        color: #555; font-size: 1.5rem; /* Tamaño ajustado */
+        font-weight: bold; cursor: pointer; background: none; border: none;
+        padding: 0.5rem 1rem; /* Área de clic más grande */
+        line-height: 1;
+    }
+    .close:hover { color: #000; }
+    /* SOLO estilos MUY específicos de esta página */
+    :root {
+        --prestamos-color-principal: #7d0015; 
+        --prestamos-color-secundario: #a71d2a; 
+        --prestamos-color-activo: #28a745; 
+        --prestamos-color-devuelto: #6c757d; 
+    }
+    
+    /* --- AJUSTES DE DISEÑO --- */
+    main#prestamosContent {
+        padding: 0; /* Padding general */
+    }
+    .content-wrapper-centered { /* Contenedor interno */
+        /* Definimos un ancho razonable para que se vea bien en pantallas grandes */
+        max-width: 1250px; 
+        /* Centrar el contenido dentro del área blanca del main */
+        margin: 20px auto; 
+        /* Añadir padding interno para que no se pegue a los bordes de este contenedor */
+        padding: 1.5rem; /* Aseguramos que no haya margen derecho extra */
+    }
+    .main-title { /* Título principal */
+        font-weight: 700;
+        color: #343a40; 
+        font-size: 1.8em; 
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 10px;
+        text-align: center; /* Centrar el título */
+    }
+    /* --- FIN AJUSTES --- */
 
-    <div class="flash-messages-container">
+    .btn-principal { background-color: var(--prestamos-color-principal) !important; /* ... etc ... */ }
+    .btn-principal:hover { background-color: var(--prestamos-color-secundario) !important; }
+    .card-section { /* ... estilos sin cambios ... */ }
+    #listaMaterialSeleccionado li { /* ... estilos sin cambios ... */ }
+    .materials-table-container { /* ... estilos sin cambios ... */ }
+    .status-badge { /* ... estilos sin cambios ... */ }
+    .status-badge.activo { /* ... */ }
+    .status-badge.devuelto { /* ... */ }
+    .error-message { /* ... estilos sin cambios ... */ }
+    input.invalid + .error-message, input:invalid + .error-message { /* ... */ }
+    input.invalid, input:invalid { /* ... */ }
+    .filter-container { /* ... estilos sin cambios ... */ }
+    .filter-container label { /* ... */ }
+    .modal { /* ... estilos sin cambios ... */ }
+    .modal-content { /* ... */ }
+    .modal-header { /* ... */ }
+    .modal-header h2 { /* ... */ }
+    .close { /* ... */ }
+    .form-group { /* ... */ }
+    .form-group label { /* ... */ }
+    .form-group input, .form-group textarea, .form-group select { /* ... */ }
+     .flash-messages-local { /* ... */ }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="flash-messages-local">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
@@ -171,7 +116,7 @@
         {% endwith %}
     </div>
 
-    <h2 class="main-title mb-4">Registro y Gestión de Préstamos</h2>
+    <h2 class="main-title mb-4"><i class="fas fa-exchange-alt me-2"></i>Registro y Gestión de Préstamos</h2>
 
     <div class="row g-4">
         <div class="col-lg-5">
@@ -182,10 +127,8 @@
                     <input type="hidden" name="materiales_seleccionados" id="materialesSeleccionadosInput">
                     <div class="mb-3">
                         <label for="noControl" class="form-label">No. de Control del Alumno *</label>
-                        <input type="text" class="form-control" id="noControl" name="no_control" placeholder="Ej: 22050751 o C22050751" 
-                               required 
-                               pattern="^([A-Z]\d{8}|\d{8})$"
-                               maxlength="9"
+                        <input type="text" class="form-control" id="noControl" name="no_control" placeholder="Ej: 22050751 o C22050751"
+                               required pattern="^([A-Z]\d{8}|\d{8})$" maxlength="9"
                                title="Formato: 8 números o 1 letra y 8 números.">
                         <span id="noControl-error" class="error-message">Formato inválido.</span>
                     </div>
@@ -203,7 +146,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="materia" class="form-label">Materia *</label>
                             <select class="form-select" id="materia" name="materia" required>
-                                <option value="" selected disabled>Selecciona una materia...</option>
+                                <option value="" selected disabled>Selecciona...</option>
                                 {% for materia in materias %}
                                 <option value="{{ materia.ID_MATERIA }}">{{ materia.NOMBRE_MATERIA }}</option>
                                 {% endfor %}
@@ -212,7 +155,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="maestro" class="form-label">Maestro *</label>
                             <select class="form-select" id="maestro" name="maestro" required>
-                                <option value="" selected disabled>Selecciona un maestro...</option>
+                                <option value="" selected disabled>Selecciona...</option>
                                 {% for maestro in maestros %}
                                 <option value="{{ maestro.ID_MAESTRO }}">{{ maestro.NOMBRE_COMPLETO }}</option>
                                 {% endfor %}
@@ -225,14 +168,14 @@
                             <input type="number" class="form-control" id="mesa" name="mesa" min="1">
                         </div>
                          <div class="col-md-6 mb-3">
-                            <label for="auxiliar" class="form-label">Auxiliar de Laboratorio</label>
-                            <input type="text" class="form-control" id="auxiliar" value="{{ current_user.nombre if current_user else session.user_nombre }}" readonly>
+                            <label for="auxiliar" class="form-label">Auxiliar</label>
+                            <input type="text" class="form-control" id="auxiliar" value="{{ session.user_nombre }}" readonly>
                         </div>
                     </div>
                     <div class="mb-3">
                         <h6>Materiales Seleccionados:</h6>
-                        <ul id="listaMaterialSeleccionado" class="list-unstyled">
-                           <li id="placeholder-material" class="text-muted">Aún no has agregado material.</li>
+                        <ul id="listaMaterialSeleccionado" class="list-unstyled bg-light p-2 rounded" style="min-height: 50px;">
+                           <li id="placeholder-material" class="text-muted fst-italic">Aún no has agregado material.</li>
                         </ul>
                     </div>
                     <div class="d-grid">
@@ -246,55 +189,30 @@
             <div class="card-section">
                 <h5><i class="fas fa-boxes"></i> Material Disponible</h5>
                 <hr>
-                <!-- NUEVO: Filtros de búsqueda -->
                 <div class="filter-container">
                     <label class="fw-bold me-2">Buscar por:</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="filtroId" value="id" checked>
-                        <label class="form-check-label" for="filtroId">ID</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="filtroNombre" value="nombre" checked>
-                        <label class="form-check-label" for="filtroNombre">Nombre</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="filtroTipo" value="tipo">
-                        <label class="form-check-label" for="filtroTipo">Tipo</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="filtroMarca" value="marca">
-                        <label class="form-check-label" for="filtroMarca">Marca/Modelo</label>
-                    </div>
+                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="filtroId" value="id" checked><label class="form-check-label" for="filtroId">ID</label></div>
+                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="filtroNombre" value="nombre" checked><label class="form-check-label" for="filtroNombre">Nombre</label></div>
+                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="filtroTipo" value="tipo"><label class="form-check-label" for="filtroTipo">Tipo</label></div>
+                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="filtroMarca" value="marca"><label class="form-check-label" for="filtroMarca">Marca/Modelo</label></div>
                 </div>
                 <div class="input-group mb-3">
                     <input type="text" id="busquedaMaterial" class="form-control" placeholder="Buscar material...">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                 </div>
                 <div class="materials-table-container">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Disponibles</th>
-                                <th>Acción</th>
-                            </tr>
+                    <table class="table table-hover table-sm"> <thead class="table-light"> <tr><th>Nombre</th><th>Disp.</th><th>Acción</th></tr>
                         </thead>
                         <tbody id="tablaMaterialesBody">
                             {% for material in materiales_disponibles %}
-                            <tr data-id="{{ material.ID_MATERIAL }}" 
-                                data-nombre="{{ material.NOMBRE or '' }}" 
-                                data-tipo="{{ material.TIPO or '' }}"
-                                data-marca="{{ material.MARCA_MODELO or '' }}"
-                                data-disponibles="{{ material.CANTIDAD_DISPONIBLE }}">
+                            <tr data-id="{{ material.ID_MATERIAL }}" data-nombre="{{ material.NOMBRE or '' }}" data-tipo="{{ material.TIPO or '' }}" data-marca="{{ material.MARCA_MODELO or '' }}" data-disponibles="{{ material.CANTIDAD_DISPONIBLE }}">
                                 <td>{{ material.NOMBRE }}</td>
                                 <td>{{ material.CANTIDAD_DISPONIBLE }}</td>
-                                <td><button class="btn btn-sm btn-success btn-agregar-material"><i class="fas fa-plus"></i></button></td>
+                                <td><button class="btn btn-sm btn-success btn-agregar-material" title="Agregar"><i class="fas fa-plus"></i></button></td>
                             </tr>
                             {% endfor %}
-                             {% if not materiales_disponibles %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted">No hay materiales con stock disponible.</td>
-                            </tr>
+                            {% if not materiales_disponibles %}
+                            <tr><td colspan="3" class="text-center text-muted fst-italic py-3">No hay materiales con stock.</td></tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -306,18 +224,11 @@
     <div class="row mt-4">
         <div class="col-12">
              <div class="card-section">
-                <h4 class="main-title">Préstamos Activos del Día</h4>
+                <h4 class="main-title"><i class="fas fa-history me-2"></i>Préstamos Activos del Día</h4>
                 <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Vale</th>
-                                <th>Alumno</th>
-                                <th>Materiales Prestados</th>
-                                <th>Fecha y Hora</th>
-                                <th>Estado</th>
-                                <th>Acción</th>
-                            </tr>
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-light">
+                            <tr><th>Vale</th><th>Alumno</th><th>Materiales</th><th>Fecha/Hora</th><th>Estado</th><th>Acción</th></tr>
                         </thead>
                         <tbody>
                             {% for prestamo in prestamos_activos %}
@@ -328,24 +239,22 @@
                                 <td>{{ prestamo.FECHA_HORA_DISPLAY or prestamo.FECHA_HORA }}</td>
                                 <td><span class="status-badge activo">Activo</span></td>
                                 <td class="text-nowrap">
-                                    <button class="btn btn-sm btn-outline-warning btn-reportar-dano" 
-                                            data-id-prestamo="{{ prestamo.ID_PRESTAMO }}" 
-                                            onclick="openDanoModal(this)">
-                                        <i class="fas fa-exclamation-triangle"></i> Daño
+                                    <button class="btn btn-sm btn-outline-warning btn-reportar-dano"
+                                            data-id-prestamo="{{ prestamo.ID_PRESTAMO }}"
+                                            onclick="openDanoModal(this)" title="Reportar Daño">
+                                        <i class="fas fa-exclamation-triangle"></i>
                                     </button>
                                     <form method="POST" action="{{ url_for('devolver_prestamo') }}" style="display:inline;">
                                         <input type="hidden" name="id_prestamo" value="{{ prestamo.ID_PRESTAMO }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-undo-alt"></i> Devolver
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Devolver Material">
+                                            <i class="fas fa-undo-alt"></i>
                                         </button>
                                     </form>
                                 </td>
                             </tr>
                             {% endfor %}
                             {% if not prestamos_activos %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">No hay préstamos activos registrados hoy.</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center text-muted fst-italic py-3">No hay préstamos activos hoy.</td></tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -353,281 +262,341 @@
              </div>
         </div>
     </div>
-    
+
     <div id="danoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2><i class="fas fa-exclamation-triangle"></i> Reportar Daño</h2>
-                <span class="close" onclick="closeModal('danoModal')">&times;</span>
+                <button type="button" class="close" onclick="closeModal('danoModal')">&times;</button>
             </div>
             <form action="{{ url_for('registrar_dano') }}" method="POST">
                 <input type="hidden" id="dano_id_prestamo" name="id_prestamo">
                 <div class="form-group">
                     <label for="dano_material">Material Dañado</label>
-                    <select id="dano_material" name="id_material" class="form-control" required>
-                        <option value="">Cargando materiales...</option>
+                    <select id="dano_material" name="id_material" class="form-select" required>
+                        <option value="">Cargando...</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="dano_cantidad">Cantidad Dañada</label>
-                    <input type="number" id="dano_cantidad" name="cantidad_danada" min="1" required>
+                    <input type="number" id="dano_cantidad" name="cantidad_danada" class="form-control" min="1" required>
                 </div>
                 <div class="form-group">
-                    <label for="dano_motivo">Motivo del Daño (Obligatorio)</label>
+                    <label for="dano_motivo">Motivo del Daño *</label>
                     <textarea id="dano_motivo" name="motivo" class="form-control" rows="3" required></textarea>
                 </div>
                 <div class="d-grid mt-4">
-                    <button type="submit" class="btn btn-danger btn-principal">Registrar Daño y Separar Stock</button>
+                    <button type="submit" class="btn btn-danger btn-principal">Registrar Daño</button>
                 </div>
             </form>
         </div>
     </div>
+{% endblock %}
 
+{% block page_scripts %}
+<script>
+    // --- INICIO LÓGICA JAVASCRIPT DE PRESTAMOS (v4.3 - Refined Init & Click) ---
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
+    // Variables globales (se reinician en initialize)
     let materialesSeleccionados = {};
-    const materialesDisponiblesData = {};
+    let materialesDisponiblesData = {};
 
-    function buscarAlumno() {
+    // --- Funciones Globales ---
+    window.buscarAlumno = function() {
+        console.log(">>> [buscarAlumno] Iniciando búsqueda...");
         const noControlInput = document.getElementById('noControl');
         const nombreAlumnoInput = document.getElementById('nombreAlumno');
         const semestreInput = document.getElementById('semestre');
+
+        if (!noControlInput || !nombreAlumnoInput || !semestreInput) {
+            console.error(">>> [buscarAlumno] Error: Elementos del formulario no encontrados.");
+            return;
+        }
         const noControl = noControlInput.value.trim();
+        console.log("   - Buscando No. Control:", noControl);
 
         if (noControl && noControlInput.checkValidity()) {
             nombreAlumnoInput.value = 'Buscando...';
             semestreInput.value = '';
             fetch(`/api/alumno/${noControl}`)
                 .then(response => {
-                    if (!response.ok) throw new Error('Alumno no encontrado.');
+                    console.log("   - Respuesta Fetch recibida, status:", response.status);
+                    if (!response.ok) {
+                         return response.json().then(errData => {
+                             throw new Error(errData.error || `Error ${response.status}: ${response.statusText}`);
+                         }).catch(() => { throw new Error(`Error ${response.status}: ${response.statusText}`); });
+                    }
                     return response.json();
                 })
                 .then(data => {
+                    console.log("   - Datos recibidos (JSON):", data);
                     if (data.error) {
                         alert(data.error);
-                        limpiarDatosAlumno();
+                        window.limpiarDatosAlumno();
                     } else {
-                        nombreAlumnoInput.value = data.NOMBRE;
-                        semestreInput.value = data.SEMESTRE;
+                        if (data.hasOwnProperty('NOMBRE') && data.hasOwnProperty('SEMESTRE')) {
+                            nombreAlumnoInput.value = data.NOMBRE || '';
+                            semestreInput.value = data.SEMESTRE || '';
+                            console.log("   - Campos actualizados.");
+                        } else {
+                             console.error(">>> [buscarAlumno] Error: Respuesta JSON no tiene NOMBRE o SEMESTRE.", data);
+                             alert("Error: La respuesta del servidor no tiene el formato esperado.");
+                             window.limpiarDatosAlumno();
+                        }
                     }
                 })
                 .catch(error => {
-                    console.error('Error en la búsqueda:', error);
-                    alert('Número de control no encontrado o error en la conexión.');
-                    limpiarDatosAlumno();
+                    console.error('>>> [buscarAlumno] Error en fetch o procesamiento:', error);
+                    alert(error.message || 'Error en la conexión al buscar alumno.');
+                    window.limpiarDatosAlumno();
                 });
+        } else {
+             console.warn(">>> [buscarAlumno] No. Control inválido, no se busca.");
+             const noControlError = document.getElementById('noControl-error');
+             if (noControlError) { noControlError.textContent = 'Formato inválido.'; noControlError.style.display = 'block'; }
         }
-    }
-    
-    function limpiarDatosAlumno(){
-        document.getElementById('nombreAlumno').value = '';
-        document.getElementById('semestre').value = '';
-    }
+     }; // Fin buscarAlumno
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const noControlInput = document.getElementById('noControl');
-        const noControlError = document.getElementById('noControl-error');
-        const tablaMaterialesBody = document.getElementById('tablaMaterialesBody');
-        const listaMaterialSeleccionado = document.getElementById('listaMaterialSeleccionado');
-        const materialesSeleccionadosInput = document.getElementById('materialesSeleccionadosInput');
-        const placeholderMaterial = document.getElementById('placeholder-material');
-        const busquedaMaterialInput = document.getElementById('busquedaMaterial');
+    window.limpiarDatosAlumno = function(){
+        const nombreInput = document.getElementById('nombreAlumno');
+        const semestreInput = document.getElementById('semestre');
+        if (nombreInput) nombreInput.value = '';
+        if (semestreInput) semestreInput.value = '';
+    }; // Fin limpiarDatosAlumno
+
+    window.openDanoModal = function(button) {
+        const idPrestamo = button.getAttribute('data-id-prestamo');
+        const danoIdPrestamoInput = document.getElementById('dano_id_prestamo');
         const danoMaterialSelect = document.getElementById('dano_material');
         const danoCantidadInput = document.getElementById('dano_cantidad');
-        const checkboxesFiltro = document.querySelectorAll('.filter-container .form-check-input');
 
-        document.querySelectorAll('#tablaMaterialesBody tr').forEach(fila => {
-            const id = fila.dataset.id;
-            if (id) {
-                const disponibles = parseInt(fila.dataset.disponibles, 10);
-                materialesDisponiblesData[id] = disponibles;
-            }
-        });
+        if (!danoIdPrestamoInput || !danoMaterialSelect || !danoCantidadInput) {
+            console.error("openDanoModal: Elementos no encontrados.");
+            return;
+        }
 
-        noControlInput.addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
-            if (this.checkValidity()) {
-                noControlInput.classList.remove('invalid');
-                noControlError.style.display = 'none';
-            } else {
-                noControlInput.classList.add('invalid');
-                noControlError.textContent = 'Formato inválido: 8 números o 1 letra y 8 números.';
-                noControlError.style.display = 'block';
-                limpiarDatosAlumno();
-            }
-        });
+        danoIdPrestamoInput.value = idPrestamo;
+        danoMaterialSelect.innerHTML = '<option value="">Cargando...</option>';
+        danoMaterialSelect.disabled = true;
+        danoCantidadInput.value = 1;
+        danoCantidadInput.max = 1;
 
-        noControlInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); 
-                if (this.checkValidity()) {
-                    buscarAlumno();
-                } else {
-                    noControlError.textContent = 'Formato inválido. Por favor, corrígelo antes de buscar.';
-                    noControlError.style.display = 'block';
-                }
-            }
-        });
-
-        window.openDanoModal = function(button) {
-            const idPrestamo = button.getAttribute('data-id-prestamo');
-            document.getElementById('dano_id_prestamo').value = idPrestamo;
-            
-            danoMaterialSelect.innerHTML = '<option value="">Cargando materiales...</option>';
-            danoMaterialSelect.disabled = true;
-            danoCantidadInput.value = 1;
-            danoCantidadInput.max = 1;
-
-            fetch(`/api/prestamo/${idPrestamo}/materiales`)
-                .then(response => {
-                    if (!response.ok) throw new Error('Error al obtener materiales.');
-                    return response.json();
-                })
-                .then(materiales => {
-                    danoMaterialSelect.innerHTML = '<option value="" selected disabled>Selecciona el material...</option>';
+        fetch(`/api/prestamo/${idPrestamo}/materiales`)
+            .then(response => {
+                if (response.status === 404) return response.json().then(err => { throw new Error(err.error || 'No hay materiales activos.'); });
+                if (!response.ok) throw new Error('Error al obtener materiales.');
+                return response.json();
+            })
+            .then(materiales => {
+                danoMaterialSelect.innerHTML = '<option value="" selected disabled>Selecciona...</option>';
+                if (materiales && materiales.length > 0) {
                     materiales.forEach(m => {
                         const option = document.createElement('option');
                         option.value = m.ID_MATERIAL;
-                        option.textContent = `${m.NOMBRE} (Activo: ${m.CANTIDAD_PRESTADA})`;
+                        option.textContent = `${m.NOMBRE} (Act: ${m.CANTIDAD_PRESTADA})`;
                         option.dataset.max = m.CANTIDAD_PRESTADA;
                         danoMaterialSelect.appendChild(option);
                     });
                     danoMaterialSelect.disabled = false;
-                    openModal('danoModal');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('No se pudo cargar la lista de materiales prestados para este vale.');
-                    closeModal('danoModal');
-                });
-        }
-        
-        danoMaterialSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.dataset.max) {
-                const maxCant = parseInt(selectedOption.dataset.max, 10);
-                danoCantidadInput.max = maxCant;
-                danoCantidadInput.value = 1;
-                if (maxCant === 0) {
-                    alert("No hay unidades activas para reportar daño.");
-                    danoCantidadInput.value = 0;
-                }
-            }
-        });
-
-        tablaMaterialesBody.addEventListener('click', function(e) {
-            if (e.target && e.target.closest('.btn-agregar-material')) {
-                const fila = e.target.closest('tr');
-                const id = fila.dataset.id;
-                const nombre = fila.dataset.nombre;
-                const maxDisponibles = materialesDisponiblesData[id];
-
-                if ((materialesSeleccionados[id] || 0) >= maxDisponibles) {
-                    alert(`No hay más stock disponible para "${nombre}".`);
-                    return;
-                }
-                
-                const cantidadActual = materialesSeleccionados[id] || 0;
-                const cantidadRestante = maxDisponibles - cantidadActual;
-                
-                const cantidadInput = prompt(`¿Qué cantidad de "${nombre}" deseas agregar? (Disponibles: ${cantidadRestante})`, 1);
-                
-                if (cantidadInput) {
-                    const cantidad = parseInt(cantidadInput, 10);
-                    if (!isNaN(cantidad) && cantidad > 0 && cantidad <= cantidadRestante) {
-                        materialesSeleccionados[id] = (materialesSeleccionados[id] || 0) + cantidad;
-                        actualizarListaVisual();
-                    } else {
-                        alert('Cantidad no válida o excede el stock disponible.');
-                    }
-                }
-            }
-        });
-        
-        function actualizarListaVisual() {
-            listaMaterialSeleccionado.innerHTML = '';
-            let hayMaterial = false;
-            
-            for (const id in materialesSeleccionados) {
-                const cantidad = materialesSeleccionados[id];
-                if (cantidad > 0) {
-                    hayMaterial = true;
-                    const filaMaterial = tablaMaterialesBody.querySelector(`tr[data-id='${id}']`);
-                    const nombre = filaMaterial ? filaMaterial.dataset.nombre : 'Material desconocido';
-                    
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>${nombre} <strong>(x${cantidad})</strong></span>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-quitar-material" data-id="${id}">Quitar</button>
-                    `;
-                    listaMaterialSeleccionado.appendChild(li);
-                }
-            }
-
-            if (!hayMaterial && placeholderMaterial) {
-                listaMaterialSeleccionado.appendChild(placeholderMaterial);
-            }
-
-            materialesSeleccionadosInput.value = JSON.stringify(materialesSeleccionados);
-        }
-
-        listaMaterialSeleccionado.addEventListener('click', function(e) {
-            if (e.target && e.target.classList.contains('btn-quitar-material')) {
-                const id = e.target.dataset.id;
-                delete materialesSeleccionados[id];
-                actualizarListaVisual();
-            }
-        });
-
-        // --- NUEVO: LÓGICA DE BÚSQUEDA/FILTRO MULTICOLUMNA ---
-        function filtrarMateriales() {
-            const filtroTexto = busquedaMaterialInput.value.toUpperCase();
-            const filtrosActivos = Array.from(checkboxesFiltro)
-                                        .filter(cb => cb.checked)
-                                        .map(cb => cb.value);
-
-            const filas = tablaMaterialesBody.getElementsByTagName('tr');
-            
-            for (let i = 0; i < filas.length; i++) {
-                const fila = filas[i];
-                if (!fila.dataset.id) continue; // Saltar si no es una fila de material
-
-                let encontrado = false;
-                if (filtrosActivos.length === 0) {
-                    encontrado = true; // Si no hay filtros, mostrar todo
+                    window.openModal('danoModal'); // Llama a función global
                 } else {
-                    for (const filtro of filtrosActivos) {
-                        const textoCelda = fila.dataset[filtro] || '';
-                        if (textoCelda.toUpperCase().indexOf(filtroTexto) > -1) {
-                            encontrado = true;
-                            break; 
-                        }
-                    }
+                    throw new Error('No se encontraron materiales activos.');
                 }
-                fila.style.display = encontrado ? "" : "none";
+            })
+            .catch(error => {
+                console.error('Error modal daño:', error);
+                alert(error.message || 'No se pudo cargar lista.');
+            });
+    }; // Fin openDanoModal
+
+    window.actualizarListaVisual = function() {
+        const listaEl = document.getElementById('listaMaterialSeleccionado');
+        const inputEl = document.getElementById('materialesSeleccionadosInput');
+        const placeholderEl = document.getElementById('placeholder-material');
+        const tablaBodyEl = document.getElementById('tablaMaterialesBody');
+
+        if (!listaEl || !inputEl || !tablaBodyEl) {
+             console.error("actualizarListaVisual: Elementos necesarios no encontrados.");
+             return;
+        }
+
+        listaEl.innerHTML = '';
+        let hayMaterial = false;
+
+        for (const id in materialesSeleccionados) {
+            const cantidad = materialesSeleccionados[id];
+            if (cantidad > 0) {
+                hayMaterial = true;
+                const filaMaterial = tablaBodyEl.querySelector(`tr[data-id='${id}']`);
+                const nombre = filaMaterial ? filaMaterial.dataset.nombre : `ID ${id}`;
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${nombre} <strong>(x${cantidad})</strong></span>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-quitar-material" data-id="${id}">Quitar</button>
+                `;
+                listaEl.appendChild(li);
             }
         }
 
-        busquedaMaterialInput.addEventListener('keyup', filtrarMateriales);
-        checkboxesFiltro.forEach(cb => cb.addEventListener('change', filtrarMateriales));
+        if (placeholderEl) {
+            placeholderEl.style.display = hayMaterial ? 'none' : 'list-item';
+        }
 
-        window.openModal = function(modalId) {
-            document.getElementById(modalId).style.display = "block";
+        inputEl.value = JSON.stringify(materialesSeleccionados);
+     }; // Fin actualizarListaVisual
+
+    window.filtrarMateriales = function() {
+        console.log(">>> [Handler] Filtrando materiales...");
+        const busquedaInput = document.getElementById('busquedaMaterial');
+        const checkboxes = document.querySelectorAll('.filter-container .form-check-input');
+        const tablaBody = document.getElementById('tablaMaterialesBody');
+
+        if (!busquedaInput || !checkboxes || !tablaBody) {
+            console.error("filtrarMateriales: Elementos clave no encontrados.");
+            return;
         }
-        window.closeModal = function(modalId) {
-            document.getElementById(modalId).style.display = "none";
-        }
-        window.onclick = function(event) {
-            const modals = document.getElementsByClassName('modal');
-            for (let i = 0; i < modals.length; i++) {
-                if (event.target == modals[i]) {
-                    modals[i].style.display = "none";
+
+        const filtroTexto = busquedaInput.value.toUpperCase().trim();
+        const filtrosActivos = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        const filas = tablaBody.getElementsByTagName('tr');
+
+        console.log(`   - Texto a buscar: "${filtroTexto}"`);
+        console.log(`   - Filtros activos: [${filtrosActivos.join(', ')}]`);
+
+        let algunaFilaVisible = false;
+
+        for (let i = 0; i < filas.length; i++) {
+            const fila = filas[i];
+            if (!fila.dataset.id) { if (fila.querySelector('td[colspan]')) { fila.style.display = 'none'; } continue; }
+
+            let mostrarFila = false;
+            if (filtroTexto === '') { mostrarFila = true; }
+            else {
+                let columnasABuscar = (filtrosActivos.length > 0) ? filtrosActivos : ['id', 'nombre'];
+                for (const columna of columnasABuscar) {
+                    const textoCelda = (fila.dataset[columna] || '').toUpperCase();
+                    if (textoCelda.includes(filtroTexto)) { mostrarFila = true; break; }
                 }
             }
+             console.log(`      - Fila ${fila.dataset.id}: ${mostrarFila ? 'Mostrar' : 'Ocultar'} (Resultado búsqueda).`);
+            fila.style.display = mostrarFila ? "" : "none";
+            if (mostrarFila) algunaFilaVisible = true;
         }
-    });
-    </script>
-</body>
-</html>
+        console.log("   - Filtro completado.");
+    }; // Fin filtrarMateriales
+
+    window.openModal = function(modalId) { const m=document.getElementById(modalId); if(m){ try { bootstrap.Modal.getOrCreateInstance(m).show(); } catch(e){ console.warn("Fallback openModal"); m.style.display="block";}} };
+    window.closeModal = function(modalId) { const m=document.getElementById(modalId); if(m){ try { const i=bootstrap.Modal.getInstance(m); if(i) i.hide(); else m.style.display="none"; } catch(e){ console.warn("Fallback closeModal"); m.style.display="none";}} };
+
+    // --- Funciones Handler ---
+    function handleNoControlInput(event) {
+        const input = event.target; const errorSpan = document.getElementById('noControl-error'); input.value = input.value.toUpperCase();
+        if (input.checkValidity()) { input.classList.remove('invalid'); if (errorSpan) errorSpan.style.display = 'none'; }
+        else { input.classList.add('invalid'); if (errorSpan) { errorSpan.textContent = 'Inválido'; errorSpan.style.display = 'block'; } window.limpiarDatosAlumno(); }
+    }
+    function handleNoControlEnter(event) {
+        console.log(">>> [Handler] Enter presionado en No. Control");
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const esValido = event.target.checkValidity();
+            console.log("   - checkValidity() =", esValido);
+            if (esValido) { window.buscarAlumno(); }
+            else { const e = document.getElementById('noControl-error'); if(e) { e.textContent = 'Inválido'; e.style.display = 'block'; } }
+        }
+    }
+    function handleDanoMaterialChange(event) {
+        console.log(">>> [Handler] Cambió Select Daño");
+        const select = event.target; const cantidadInput = document.getElementById('dano_cantidad'); const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.dataset.max && cantidadInput) {
+            const maxCant = parseInt(selectedOption.dataset.max, 10); cantidadInput.max = maxCant; cantidadInput.value = (maxCant > 0) ? 1 : 0;
+            if (maxCant <= 0) { alert("No hay unidades activas."); }
+        }
+    }
+    function handleAgregarMaterialClick(event) {
+        console.log(">>> [Handler] Click detectado en tabla. Target:", event.target);
+        const button = event.target.closest('.btn-agregar-material');
+        if (button) {
+            console.log("   - Click fue en botón Agregar (+) o su icono.");
+            const fila = button.closest('tr');
+            if (!fila) { console.error("   - Error Crítico: No se encontró la fila (tr)."); return; }
+            console.log("   - Fila encontrada:", fila);
+
+            const id = fila.dataset.id; const nombre = fila.dataset.nombre;
+            const maxDisponiblesAttr = fila.dataset.disponibles;
+            const maxDisponibles = parseInt(maxDisponiblesAttr, 10);
+            const cantidadSeleccionada = materialesSeleccionados[id] || 0;
+
+            if (isNaN(maxDisponibles)) { console.error(`   - Error Crítico: No se pudo parsear data-disponibles ('${maxDisponiblesAttr}') para ID ${id}.`); alert("Error al leer stock."); return; }
+            console.log(`   - Datos: ID=${id}, Nombre=${nombre}, MaxDisp=${maxDisponibles}, YaSelecc=${cantidadSeleccionada}`);
+
+            if (cantidadSeleccionada >= maxDisponibles) { alert(`No hay más stock para "${nombre}". (${cantidadSeleccionada}/${maxDisponibles})`); console.warn(`   - Intento fallido (Sin stock): ID=${id}`); return; }
+
+            const cantidadRestante = maxDisponibles - cantidadSeleccionada;
+            console.log("   - Mostrando prompt...");
+            const cantidadInput = prompt(`¿Cantidad de "${nombre}" a agregar? (Disp: ${cantidadRestante})`, 1);
+            console.log(`   - Prompt devolvió: "${cantidadInput}"`);
+
+            if (cantidadInput !== null && cantidadInput.trim() !== "") {
+                 const cantidad = parseInt(cantidadInput, 10);
+                 console.log(`   - Cantidad parseada: ${cantidad}`);
+                 if (!isNaN(cantidad) && cantidad > 0 && cantidad <= cantidadRestante) {
+                     materialesSeleccionados[id] = cantidadSeleccionada + cantidad;
+                     console.log(`   - 'materialesSeleccionados' actualizado:`, JSON.stringify(materialesSeleccionados));
+                     console.log("   - Llamando a actualizarListaVisual()...");
+                     window.actualizarListaVisual();
+                     console.log("   - actualizarListaVisual() llamado.");
+                 } else { alert('Cantidad inválida o excede stock.'); console.warn(`   - Cantidad inválida (${cantidad}) vs restante (${cantidadRestante}).`); }
+            } else { console.log("   - Prompt cancelado o vacío."); }
+        }
+    } // Fin handleAgregarMaterialClick
+    function handleQuitarMaterialClick(event) {
+         if (event.target && event.target.classList.contains('btn-quitar-material')) {
+            console.log(">>> [Handler] Click Botón Quitar Material");
+            const id = event.target.dataset.id; delete materialesSeleccionados[id]; window.actualizarListaVisual();
+        }
+    }
+
+    // --- Función de Inicialización Principal ---
+    function initializePrestamosScripts() {
+         console.log("✅ Inicializando scripts de Préstamos (v4.3 - Refined Init)...");
+         materialesSeleccionados = {};
+
+         const noControlInput = document.getElementById('noControl');
+         const tablaMaterialesBody = document.getElementById('tablaMaterialesBody');
+         const listaMaterialSeleccionado = document.getElementById('listaMaterialSeleccionado');
+         const busquedaMaterialInput = document.getElementById('busquedaMaterial');
+         const danoMaterialSelect = document.getElementById('dano_material');
+         const checkboxesFiltro = document.querySelectorAll('.filter-container .form-check-input');
+
+         // --- LIMPIAR LISTENERS ANTIGUOS ---
+         if (noControlInput) { noControlInput.removeEventListener('input', handleNoControlInput); noControlInput.removeEventListener('keypress', handleNoControlEnter); }
+         if (danoMaterialSelect) { danoMaterialSelect.removeEventListener('change', handleDanoMaterialChange); }
+         if (tablaMaterialesBody) { tablaMaterialesBody.removeEventListener('click', handleAgregarMaterialClick); }
+         if (listaMaterialSeleccionado) { listaMaterialSeleccionado.removeEventListener('click', handleQuitarMaterialClick); }
+         if (busquedaMaterialInput) { busquedaMaterialInput.removeEventListener('keyup', window.filtrarMateriales); }
+         if (checkboxesFiltro) { checkboxesFiltro.forEach(cb => cb.removeEventListener('change', window.filtrarMateriales)); }
+         console.log("   - Listeners previos removidos (si existían).");
+
+         // --- AÑADIR NUEVOS LISTENERS ---
+         if (noControlInput) { console.log("   - Configurando listeners No. Control"); noControlInput.addEventListener('input', handleNoControlInput); noControlInput.addEventListener('keypress', handleNoControlEnter); } else { console.warn("..."); }
+         if (danoMaterialSelect) { console.log("   - Configurando listener Select Daño"); danoMaterialSelect.addEventListener('change', handleDanoMaterialChange); } else { console.warn("..."); }
+         if (tablaMaterialesBody) { console.log("   - Configurando listener Tabla Materiales (Agregar)"); tablaMaterialesBody.addEventListener('click', handleAgregarMaterialClick); } else { console.warn("..."); }
+         if (listaMaterialSeleccionado) { console.log("   - Configurando listener Lista Seleccionados (Quitar)"); listaMaterialSeleccionado.addEventListener('click', handleQuitarMaterialClick); } else { console.warn("..."); }
+         if (busquedaMaterialInput) { console.log("   - Configurando listener Input Búsqueda"); busquedaMaterialInput.addEventListener('keyup', window.filtrarMateriales); } else { console.warn("..."); }
+         if (checkboxesFiltro) { console.log("   - Configurando listeners Checkboxes Filtro"); checkboxesFiltro.forEach(cb => cb.addEventListener('change', window.filtrarMateriales)); } else { console.warn("..."); }
+
+         // Llamadas iniciales
+         window.actualizarListaVisual();
+         window.filtrarMateriales();
+         console.log("   - Inicialización completada (v4.3).");
+    } // Fin initializePrestamosScripts
+
+    // Ejecutar scripts:
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializePrestamosScripts);
+    } else {
+        setTimeout(initializePrestamosScripts, 50); // Pequeño delay post-carga
+    }
+    // --- FIN LÓGICA PRESTAMOS ---
+</script>
+{% endblock %}

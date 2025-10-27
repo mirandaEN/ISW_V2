@@ -205,3 +205,231 @@ header {
     width: 50px;
     /* Se quitó 'align-items' de aquí también */
 }
+/* --- NUEVOS ESTILOS PARA DASHBOARD ADMIN/AUX (TEMA ROJO) --- */
+
+/* Aplicar solo si el body tiene la clase 'dashboard-layout' */
+body.dashboard-layout {
+    display: flex; /* Activa Flexbox para sidebar + contenido */
+    min-height: 100vh;
+    background-color: #f8f9fa; /* Fondo principal claro */
+    margin: 0; /* Asegurar que no haya márgenes por defecto */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente más limpia */
+}
+
+/* Estilos de la Sidebar */
+.sidebar {
+    width: 260px; /* Ancho de la barra lateral */
+    background-color: #dc3545; /* Rojo principal (similar al de la imagen) */
+    color: white;
+    display: flex;
+    flex-direction: column; /* Organizar elementos verticalmente */
+    height: 100vh; /* Ocupar toda la altura */
+    position: fixed; /* Fijar la barra lateral */
+    left: 0;
+    top: 0;
+    padding-top: 20px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+}
+
+.sidebar-header {
+    padding: 15px 25px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.sidebar-header .logo-text {
+    font-weight: bold;
+    font-size: 1.6em;
+    color: white;
+    text-decoration: none; /* Quitar subrayado si es un enlace */
+}
+/* Si quieres añadir un logo pequeño: */
+/* .sidebar-header img.logo-icon { height: 40px; margin-bottom: 10px; } */
+
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1; /* Ocupa el espacio restante */
+}
+
+.sidebar-nav li a {
+    display: flex; /* Para alinear icono y texto */
+    align-items: center;
+    padding: 15px 25px;
+    color: rgba(255, 255, 255, 0.85); /* Blanco semi-transparente */
+    text-decoration: none;
+    font-size: 1.05em;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-nav li a i.nav-icon {
+    margin-right: 15px; /* Espacio entre icono y texto */
+    width: 20px; /* Ancho fijo para alinear iconos */
+    text-align: center;
+    font-size: 1.1em; /* Tamaño del icono */
+}
+
+.sidebar-nav li a:hover {
+    background-color: rgba(0, 0, 0, 0.15); /* Oscurecer al pasar el mouse */
+    color: white;
+}
+
+.sidebar-nav li a.active { /* Estilo para el enlace activo */
+    background-color: rgba(0, 0, 0, 0.25);
+    color: white;
+    font-weight: 600; /* Texto más grueso */
+    border-left: 4px solid #ffc107; /* Indicador amarillo a la izquierda */
+    padding-left: 21px; /* Ajustar padding por el borde */
+}
+
+/* Estilo para el timer del auxiliar en la sidebar */
+.sidebar-nav li.session-timer-item {
+    padding: 15px 25px;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: auto; /* Empuja al final si es el último item */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sidebar-nav li.session-timer-item i { margin-right: 8px; }
+.sidebar-nav li.session-timer-item #session-timer { font-weight: bold; color: white; }
+
+/* Contenedor del Botón de Logout */
+.sidebar-footer {
+    padding: 20px 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sidebar-footer .btn-logout {
+    display: block;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    text-align: center;
+}
+.sidebar-footer .btn-logout:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: white;
+}
+
+
+/* Estilos del Contenido Principal */
+.main-content {
+    margin-left: 260px; /* Mismo ancho que la sidebar */
+    padding: 40px 40px 40px 0;
+    width: calc(100% - 260px); /* Ocupa el resto del ancho */
+    overflow-y: auto; /* Permitir scroll si el contenido es largo */
+    background-color: #f8f9fa; /* Fondo claro */
+}
+
+.main-content .welcome-header h1 {
+    font-size: 2.2em;
+    color: #343a40; /* Gris oscuro */
+    margin-bottom: 10px;
+}
+.main-content .welcome-header p {
+    font-size: 1.2em;
+    color: #6c757d; /* Gris secundario */
+    margin-bottom: 30px;
+}
+
+/* Ocultar elementos del diseño anterior si existen */
+body.dashboard-layout header.menu, 
+body.dashboard-layout div.header-content, 
+body.dashboard-layout main.info.container,
+body.dashboard-layout .logout-fixed {
+    display: none !important; /* Oculta completamente los elementos viejos */
+}
+
+/* Ajustes para pantallas pequeñas (opcional, básico) */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%; /* Ocupa todo el ancho */
+        height: auto; /* Altura automática */
+        position: static; /* Ya no es fija */
+        flex-direction: row; /* Elementos en fila */
+        justify-content: space-around; /* Espaciar enlaces */
+        padding-top: 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .sidebar-header, .sidebar-footer, .sidebar-nav li.session-timer-item { display: none; } /* Ocultar extras */
+    .sidebar-nav { display: flex; flex-grow: 1; justify-content: space-around; }
+    .sidebar-nav li a { padding: 15px 10px; font-size: 0.9em; }
+    .sidebar-nav li a i.nav-icon { margin-right: 5px; font-size: 1em; }
+    .sidebar-nav li a.active { border-left: none; border-bottom: 3px solid #ffc107; padding-left: 10px; }
+
+    .main-content {
+        margin-left: 0; /* Sin margen */
+        width: 100%;
+        padding: 20px;
+    }
+}
+
+/* --- FIN NUEVOS ESTILOS DASHBOARD --- */
+/* --- ESTILOS ESPECÍFICOS PARA prestamos.html (y otros si aplica) --- */
+
+/* Definición de colores (puedes ajustar si ya los tienes definidos globalmente) */
+:root {
+    --prestamos-color-principal: #7d0015; /* Vino Tinto */
+    --prestamos-color-secundario: #a71d2a; 
+    --prestamos-color-activo: #28a745; /* Verde */
+    --prestamos-color-devuelto: #6c757d; /* Gris */
+}
+
+/* Estilo para el botón principal en formularios cargados */
+.btn-principal {
+    background-color: var(--prestamos-color-principal) !important; 
+    border-color: var(--prestamos-color-principal) !important;
+    color: white !important; /* Asegurar texto blanco */
+    transition: background-color 0.2s;
+    padding: 0.75rem 1.25rem; /* Padding estándar de Bootstrap si quieres */
+    font-size: 1rem;
+    font-weight: 600; /* Hacerlo un poco más grueso */
+    width: 100%; /* Ocupar todo el ancho si está en .d-grid */
+}
+
+.btn-principal:hover {
+    background-color: var(--prestamos-color-secundario) !important;
+    border-color: var(--prestamos-color-secundario) !important;
+}
+
+/* Otros estilos de prestamos.html que podrían ser necesarios globalmente */
+.status-badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 50rem; /* Muy redondeado */
+}
+.status-badge.activo { background-color: var(--prestamos-color-activo); }
+.status-badge.devuelto { background-color: var(--prestamos-color-devuelto); }
+
+.error-message {
+    color: #dc3545; /* Rojo Bootstrap */
+    font-size: 0.875em;
+    margin-top: 0.25rem; /* Espacio Bootstrap */
+    display: none; /* Oculto por defecto */
+}
+input.invalid + .error-message, 
+input:invalid + .error-message { /* Mostrar si es inválido */
+    display: block;
+}
+input.invalid, input:invalid {
+     border-color: #dc3545; /* Borde rojo */
+}
+
+/* Ajustes para la tabla de materiales disponibles */
+.materials-table-container {
+    max-height: 380px; /* O la altura que prefieras */
+    overflow-y: auto;
+    border: 1px solid #dee2e6; /* Borde sutil */
+    border-radius: .25rem; /* Bordes redondeados */
+}
+/* --- FIN ESTILOS ESPECÍFICOS --- */

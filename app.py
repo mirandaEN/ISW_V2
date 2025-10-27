@@ -1,3 +1,7 @@
+# ¡Nuevas importaciones!
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge # Para límite de tamaño
+import uuid # Para nombres de archivo únicos
 from dotenv import load_dotenv
 import os
 from sendgrid import SendGridAPIClient
@@ -15,6 +19,20 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+
+# --- CONFIGURACIÓN PARA SUBIDA DE ARCHIVOS ---
+# Carpeta donde se guardarán las fotos de perfil
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'profile_pics') 
+# Extensiones permitidas
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} 
+# Tamaño máximo permitido (ej: 2MB)
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 # 2 Megabytes 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Crear la carpeta si no existe
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+# --- FIN CONFIGURACIÓN ---
 
 # --- CONSTANTES DE SEGURIDAD ---
 LOCK_MAX_ATTEMPTS = 3
@@ -71,7 +89,10 @@ def make_session_permanent():
     session.permanent = True
     # Flask maneja el reinicio del timer si session.permanent es True
 # --- FIN NUEVA FUNCIÓN ---
-
+# --- FUNCIÓN AUXILIAR PARA VALIDAR EXTENSIÓN ---
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # --- FUNCIONES DE AUTENTICACIÓN ---
 def autenticar_con_bloqueo(usuario, contrasena):
@@ -111,46 +132,73 @@ def autenticar_con_bloqueo(usuario, contrasena):
         return (False, None, "Error de base de datos. Revisa la consola de Flask.")
     finally:
         if conn: conn.close()
+@app.route("/")
+def splash_screen():
+    # Simplemente renderiza la nueva plantilla splash.html
+    return render_template("splash.html")
 
 # --- RUTAS PRINCIPALES ---
-@app.route("/", methods=["GET", "POST"])
-def login():
+@app.route("/login_page", methods=["GET", "POST"])
+def login_page(): # Nombre de función cambiado
+    # Si ya hay una sesión activa, redirige a la interfaz correspondiente
+    # (Esto evita mostrar el login si ya estás logueado)
+    if 'user_id' in session:
+        if session.get('user_rol') == 'admin':
+            return redirect(url_for('interface_admin'))
+        else:
+            return redirect(url_for('interface_aux'))
+
+    # Si es método POST (envío del formulario)
     if request.method == "POST":
         usuario = request.form.get("usuario", "").strip()
         contrasena = request.form.get("contrasena", "").strip()
+        
+        # Validación básica de campos vacíos
         if not usuario or not contrasena:
-            flash("Ambos campos son obligatorios.", "danger"); return redirect(url_for('login'))
+            flash("Ambos campos son obligatorios.", "danger")
+            # Redirige de vuelta a la PÁGINA DE LOGIN
+            return redirect(url_for('login_page')) 
+        
+        # Intenta autenticar al usuario (con lógica de bloqueo)
         es_valido, datos_usuario, mensaje = autenticar_con_bloqueo(usuario, contrasena)
+        
+        # Si la autenticación es exitosa
         if es_valido:
-            # --- ACTUALIZACIÓN (TIMEOUT): Marcar sesión como permanente ---
-            session.permanent = True # Necesario para que app.permanent_session_lifetime funcione
-            # --- FIN ACTUALIZACIÓN ---
-
+            # Configura la sesión
+            session.permanent = True # Para que aplique el timeout de inactividad
             session['user_id'] = datos_usuario['id']
             session['user_rol'] = 'admin' if datos_usuario['tipo'] == 0 else 'auxiliar'
             session['user_nombre'] = datos_usuario['nombre']
             session['login_time_iso'] = datetime.now().isoformat()
 
+            # Registra la actividad si es un auxiliar
             if session.get('user_rol') == 'auxiliar':
-                # ... (registro de actividad sin cambios) ...
                 conn = get_db_connection()
                 if conn:
                     try:
                         cursor = conn.cursor()
                         cursor.execute("INSERT INTO REGISTRO_ACTIVIDAD (ID, ID_USUARIO, TIPO_ACCION) VALUES (registro_actividad_seq.nextval, :id_usr, 'INICIO_SESION')", id_usr=session['user_id'])
                         conn.commit()
-                    except Exception as e: print(f"Error al registrar actividad: {e}")
+                    except Exception as e: 
+                        print(f"Error al registrar actividad: {e}")
                     finally:
                         if 'cursor' in locals() and cursor: cursor.close()
-                        if conn: conn.close()
+                        if conn: conn.close() # Asegurar cierre
 
-            if datos_usuario['tipo'] == 0: return redirect(url_for("interface_admin"))
-            else: return redirect(url_for("interface_aux"))
+            # Redirige DIRECTAMENTE a la interfaz correspondiente (ya no hay welcome.html aquí)
+            if datos_usuario['tipo'] == 0: 
+                return redirect(url_for("profile"))
+            else: 
+                return redirect(url_for("interface_aux"))
+        
+        # Si la autenticación falla
         else:
             flash(mensaje, "danger")
-            return redirect(url_for('login'))
-    # Asume que 'inicioAdmin.html' es tu página de login principal
-    # Si tienes una página de login separada, cambia el nombre aquí
+            # Redirige de vuelta a la PÁGINA DE LOGIN
+            return redirect(url_for('login_page')) 
+
+    # Si es método GET (cargar la página por primera vez)
+    # Renderiza el formulario de login (tu plantilla inicioAdmin.html)
     return render_template("inicioAdmin.html")
 
 @app.route('/logout')
@@ -179,12 +227,57 @@ def logout():
     if alerta_guillermo:
         flash(alerta_guillermo, "warning")
     flash("Has cerrado sesión exitosamente.", "success")
-    return redirect(url_for('login'))
+    return redirect(url_for('login_page'))
+
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session: 
+        return redirect(url_for('login_page'))
+
+    # Obtener nombre y rol de la sesión
+    user_info = {
+        'nombre': session.get('user_nombre'),
+        'rol': session.get('user_rol'),
+        'profile_pic_filename': None # Inicializar como None
+    }
+       
+    # Buscar el nombre del archivo de la foto en la BD
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT FOTO_PERFIL FROM USUARIOS WHERE ID = :user_id", user_id=session['user_id'])
+            result = cursor.fetchone()
+            if result and result[0]: # Si hay un nombre de archivo guardado
+                user_info['profile_pic_filename'] = result[0]
+        except Exception as e:
+            print(f"Error al obtener foto de perfil: {e}")
+        finally:
+            if 'cursor' in locals() and cursor: cursor.close()
+            if conn: conn.close()
+
+    context_data = {
+        'user_info': user_info, # Pasamos toda la info, incluyendo el filename
+        'usuario_rol': session.get('user_rol'), 
+        'inactivity_limit': app.permanent_session_lifetime.total_seconds()
+    }
+    return render_template('profile.html', **context_data)
+
+# --- MANEJADOR DE ERRORES PARA ARCHIVOS GRANDES ---
+@app.errorhandler(413)
+@app.errorhandler(RequestEntityTooLarge)
+def handle_request_entity_too_large(e):
+    flash('El archivo que intentaste subir es demasiado grande (Máximo 2MB).', 'danger')
+    # Intenta redirigir a 'profile' si es posible, si no a login
+    if 'user_id' in session:
+        return redirect(url_for('profile'))
+    else:
+         return redirect(url_for('login_page'))
 
 # --- RUTAS DE NAVEGACIÓN (MODIFICADAS PARA PASAR TIMEOUT) ---
 @app.route("/interface_admin")
 def interface_admin():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
     context_data = {
         'usuario_rol': session.get('user_rol'),
@@ -195,7 +288,7 @@ def interface_admin():
 
 @app.route("/interface_aux")
 def interface_aux():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
     context_data = {
         'usuario_rol': session.get('user_rol'),
@@ -297,7 +390,7 @@ def guardar_mensaje_soporte_db(nombre, correo, asunto, mensaje):
 def reportes():
     # ... (código sin cambios)
     if 'user_id' not in session or session.get('user_rol') != 'admin':
-        flash('Acceso no autorizado.', 'danger'); return redirect(url_for('login'))
+        flash('Acceso no autorizado.', 'danger'); return redirect(url_for('login_page'))
 
     conn = get_db_connection()
     if not conn:
@@ -360,38 +453,149 @@ def reportes():
 
 
 # --- RUTA PARA DESCARGAR REPORTE EN EXCEL ---
+# --- RUTA PARA DESCARGAR REPORTE EN EXCEL ---
+# --- NUEVA RUTA: PROCESAR SUBIDA DE FOTO DE PERFIL ---
+@app.route('/upload_profile_pic', methods=['POST'])
+def upload_profile_pic():
+    if 'user_id' not in session:
+        flash("Debes iniciar sesión para cambiar tu foto.", "danger")
+        return redirect(url_for('login_page'))
+
+    # 1. Verificar si se envió un archivo
+    if 'profile_pic' not in request.files:
+        flash('No se seleccionó ningún archivo.', 'warning')
+        return redirect(url_for('profile'))
+        
+    file = request.files['profile_pic']
+
+    # 2. Verificar si el nombre del archivo está vacío (no se seleccionó nada)
+    if file.filename == '':
+        flash('No seleccionaste ningún archivo.', 'warning')
+        return redirect(url_for('profile'))
+
+    # 3. Validar extensión y guardar
+    if file and allowed_file(file.filename):
+        # Generar un nombre de archivo seguro y único
+        filename_base = secure_filename(file.filename)
+        extension = filename_base.rsplit('.', 1)[1].lower()
+        # Usamos el ID de usuario + UUID para asegurar unicidad y evitar colisiones
+        unique_filename = f"user_{session['user_id']}_{uuid.uuid4().hex}.{extension}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        
+        try:
+            # Antes de guardar, eliminar la foto anterior si existe
+            conn_check = get_db_connection()
+            if conn_check:
+                 cursor_check = conn_check.cursor()
+                 cursor_check.execute("SELECT FOTO_PERFIL FROM USUARIOS WHERE ID = :user_id", user_id=session['user_id'])
+                 old_filename_tuple = cursor_check.fetchone()
+                 cursor_check.close()
+                 conn_check.close()
+                 if old_filename_tuple and old_filename_tuple[0]:
+                     old_filepath = os.path.join(app.config['UPLOAD_FOLDER'], old_filename_tuple[0])
+                     if os.path.exists(old_filepath):
+                         os.remove(old_filepath)
+                         print(f"Foto anterior eliminada: {old_filepath}")
+
+            # Guardar el nuevo archivo
+            file.save(filepath)
+            
+            # Actualizar la base de datos
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE USUARIOS SET FOTO_PERFIL = :filename WHERE ID = :user_id", 
+                               filename=unique_filename, user_id=session['user_id'])
+                conn.commit()
+                cursor.close()
+                conn.close()
+                flash('Foto de perfil actualizada correctamente.', 'success')
+            else:
+                 flash('Error de conexión al actualizar la base de datos.', 'danger')
+
+        except RequestEntityTooLarge:
+             flash('El archivo es demasiado grande (Máximo 2MB).', 'danger')
+        except Exception as e:
+            flash(f'Ocurrió un error al subir el archivo: {e}', 'danger')
+            traceback.print_exc() # Para ver el error en la consola de Flask
+            
+        return redirect(url_for('profile'))
+    else:
+        flash('Tipo de archivo no permitido (solo png, jpg, jpeg, gif).', 'danger')
+        return redirect(url_for('profile'))
+    
 @app.route('/descargar_reporte_excel')
 def descargar_reporte_excel():
-    # ... (código sin cambios)
+    # Verifica que el usuario sea admin
     if session.get('user_rol') != 'admin':
         return "Acceso no autorizado.", 403
 
+    # Intenta conectar a la BD
     conn = get_db_connection()
     if not conn:
         flash("Error de conexión para generar el reporte.", "danger")
         return redirect(url_for('reportes'))
 
     try:
+        # Prepara el archivo Excel en memoria
         output = io.BytesIO()
-        writer = pd.ExcelWriter(output, engine='openpyxl')
+        writer = pd.ExcelWriter(output, engine='openpyxl') 
 
+        # --- HOJAS DE REPORTE EXISTENTES ---
+        
+        # 1. Préstamos Vencidos
         pd.read_sql("SELECT a.NOMBRE, a.NUMEROCONTROL, p.FECHA_HORA FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO WHERE p.ESTATUS = 'Activo' AND (LOCALTIMESTAMP - p.FECHA_HORA) > INTERVAL '1' HOUR ORDER BY p.FECHA_HORA ASC", conn).to_excel(writer, sheet_name='Prestamos Vencidos', index=False)
+        
+        # 2. Materiales Más Dañados
         pd.read_sql("SELECT m.NOMBRE, SUM(rd.CANTIDAD_DANADA) AS TOTAL_DANADO FROM REGISTRO_DANOS rd JOIN MATERIALES m ON rd.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL_DANADO DESC", conn).to_excel(writer, sheet_name='Materiales Mas Danados', index=False)
+        
+        # 3. Top Materiales Pedidos
         pd.read_sql("SELECT m.NOMBRE, SUM(dp.CANTIDAD_PRESTADA) as TOTAL FROM DETALLE_PRESTAMO dp JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL DESC FETCH FIRST 5 ROWS ONLY", conn).to_excel(writer, sheet_name='Top Materiales Pedidos', index=False)
+        
+        # 4. Stock Muerto (Materiales nunca prestados)
         pd.read_sql("SELECT NOMBRE, CANTIDAD_DISPONIBLE FROM MATERIALES WHERE ID_MATERIAL NOT IN (SELECT DISTINCT ID_MATERIAL FROM DETALLE_PRESTAMO)", conn).to_excel(writer, sheet_name='Stock Muerto', index=False)
+        
+        # 5. Uso por Semestre
         pd.read_sql("SELECT a.SEMESTRE, COUNT(p.ID_PRESTAMO) AS TOTAL_PRESTAMOS FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO GROUP BY a.SEMESTRE ORDER BY TOTAL_PRESTAMOS DESC", conn).to_excel(writer, sheet_name='Uso por Semestre', index=False)
+        
+        # 6. Logins Fallidos de Auxiliares
         pd.read_sql("SELECT USUARIO, INTENTOS_FALLIDOS FROM USUARIOS WHERE TIPO = 1 AND INTENTOS_FALLIDOS > 0 ORDER BY INTENTOS_FALLIDOS DESC", conn).to_excel(writer, sheet_name='Logins Fallidos Auxiliares', index=False)
 
-        writer.close()
-        output.seek(0)
+        # --- ¡NUEVA HOJA PARA ALUMNOS! ---
+        # 7. Lista Completa de Alumnos
+        query_alumnos = """
+            SELECT 
+                NOMBRE, 
+                NUMEROCONTROL, 
+                CORREO, 
+                ESPECIALIDAD, 
+                SEMESTRE, 
+                CASE ACTIVO WHEN 1 THEN 'Activo' ELSE 'Inactivo' END AS ESTATUS 
+            FROM ALUMNOS 
+            ORDER BY NOMBRE
+        """
+        pd.read_sql(query_alumnos, conn).to_excel(writer, sheet_name='Lista Alumnos', index=False)
+        # --- FIN DE NUEVA HOJA ---
 
-        return send_file(output, download_name='Reporte_Laboratorio.xlsx', as_attachment=True)
+        # Cierra el escritor de Excel y prepara el archivo para descarga
+        writer.close() 
+        output.seek(0) # Regresa al inicio del archivo en memoria
+
+        # Envía el archivo al navegador
+        return send_file(
+            output, 
+            download_name='Reporte_Laboratorio.xlsx', 
+            as_attachment=True, 
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
     except Exception as e:
+        # Manejo de errores si algo falla durante la generación
         flash(f"Error al generar el archivo Excel: {e}", "danger")
         traceback.print_exc()
         return redirect(url_for('reportes'))
     finally:
+        # Asegura que la conexión a la BD se cierre
         if conn: conn.close()
 
 # --- RUTAS Y FUNCIONES DE GESTIÓN DE AUXILIARES ---
@@ -399,7 +603,7 @@ def descargar_reporte_excel():
 def gestion_auxiliares():
     # ... (código sin cambios)
     if 'user_id' not in session or session.get('user_rol') != 'admin':
-        flash("Acceso no autorizado.", "danger"); return redirect(url_for('login'))
+        flash("Acceso no autorizado.", "danger"); return redirect(url_for('login_page'))
 
     # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite a la plantilla ---
     auxiliares = obtener_auxiliares_db()
@@ -414,7 +618,7 @@ def gestion_auxiliares():
 @app.route('/agregar_auxiliar', methods=['POST'])
 def agregar_auxiliar():
     # ... (código sin cambios)
-    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login_page'))
     usuario = request.form.get('usuario', '').strip()
     contrasena = request.form.get('contrasena', '').strip()
     if not usuario or not re.match(r"^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$", usuario):
@@ -428,7 +632,7 @@ def agregar_auxiliar():
 @app.route('/modificar_auxiliar', methods=['POST'])
 def modificar_auxiliar():
     # ... (código sin cambios)
-    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login_page'))
     id_usuario = request.form.get('id_usuario')
     usuario = request.form.get('usuario', '').strip()
     contrasena = request.form.get('contrasena', '').strip()
@@ -443,7 +647,7 @@ def modificar_auxiliar():
 @app.route('/eliminar_auxiliar', methods=['POST'])
 def eliminar_auxiliar():
      # ... (código sin cambios)
-    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login_page'))
     id_usuario = request.form.get('id_usuario')
     if not id_usuario:
         flash("No se especificó ID para eliminar.", "danger"); return redirect(url_for('gestion_auxiliares'))
@@ -455,7 +659,7 @@ def reiniciar_sistema():
      # ... (código sin cambios)
     if 'user_id' not in session or session.get('user_rol') != 'admin':
         flash("Acción no autorizada.", "danger")
-        return redirect(url_for('login'))
+        return redirect(url_for('login_page'))
     confirmacion = request.form.get('confirmacion')
     if confirmacion != 'REINICIAR':
         flash("La palabra de confirmación es incorrecta. No se ha realizado ninguna acción.", "warning")
@@ -576,44 +780,253 @@ def reiniciar_registros_db():
         if conn:
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
+            
+@app.route("/bienvenida_registro")
+def splash_for_registration():
+    # Renderiza la COPIA de splash.html que redirige al registro
+    return render_template("splash_registro.html")
 
 # --- RUTAS Y FUNCIONES DE ALUMNOS ---
 @app.route("/registro_alumno", methods=["GET", "POST"])
 def registro_alumno():
-     # ... (código sin cambios)
-    if request.method == "POST":
-        nombre = request.form.get("nombre", "").strip()
-        numero_control = request.form.get("numero_control", "").strip()
-        correo = request.form.get("correo", "").strip()
-        especialidad = request.form.get("carrera", "").strip()
-        semestre = request.form.get("semestre", "").strip()
-        if not all([nombre, numero_control, correo, especialidad, semestre]):
-            flash("Completa todos los campos.", "warning"); return render_template("inicioAlumno.html")
-        resultado = registrar_alumno_db(nombre, numero_control, correo, especialidad, int(semestre))
-        if resultado == "duplicado": flash("El número de control o correo ya están registrados.", "error")
-        elif resultado == "ok": flash("Te has registrado con éxito.", "success")
-        else: flash("Error al registrar alumno. Intenta de nuevo.", "error")
+    
+    if request.method == "GET":
+        return render_template("inicioAlumno.html")
+
+    # --- Captura de datos ---
+    nombre = request.form.get("nombre", "").strip()
+    numero_control = request.form.get("numero_control", "").strip()
+    correo_raw = request.form.get("correo", "").strip()
+    especialidad = request.form.get("carrera", "").strip()
+    semestre = request.form.get("semestre", "").strip()
+
+    # --- Validación de campos vacíos ---
+    if not all([nombre, numero_control, correo_raw, especialidad, semestre]):
+        flash("Completa todos los campos.", "warning")
+        return render_template("inicioAlumno.html")
+
+    # --- Limpieza y validación del correo ---
+    correo_limpio = correo_raw.replace(" ", "").lower()
+    DOMINIO_PERMITIDO = "@saltillo.tecnm.mx"
+
+    if not correo_limpio.endswith(DOMINIO_PERMITIDO):
+        flash(f"El correo debe ser institucional (terminar en {DOMINIO_PERMITIDO}).", "danger")
+        return render_template("inicioAlumno.html")
+    
+    # --- FIN DEL IF ---
+    # Estas líneas deben estar AFUERA del 'if' anterior
+
+    # 1. Usamos 'correo_limpio'
+    resultado = registrar_alumno_db(nombre, numero_control, correo_limpio, especialidad, int(semestre))
+
+    if resultado == "duplicado":
+        flash("El número de control o correo ya están registrados.", "error")
+    elif resultado == "ok":
+        flash("Te has registrado con éxito.", "success")
+        # Es buena idea redirigir aquí para limpiar el formulario
+        return redirect(url_for('registro_alumno')) 
+    else:
+        flash("Error al registrar alumno. Intenta de nuevo.", "error")
+
+    # Si hay error (duplicado, etc.) se vuelve a cargar la página
     return render_template("inicioAlumno.html")
 
 def registrar_alumno_db(nombre, numero_control, correo, especialidad, semestre):
-     # ... (código sin cambios)
+    # --- ¡MODIFICACIÓN AQUÍ! ---
     conn = get_db_connection()
     if not conn: return "error"
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM ALUMNOS WHERE NUMEROCONTROL = :nc OR CORREO = :cr", nc=numero_control, cr=correo)
         if cursor.fetchone()[0] > 0: return "duplicado"
-        cursor.execute("INSERT INTO ALUMNOS (nombre, numerocontrol, correo, especialidad, semestre) VALUES (:n, :nc, :cr, :e, :s)", n=nombre, nc=numero_control, cr=correo, e=especialidad, s=semestre)
+        # Se agrega la columna ACTIVO con valor 1 (numérico)
+        cursor.execute(
+            "INSERT INTO ALUMNOS (nombre, numerocontrol, correo, especialidad, semestre, ACTIVO) VALUES (:n, :nc, :cr, :e, :s, 1)",
+            n=nombre, nc=numero_control, cr=correo, e=especialidad, s=semestre
+        )
         conn.commit()
         return "ok"
     except Exception as e: print(f"Error Oracle en registrar_alumno: {e}"); conn.rollback(); return "error"
     finally:
         if conn: cursor.close(); conn.close()
+    # --- FIN DE MODIFICACIÓN ---
+
+
+# --- (NUEVAS RUTAS Y FUNCIONES PARA GESTIÓN DE ALUMNOS) ---
+# --- ESTE BLOQUE ES NUEVO ---
+
+# --- Nueva Ruta: Página de Gestión de Alumnos ---
+@app.route('/gestion_alumnos')
+def gestion_alumnos():
+    if 'user_id' not in session or session.get('user_rol') != 'admin':
+        flash("Acceso no autorizado.", "danger"); return redirect(url_for('login_page'))
+
+    alumnos = obtener_todos_alumnos_db()
+    
+    context_data = {
+        'alumnos': alumnos,
+        'usuario_rol': session.get('user_rol'),
+        'inactivity_limit': app.permanent_session_lifetime.total_seconds()
+    }
+    # Usaremos un nuevo template: gestion_alumnos.html
+    return render_template('gestion_alumnos.html', **context_data)
+
+# --- Nueva Ruta: Procesar Modificación de Alumno ---
+@app.route('/modificar_alumno', methods=['POST'])
+def modificar_alumno():
+    if 'user_id' not in session or session.get('user_rol') != 'admin':
+        return redirect(url_for('login_page'))
+
+    # 1. Obtener datos del formulario
+    id_alumno = request.form.get('id_alumno')
+    nombre = request.form.get('nombre', '').strip()
+    numero_control_raw = request.form.get('numero_control', '').strip()
+    correo_raw = request.form.get('correo', '').strip()
+    especialidad = request.form.get('carrera', '').strip()
+    semestre = request.form.get('semestre', '').strip()
+
+    # 2. Validar campos vacíos
+    if not all([id_alumno, nombre, numero_control_raw, correo_raw, especialidad, semestre]):
+        flash("Todos los campos son obligatorios para modificar.", "danger")
+        return redirect(url_for('gestion_alumnos'))
+
+    # 3. Aplicar las MISMAS validaciones del registro
+    
+    # Validación de Nombre (solo letras y espacios)
+    if not re.match(r"^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$", nombre):
+        flash("El nombre solo debe contener letras y espacios.", "danger")
+        return redirect(url_for('gestion_alumnos'))
+
+    # Validación de Número de Control (8 dígitos o 1 Letra + 8 dígitos)
+    numero_control = numero_control_raw.upper()
+    if not re.match(r'^([A-Z]\d{8}|\d{8})$', numero_control):
+        flash("Formato de Número de Control inválido (ej: 21040350 o L21040350).", "danger")
+        return redirect(url_for('gestion_alumnos'))
+
+    # Validación de Correo (dominio y limpieza)
+    correo_limpio = correo_raw.replace(" ", "").lower()
+    DOMINIO_PERMITIDO = "@saltillo.tecnm.mx"
+    if not correo_limpio.endswith(DOMINIO_PERMITIDO):
+        flash(f"El correo debe ser institucional (terminar en {DOMINIO_PERMITIDO}).", "danger")
+        return redirect(url_for('gestion_alumnos'))
+
+    # 4. Intentar actualizar en la BD
+    resultado, mensaje = actualizar_alumno_db(
+        id_alumno, nombre, numero_control, correo_limpio, especialidad, int(semestre)
+    )
+
+    flash(mensaje, "success" if resultado else "danger")
+    return redirect(url_for('gestion_alumnos'))
+
+# --- Nueva Ruta: Activar/Desactivar Alumno ---
+@app.route('/desactivar_alumno', methods=['POST'])
+def desactivar_alumno():
+    if 'user_id' not in session or session.get('user_rol') != 'admin':
+        return redirect(url_for('login_page'))
+        
+    id_alumno = request.form.get('id_alumno')
+    if not id_alumno:
+        flash("No se especificó el ID del alumno.", "danger")
+        return redirect(url_for('gestion_alumnos'))
+
+    resultado, mensaje = cambiar_estatus_alumno_db(id_alumno)
+    flash(mensaje, "success" if resultado else "danger")
+    return redirect(url_for('gestion_alumnos'))
+
+
+# --- (Nuevas Funciones de DB para Alumnos) ---
+
+def obtener_todos_alumnos_db():
+    conn = get_db_connection()
+    if not conn: return []
+    try:
+        cursor = conn.cursor()
+        # Se selecciona la columna ACTIVO (numérica)
+        cursor.execute("SELECT ID_ALUMNO, NOMBRE, NUMEROCONTROL, CORREO, ESPECIALIDAD, SEMESTRE, ACTIVO FROM ALUMNOS ORDER BY NOMBRE")
+        return rows_to_dicts(cursor, cursor.fetchall())
+    except Exception as e:
+        print(f"Error al obtener todos los alumnos: {e}")
+        traceback.print_exc()
+        return []
+    finally:
+        if conn:
+             if 'cursor' in locals() and cursor: cursor.close()
+             conn.close()
+
+def actualizar_alumno_db(id_alumno, nombre, numero_control, correo, especialidad, semestre):
+    conn = get_db_connection()
+    if not conn: return False, "Error de conexión."
+    try:
+        cursor = conn.cursor()
+        # Verificar duplicados (que no sean el alumno mismo)
+        cursor.execute(
+            "SELECT COUNT(*) FROM ALUMNOS WHERE (NUMEROCONTROL = :nc OR CORREO = :cr) AND ID_ALUMNO != :id_a",
+            nc=numero_control, cr=correo, id_a=id_alumno
+        )
+        if cursor.fetchone()[0] > 0:
+            return False, "El N° de Control o Correo ya están registrados por otro alumno."
+        
+        # Realizar la actualización (no se toca la columna ACTIVO)
+        cursor.execute("""
+            UPDATE ALUMNOS SET
+                NOMBRE = :n,
+                NUMEROCONTROL = :nc,
+                CORREO = :cr,
+                ESPECIALIDAD = :e,
+                SEMESTRE = :s
+            WHERE ID_ALUMNO = :id_a
+        """, n=nombre, nc=numero_control, cr=correo, e=especialidad, s=semestre, id_a=id_alumno)
+        
+        conn.commit()
+        return (True, "Alumno actualizado correctamente.") if cursor.rowcount > 0 else (False, "No se encontró el alumno a modificar.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al actualizar alumno ID {id_alumno}: {e}")
+        traceback.print_exc()
+        return False, "Error interno al actualizar."
+    finally:
+        if conn:
+             if 'cursor' in locals() and cursor: cursor.close()
+             conn.close()
+
+def cambiar_estatus_alumno_db(id_alumno):
+    conn = get_db_connection()
+    if not conn: return False, "Error de conexión."
+    try:
+        cursor = conn.cursor()
+        # 1. Ver el estatus actual (1 o 0)
+        cursor.execute("SELECT ACTIVO FROM ALUMNOS WHERE ID_ALUMNO = :id_a", id_a=id_alumno)
+        res = cursor.fetchone()
+        if not res:
+            return False, "Alumno no encontrado."
+            
+        estatus_actual = res[0] # 1 (Activo) o 0 (Inactivo)
+        # Invertimos el valor:
+        nuevo_estatus_num = 0 if estatus_actual == 1 else 1
+        
+        # 2. Actualizar al estatus opuesto
+        cursor.execute("UPDATE ALUMNOS SET ACTIVO = :est WHERE ID_ALUMNO = :id_a", est=nuevo_estatus_num, id_a=id_alumno)
+        conn.commit()
+        
+        mensaje_amigable = "Inactivo" if nuevo_estatus_num == 0 else "Activo"
+        return True, f"Alumno marcado como '{mensaje_amigable}'."
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al cambiar estatus de alumno ID {id_alumno}: {e}")
+        traceback.print_exc()
+        return False, "Error interno al cambiar estatus."
+    finally:
+        if conn:
+             if 'cursor' in locals() and cursor: cursor.close()
+             conn.close()
+
+# --- FIN DEL NUEVO BLOQUE DE GESTIÓN DE ALUMNOS ---
+
 
 # --- RUTAS Y FUNCIONES DE INVENTARIO ---
 @app.route('/inventario')
 def inventario():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
     context_data = {
         'materiales': obtener_materiales(),
@@ -647,7 +1060,7 @@ def obtener_materiales():
 @app.route('/agregar_material', methods=['POST'])
 def agregar_material():
     # ... (código sin cambios)
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     nombre = request.form.get('nombre', '').strip()
     tipo = request.form.get('tipo', '').strip()
     marca_modelo = request.form.get('marca_modelo', '').strip()
@@ -686,7 +1099,7 @@ def agregar_material():
 @app.route('/modificar_material', methods=['POST'])
 def modificar_material():
     # ... (código sin cambios)
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     if session.get('user_rol') != 'admin':
         flash('Acción no autorizada. Solo los administradores pueden modificar.', 'danger')
         return redirect(url_for('inventario'))
@@ -732,7 +1145,7 @@ def modificar_material():
 @app.route('/eliminar_material', methods=['POST'])
 def eliminar_material():
     # ... (código sin cambios)
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     if session.get('user_rol') != 'admin':
         flash('Acción no autorizada. Solo los administradores pueden eliminar.', 'danger')
         return redirect(url_for('inventario'))
@@ -795,32 +1208,52 @@ def movimientos_inventario():
 # --- RUTAS Y FUNCIONES DE PRÉSTAMOS ---
 @app.route('/prestamos')
 def prestamos():
+    # 1. Verificar sesión
     if 'user_id' not in session:
-        flash("Por favor, inicia sesión para acceder.", "warning"); return redirect(url_for('login'))
-    # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
-    user_context = {
-        'current_user': {'nombre': session.get('user_nombre')},
-        'usuario_rol': session.get('user_rol'),
-        'login_time': session.get('login_time_iso'),
-        'inactivity_limit': app.permanent_session_lifetime.total_seconds()
-    }
-    # --- FIN ACTUALIZACIÓN ---
+        flash("Por favor, inicia sesión para acceder.", "warning")
+        return redirect(url_for('login_page'))
 
+    # 2. Preparar contexto base (incluyendo inactivity_limit)
+    #    Tu user_context ya contiene lo necesario para la base y el script
+    user_context = {
+        'usuario_rol': session.get('user_rol'),
+        'login_time_iso': session.get('login_time_iso'), # Para el timer de sesión aux
+        'inactivity_limit': app.permanent_session_lifetime.total_seconds() # Para el script de inactividad
+        # 'current_user' no parece necesario si usas session['user_nombre'] directamente
+    }
+
+    # 3. Preparar variables para los datos de la BD
+    materiales_disponibles = []
+    materias = []
+    maestros = []
+    prestamos_con_materiales = [] # Lista final procesada
+
+    # 4. Conectar y obtener datos de la BD
     conn = get_db_connection()
     if not conn:
-        flash("Error de conexión.", 'danger')
-        return render_template('prestamos.html', materiales_disponibles=[], materias=[], maestros=[], prestamos_activos=[], **user_context)
+        flash("Error de conexión con la base de datos.", 'danger')
+        # Pasamos el user_context incluso si hay error de DB
+        context_data = {
+            'materiales_disponibles': [], 'materias': [], 'maestros': [],
+            'prestamos_activos': [],
+            **user_context # Incluye rol y inactivity_limit
+        }
+        return render_template('prestamos.html', **context_data)
+
     try:
         cursor = conn.cursor()
+        # Obtener materiales, materias, maestros (sin cambios)
         cursor.execute("SELECT ID_MATERIAL, NOMBRE, TIPO, MARCA_MODELO, CANTIDAD_DISPONIBLE FROM MATERIALES WHERE CANTIDAD_DISPONIBLE > 0 ORDER BY NOMBRE")
         materiales_disponibles = rows_to_dicts(cursor, cursor.fetchall())
         cursor.execute("SELECT ID_MATERIA, NOMBRE_MATERIA FROM MATERIAS ORDER BY NOMBRE_MATERIA")
         materias = rows_to_dicts(cursor, cursor.fetchall())
         cursor.execute("SELECT ID_MAESTRO, NOMBRE_COMPLETO FROM MAESTROS ORDER BY NOMBRE_COMPLETO")
         maestros = rows_to_dicts(cursor, cursor.fetchall())
+
+        # Obtener y procesar préstamos activos (sin cambios)
         cursor.execute("SELECT p.ID_PRESTAMO, a.NOMBRE, a.NUMEROCONTROL, p.FECHA_HORA FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO WHERE p.ESTATUS = 'Activo' ORDER BY p.FECHA_HORA DESC")
         prestamos_activos_base = rows_to_dicts(cursor, cursor.fetchall())
-        prestamos_con_materiales = []
+
         for prestamo in prestamos_activos_base:
             fecha_str = prestamo.get('FECHA_HORA')
             if fecha_str:
@@ -830,43 +1263,58 @@ def prestamos():
                 except ValueError:
                      prestamo['FECHA_HORA_DISPLAY'] = fecha_str
             else: prestamo['FECHA_HORA_DISPLAY'] = 'N/A'
+
             cursor.execute("SELECT m.NOMBRE, dp.CANTIDAD_PRESTADA FROM DETALLE_PRESTAMO dp JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL WHERE dp.ID_PRESTAMO = :id_p", id_p=prestamo['ID_PRESTAMO'])
             materiales_prestados = rows_to_dicts(cursor, cursor.fetchall())
             prestamo['MATERIALES_LISTA'] = ', '.join([f"{m['NOMBRE']} (x{m['CANTIDAD_PRESTADA']})" for m in materiales_prestados])
-            prestamos_con_materiales.append(prestamo)
+            prestamos_con_materiales.append(prestamo) # Añadir a la lista final
 
-        context_data = {
-             'materiales_disponibles': materiales_disponibles,
-             'materias': materias,
-             'maestros': maestros,
-             'prestamos_activos': prestamos_con_materiales,
-             **user_context # Incluye rol, nombre, login_time, inactivity_limit
-        }
-        return render_template('prestamos.html', **context_data)
     except Exception as e:
         error_msg = str(e).splitlines()[0]
-        flash(f"Error al cargar préstamos: {error_msg}. Revisa la consola de Flask.", "danger"); traceback.print_exc()
-        return render_template('prestamos.html', materiales_disponibles=[], materias=[], maestros=[], prestamos_activos=[], **user_context)
+        flash(f"Error al cargar datos de préstamos: {error_msg}.", "danger")
+        traceback.print_exc()
+        prestamos_con_materiales = [] # Asegurar que sea una lista vacía en caso de error
     finally:
-        if conn:
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
 
+    # 5. Combinar datos específicos con contexto base
+    context_data = {
+         'materiales_disponibles': materiales_disponibles,
+         'materias': materias,
+         'maestros': maestros,
+         'prestamos_activos': prestamos_con_materiales,
+         **user_context # ¡Añade todas las claves de user_context aquí!
+    }
+
+    # 6. Renderizar la plantilla pasando el contexto combinado
+    return render_template('prestamos.html', **context_data)
+
+# --- (Resto de rutas de préstamos sin cambios) ---
 @app.route('/api/alumno/<numerocontrol>')
 def get_alumno(numerocontrol):
-     # ... (código sin cambios)
+    # --- ¡MODIFICACIÓN AQUÍ! ---
     if 'user_id' not in session: return jsonify({'error': 'No autorizado'}), 401
     conn = get_db_connection()
     if not conn: return jsonify({'error': 'Error de base de datos'}), 500
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT ID_ALUMNO, NOMBRE, SEMESTRE FROM ALUMNOS WHERE NUMEROCONTROL = :nc", nc=numerocontrol)
+        # Se agrega "AND ACTIVO = 1" para no encontrar alumnos inactivos
+        cursor.execute(
+            "SELECT ID_ALUMNO, NOMBRE, SEMESTRE FROM ALUMNOS WHERE NUMEROCONTROL = :nc AND ACTIVO = 1", 
+            nc=numerocontrol
+        )
         rows = cursor.fetchall()
-        if rows: return jsonify(rows_to_dicts(cursor, rows)[0])
-        else: return jsonify({'error': 'Alumno no encontrado'}), 404
-    except Exception as e: return jsonify({'error': str(e)}), 500
+        if rows: 
+            return jsonify(rows_to_dicts(cursor, rows)[0])
+        else: 
+            # Mensaje de error actualizado
+            return jsonify({'error': 'Alumno no encontrado o inactivo'}), 404
+    except Exception as e: 
+        return jsonify({'error': str(e)}), 500
     finally:
         if conn: cursor.close(); conn.close()
+    # --- FIN DE MODIFICACIÓN ---
 
 @app.route('/api/prestamo/<int:id_prestamo>/materiales')
 def get_prestamo_materiales(id_prestamo):
@@ -889,7 +1337,7 @@ def get_prestamo_materiales(id_prestamo):
 @app.route('/registrar_prestamo', methods=['POST'])
 def registrar_prestamo():
      # ... (código sin cambios)
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     no_control = request.form.get('no_control', '').strip().upper()
     if not re.match(r'^(\d{8}|[A-Z]\d{8})$', no_control):
         flash("Formato de Número de Control inválido.", 'danger')
@@ -901,10 +1349,14 @@ def registrar_prestamo():
         materiales_seleccionados = json.loads(request.form.get('materiales_seleccionados', '{}'))
         if not materiales_seleccionados:
             flash('No se seleccionó ningún material.', 'warning'); return redirect(url_for('prestamos'))
-        cursor.execute("SELECT ID_ALUMNO FROM ALUMNOS WHERE NUMEROCONTROL = :nc", nc=no_control)
+        
+        # IMPORTANTE: La API get_alumno ya filtra por ACTIVO=1,
+        # pero hacemos una doble verificación aquí por si acaso.
+        cursor.execute("SELECT ID_ALUMNO FROM ALUMNOS WHERE NUMEROCONTROL = :nc AND ACTIVO = 1", nc=no_control)
         result = cursor.fetchone()
         if not result:
-            flash(f"Alumno con NC {no_control} no encontrado.", "danger"); return redirect(url_for('prestamos'))
+            flash(f"Alumno con NC {no_control} no encontrado o está inactivo.", "danger"); return redirect(url_for('prestamos'))
+        
         id_alumno = result[0]
         id_prestamo_var = cursor.var(cx_Oracle.NUMBER)
         cursor.execute("INSERT INTO PRESTAMOS (ID_ALUMNO, ID_MATERIA, ID_MAESTRO, ID_AUXILIAR, NUMERO_MESA, ESTATUS, FECHA_HORA) VALUES (:id_a, :id_m, :id_ma, :id_aux, :mesa, 'Activo', LOCALTIMESTAMP) RETURNING ID_PRESTAMO INTO :id_p_out",
@@ -926,7 +1378,7 @@ def registrar_prestamo():
 @app.route('/devolver_prestamo', methods=['POST'])
 def devolver_prestamo():
      # ... (código sin cambios)
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     id_prestamo = request.form.get('id_prestamo')
     if not id_prestamo:
         flash("ID de préstamo no proporcionado.", "danger"); return redirect(url_for('prestamos'))
@@ -953,7 +1405,7 @@ def devolver_prestamo():
 @app.route('/registrar_dano', methods=['POST'])
 def registrar_dano():
      # ... (código sin cambios)
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     conn = get_db_connection()
     if not conn: flash("Error de conexión.", 'danger'); return redirect(url_for('prestamos'))
     try:
@@ -978,7 +1430,7 @@ def registrar_dano():
 @app.route('/gestion_danos')
 def gestion_danos():
     if 'user_id' not in session:
-        flash("Por favor, inicia sesión.", "warning"); return redirect(url_for('login'))
+        flash("Por favor, inicia sesión.", "warning"); return redirect(url_for('login_page'))
     # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
     usuario_rol = session.get('user_rol')
     conn = get_db_connection()
@@ -1011,7 +1463,7 @@ def gestion_danos():
 @app.route('/reponer_dano', methods=['POST'])
 def reponer_dano():
      # ... (código sin cambios)
-    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login')) # Solo admin puede reponer
+    if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login_page')) # Solo admin puede reponer
     id_dano = request.form.get('id_dano')
     if not id_dano:
         flash("ID de daño no proporcionado.", "danger"); return redirect(url_for('gestion_danos'))

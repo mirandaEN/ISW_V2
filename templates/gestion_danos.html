@@ -3,68 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Daños y Reposición</title>
+    <!-- <title>Gestión de Daños y Reposición</title> --> <!-- Título no tan relevante -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* COLORES INSTITUCIONALES Y PROFESIONALES */
+        /* Estilos (mantenidos por si se accede directo, pero ajustados) */
         :root {
-            --color-principal: #660000; /* Vino/Rojo Institucional */
-            --color-secundario: #808080; /* Gris (para botones out-of-focus) */
+            --color-principal: #660000;
+            --color-secundario: #808080;
             --color-exito: #28a745;
             --color-peligro: #dc3545;
             --color-alerta: #ffc107;
             --color-texto-claro: white;
             --color-fondo: #f7f9fc;
         }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--color-fondo); margin: 0; }
-        .top-banner {
-            background-color: #9c0000;
-            color: var(--color-texto-claro);
-            padding: 10px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        main#gestionDanosContent { /* ID para asegurar selección */
+            padding: 1.5rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0; /* Margen por si se carga solo */
         }
-        .top-banner .logo-img { height: 50px; }
-        .breadcrumb-nav a { color: #f8f9fa; text-decoration: none; transition: color 0.3s; }
-        .breadcrumb-nav span { margin: 0 5px; color: #dee2e6; }
-        .breadcrumb-nav .active-page { color: var(--color-texto-claro); font-weight: bold; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: rgb(24, 80, 143); border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-top: 0; }
+        main#gestionDanosContent h1 { /* Estilo título principal */
+            color: var(--color-principal);
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            font-size: 1.8em;
+        }
+         main#gestionDanosContent h4 { /* Estilo subtítulo */
+             color: #495057; /* Un gris oscuro */
+             margin-top: 1.5rem;
+             margin-bottom: 1rem;
+             font-weight: 600;
+         }
         .table-container { overflow-x: auto; margin-top: 20px; }
         .table th { background-color: #f8f9fa; color: var(--color-principal); font-weight: 600; }
-        
-        .btn-regresar { background-color: var(--color-secundario); color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: 600; }
-        .btn-regresar:hover { background-color: #5a6268; }
-        .btn-reponer { background-color: var(--color-exito); border-color: var(--color-exito); }
-        .btn-reponer:hover { background-color: #1e7e34; }
-
-        .estado-pendiente { background-color: var(--color-alerta); color: #856404; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
-        .estado-repuesto { background-color: var(--color-exito); color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
+        .table td { vertical-align: middle; } /* Alinear verticalmente */
+        /* Botón Regresar eliminado */
+        .btn-reponer { background-color: var(--color-exito); border-color: var(--color-exito); color: white; } /* Añadido color texto */
+        .btn-reponer:hover { background-color: #1e7e34; border-color: #1c7430;}
+        .estado-pendiente { background-color: var(--color-alerta); color: #333; /* Color texto oscuro para mejor contraste */ padding: 0.3em 0.6em; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        /* Estado repuesto eliminado ya que solo mostramos pendientes */
+         .flash-messages-container { position: fixed; top: 20px; right: 20px; z-index: 1050; width: 350px; }
     </style>
 </head>
-<body>
-    <header class="top-banner">
-        <nav class="breadcrumb-nav">
-            <!-- 🔑 Lógica de Regreso Condicional -->
-            {% if usuario_rol == 'admin' or usuario_rol == 'jefe' %}
-                <a href="{{ url_for('interface_admin') }}">Inicio Admin</a>
-            {% elif usuario_rol == 'auxiliar' %}
-                <a href="{{ url_for('interface_aux') }}">Inicio Auxiliar</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Inicio</a>
-            {% endif %}
-            <span>></span>
-            <span class="active-page">Gestión de Daños</span>
-        </nav>
-        <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo" class="logo-img">
-    </header>
+<body> <!-- Sin padding -->
 
-    <div class="container">
-        <h1><i class="fas fa-hand-holding-usd"></i> Reposición de Material Dañado</h1>
+    <!-- Header FUE ELIMINADO -->
 
+    <!-- Contenedor Flash (se mantiene por si acaso) -->
+    <div class="flash-messages-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, msg in messages %}
@@ -75,11 +66,17 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+    </div>
+
+    <!-- === INICIO CONTENIDO <main> === -->
+    <main id="gestionDanosContent">
+
+        <h1><i class="fas fa-tools"></i> Reposición de Material Dañado</h1>
 
         <div class="table-container">
-            <h4>Daños Pendientes de Reposición</h4>
-            <table class="table table-hover table-striped">
-                <thead>
+            <h4><i class="fas fa-exclamation-circle text-warning me-2"></i> Daños Pendientes de Reposición</h4>
+            <table class="table table-hover table-striped align-middle"> <!-- Añadido align-middle -->
+                <thead class="table-light"> <!-- THead más claro -->
                     <tr>
                         <th>ID Daño</th>
                         <th>Material</th>
@@ -88,7 +85,9 @@
                         <th>Motivo</th>
                         <th>Fecha Registro</th>
                         <th>Estado</th>
+                         {% if usuario_rol == 'admin' %} <!-- Solo admin ve la acción -->
                         <th>Acción</th>
+                         {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -99,42 +98,39 @@
                         <td>{{ dano.NOMBRE_ALUMNO }} ({{ dano.NUMEROCONTROL }})</td>
                         <td>{{ dano.CANTIDAD_DANADA }}</td>
                         <td>{{ dano.MOTIVO }}</td>
-                        <td>{{ dano.FECHA_REGISTRO.split(' ')[0] }}</td> 
-                        <td><span class="estado-pendiente">{{ dano.ESTATUS_REPOSICION }}</span></td>
+                        <td>{{ dano.FECHA_REGISTRO.split(' ')[0] if dano.FECHA_REGISTRO else 'N/A' }}</td>
+                        <td><span class="badge bg-warning text-dark">{{ dano.ESTATUS_REPOSICION }}</span></td> <!-- Usando badge de Bootstrap -->
+                        {% if usuario_rol == 'admin' %}
                         <td>
-                            <!-- Formulario de reposición -->
+                            <!-- Formulario de reposición (solo para admin) -->
                             <form action="{{ url_for('reponer_dano') }}" method="POST" style="display:inline;">
                                 <input type="hidden" name="id_dano" value="{{ dano.ID_DANO }}">
-                                <button type="submit" class="btn btn-sm btn-reponer" 
+                                <button type="submit" class="btn btn-sm btn-reponer"
                                         onclick="return confirm('¿Confirmas que el material ha sido repuesto por el alumno y que se debe actualizar el stock? Esta acción es irreversible.');">
-                                    <i class="fas fa-check"></i> Reponer Stock
+                                    <i class="fas fa-check"></i> Marcar Repuesto
                                 </button>
                             </form>
                         </td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                     {% if not danos_pendientes %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted">No hay materiales dañados pendientes de reposición.</td>
+                        <td colspan="{{ 8 if usuario_rol == 'admin' else 7 }}" class="text-center text-muted fst-italic py-3">No hay materiales dañados pendientes de reposición.</td>
                     </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
-        
-        <div class="mt-4">
-            {% if usuario_rol == 'admin' or usuario_rol == 'jefe' %}
-                <a href="{{ url_for('interface_admin') }}" class="btn btn-outline-secondary btn-regresar">
-            {% elif usuario_rol == 'auxiliar' %}
-                <a href="{{ url_for('interface_aux') }}" class="btn btn-outline-secondary btn-regresar">
-            {% else %}
-                <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-regresar">
-            {% endif %}
-                <i class="fas fa-arrow-left"></i> Regresar
-            </a>
-        </div>
-    </div>
 
+        <!-- Botón Regresar FUE ELIMINADO -->
+
+    </main>
+    <!-- === FIN CONTENIDO <main> === -->
+
+
+    <!-- Scripts (Solo Bootstrap JS es necesario aquí si no hay más lógica) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- No se necesita el script de inicialización si no hay JS complejo específico de esta página -->
 </body>
 </html>

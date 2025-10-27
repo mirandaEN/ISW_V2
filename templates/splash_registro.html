@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a LabFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Definición de variables de color basadas en tu logo */
+        :root {
+            --bg-dark-blue: #2a364d; /* Azul oscuro del fondo de tu logo */
+            --main-logo-blue: #e0f2f7; /* Azul claro del texto LABFLOW */
+            --accent-blue-light: #acd7ec; /* Un azul más claro para el eslogan */
+            --text-light-gray: #d0dbe6; /* Gris muy claro para texto general si fuera necesario */
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--bg-dark-blue); /* Fondo del mismo color que tu logo */
+            margin: 0;
+            font-family: 'Open Sans', sans-serif; /* Fuente para el eslogan */
+            color: var(--text-light-gray);
+            overflow: hidden; /* Prevenir scroll */
+            opacity: 0;
+            animation: fadeInPage 0.8s ease-out forwards;
+        }
+
+        .splash-container {
+            text-align: center;
+            padding: 40px 60px;
+            border-radius: 15px;
+            /* No necesitamos box-shadow en el contenedor si es solo el logo */
+            transform: translateY(-20px); 
+            opacity: 0;
+            animation: slideInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
+            max-width: 500px; /* Ancho máximo para el conjunto del logo y texto */
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px; /* Espacio entre elementos */
+        }
+
+        .splash-abstract-icon {
+            max-width: 220px; /* Tamaño del icono abstracto */
+            height: auto;
+            filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.3)); /* Sombra más pronunciada para profundidad */
+            opacity: 0;
+            animation: fadeInLogoIcon 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.8s forwards; /* Aparece después del contenedor */
+            margin-bottom: 0px; /* Reducir margen si el texto va junto */
+        }
+
+        .labflow-text {
+            font-family: 'Montserrat', sans-serif; /* Usamos Montserrat para el texto principal */
+            font-size: 3.5em; /* Tamaño grande para "LABFLOW" */
+            font-weight: 700; /* Negrita */
+            color: var(--main-logo-blue); /* Color azul claro de tu texto en el logo */
+            margin-top: 10px; /* Espacio entre el icono y el texto LABFLOW */
+            margin-bottom: 10px;
+            letter-spacing: 2px; /* Espaciado entre letras */
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeInLabflowText 1s ease-out 1.2s forwards; /* Aparece después del icono */
+        }
+
+        .tagline {
+            font-size: 1.1em; /* Tamaño del eslogan */
+            font-weight: 400;
+            color: var(--accent-blue-light); /* Un azul un poco más claro para el eslogan */
+            margin-top: -10px; /* Acercar al texto principal */
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeInTagline 1s ease-out 1.6s forwards; /* Aparece después del texto principal */
+        }
+
+        .loader-container {
+            height: 30px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 30px; /* Espacio antes del loader */
+            opacity: 0;
+            animation: fadeInLoader 0.6s ease-out 2.5s forwards; /* Aparece después de todo el texto */
+        }
+
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.2); /* Borde semitransparente claro */
+            border-top: 4px solid var(--accent-blue-light); /* Color del spinner que haga contraste */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Keyframe Animations */
+        @keyframes fadeInPage {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeInLogoIcon {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeInLabflowText {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInTagline {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInLoader {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <img src="{{ url_for('static', filename='sources/labflow.png') }}" alt="Icono LabFlow" class="splash-abstract-icon">
+        
+        <h1 class="labflow-text">LABFLOW</h1>
+        
+        <p class="tagline">HACIENDO MATCH CON EL MATERIAL QUE NECESITAS</p>
+        
+        <div class="loader-container">
+            <div class="loader"></div> 
+        </div>
+    </div>
+
+    <script>
+        const loginUrl = "{{ url_for('registro_alumno') }}"; 
+        const delaySeconds = 5.0; // Más tiempo para ver las animaciones fluidas
+
+        setTimeout(() => {
+            window.location.href = loginUrl;
+        }, delaySeconds * 1000);
+    </script>
+</body>
+</html>

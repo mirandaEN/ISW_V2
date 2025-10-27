@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Inventario</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Estilos (mantenidos por si se accede directo, pero ajustados) */
         :root {
             --color-principal: #7d0015;
             --color-secundario: #a71d2a;
@@ -15,135 +15,71 @@
             --color-peligro: #dc3545;
             --color-aviso: #ffc107;
         }
-
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background-color: #f8f9fa; 
-            margin: 0; 
+        main#inventarioContent { /* ID para asegurar selección correcta */
+            padding: 1.5rem; /* Espacio interno */
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0; /* Margen superior/inferior si se carga solo */
         }
-        
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 40px;
-            background-color: var(--color-principal);
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .breadcrumb { font-size: 1.1em; margin: 0; }
-        .breadcrumb a { color: #dee2e6; text-decoration: none; transition: color 0.3s; }
-        .breadcrumb a:hover { color: var(--color-texto-claro); }
-        .breadcrumb span { margin: 0 10px; }
-        .top-bar .logo { height: 50px; }
-        
-        .container { 
-            max-width: 1400px; 
-            margin: 20px auto; 
-            padding: 20px; 
-            background-color: #fff; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-        }
-        
-        h1 { 
+        main#inventarioContent h1 { /* Estilo del título principal */
             color: var(--color-principal);
-            border-bottom: 2px solid #dee2e6; 
-            padding-bottom: 10px; 
-            margin-top: 0; 
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 1.5rem; /* Espacio debajo del título */
             font-weight: 700;
+            font-size: 1.8em;
         }
-        
-        .toolbar { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            flex-wrap: wrap; 
-            gap: 20px; 
-        }
-        
-        .actions button { 
-            background-color: var(--color-principal); 
-            color: white; 
-            border: none; 
-            padding: 10px 15px; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-size: 1em; 
-            transition: background-color 0.3s;
-            margin-right: 10px;
-        }
-        .actions button:hover {
-            background-color: #4a000a;
-        }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 20px; }
+        .actions button { background-color: var(--color-principal); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s; margin-right: 10px; }
+        .actions button:hover { background-color: #4a000a; }
         .actions button.btn-log { background-color: #17a2b8; }
         .actions button.btn-log:hover { background-color: #138496; }
         .actions button.delete { background-color: var(--color-peligro); }
         .actions button.edit { background-color: #ffc107; color: #212529; }
-        
         .search-section { flex-grow: 1; max-width: 500px; }
         .search-bar input { border: 1px solid #ced4da; padding: 10px; border-radius: 5px; width: 100%; }
-        
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; vertical-align: middle;} /* Alineación vertical */
         th { background-color: #f8f9fa; font-weight: 600; color: #343a40; }
-        
         .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .disponible { background-color: var(--color-activo); }
         .en-uso { background-color: var(--color-aviso); }
         .sin-stock { background-color: var(--color-peligro); }
-        
-        .flash-messages-container { position: fixed; top: 80px; right: 20px; z-index: 1050; width: 350px; }
-        
-        .btn-regresar { display: inline-block; background-color: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; transition: background-color 0.3s; }
-        .btn-regresar:hover { background-color: #5a6268; }
-
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
+        .flash-messages-container { position: fixed; top: 20px; right: 20px; z-index: 1050; width: 350px; }
+        /* Botón regresar eliminado */
+        .modal { display: none; position: fixed; z-index: 1050; /* Mayor z-index */ left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
-        .modal-header h2 { margin: 0; }
-        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal-header h2 { margin: 0; font-size: 1.4em; }
+        .close { color: #555; font-size: 28px; font-weight: bold; cursor: pointer; background: none; border: none;}
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
         .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
-        .btn-submit { background-color: var(--color-activo); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        
+        .btn-submit { background-color: var(--color-activo); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
         .filter-container { display: flex; gap: 15px; margin-bottom: 1rem; flex-wrap: wrap; padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
         .filter-container label { font-size: 0.9em; cursor: pointer; }
+        /* Estilo para modal de log */
+        #logModal .modal-content { max-width: 900px; }
+        #logModal .table-responsive { max-height: 500px; }
     </style>
 </head>
-<body>
-    <header class="top-bar">
-        <nav class="breadcrumb">
-            {% if usuario_rol == 'admin' or usuario_rol == 'jefe' or usuario_rol == '0' %}
-                <a href="{{ url_for('interface_admin') }}">Inicio Admin</a>
-            {% elif usuario_rol == 'auxiliar' or usuario_rol == '1' %}
-                <a href="{{ url_for('interface_aux') }}">Inicio Auxiliar</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Inicio</a>
+<body> <div class="flash-messages-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
+                        {{ msg }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
             {% endif %}
-            <span>></span>
-            <span>Inventario</span>
-        </nav>
-        <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo" class="logo">
-    </header>
+        {% endwith %}
+    </div>
 
-    <div class="container">
-        <div class="flash-messages-container">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, msg in messages %}
-                        <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
-                            {{ msg }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
+    <main id="inventarioContent">
 
         <h1><i class="fas fa-boxes"></i> Gestión de Materiales</h1>
 
@@ -175,14 +111,12 @@
                     </div>
                 </div>
                 <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Buscar...">
-                </div>
+                    <input type="text" id="searchInput" placeholder="Buscar..." class="form-control"> </div>
             </div>
         </div>
 
         <div class="table-container">
-            <table id="inventoryTable">
-                <thead>
+            <table id="inventoryTable" class="table table-hover"> <thead>
                     <tr>
                         <th>ID</th>
                         <th>Nombre</th>
@@ -192,7 +126,7 @@
                         <th>Disponibles</th>
                         <th>Dañados</th>
                         <th>Estado</th>
-                        <th>Acciones</th>
+                        {% if usuario_rol == 'admin' %}<th>Acciones</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -206,59 +140,63 @@
                         <td>{{ material.CANTIDAD_DISPONIBLE }}</td>
                         <td>{{ material.CANTIDAD_DANADA or 0 }}</td>
                         <td>
-                            {% set status_upper = material.ESTATUS | upper %}
+                            {% set status_upper = (material.ESTATUS or '') | upper %}
                             {% if status_upper == 'DISPONIBLE' %}
                                 <span class="status-dot disponible"></span> Disponible
                             {% elif status_upper == 'EN USO' %}
-                                <span class="status-dot en-uso"></span> En uso ({{ material.CANTIDAD_EN_USO }})
-                            {% else %}
+                                <span class="status-dot en-uso"></span> En uso ({{ material.CANTIDAD_EN_USO or 0 }})
+                            {% elif status_upper == 'SIN STOCK' %}
                                 <span class="status-dot sin-stock"></span> Sin stock
+                            {% else %}
+                                <span class="status-dot sin-stock"></span> {{ material.ESTATUS or 'N/A' }} {# Fallback #}
                             {% endif %}
                         </td>
+                         {% if usuario_rol == 'admin' %}
                         <td>
-                            {% if usuario_rol == 'admin' %}
-                            <button class="edit" data-material='{{ material | tojson | safe }}' onclick="openEditModal(this)"><i class="fas fa-pencil-alt"></i></button>
+                            <button class="btn btn-sm edit" data-material='{{ material | tojson | safe }}' onclick="openEditModal(this)"><i class="fas fa-pencil-alt"></i></button>
                             <form action="{{ url_for('eliminar_material') }}" method="POST" style="display:inline;">
                                 <input type="hidden" name="id_material" value="{{ material.ID_MATERIAL }}">
-                                <button type="submit" class="delete" onclick="return confirm('¿Estás seguro de que deseas eliminar este material?');"><i class="fas fa-trash-alt"></i></button>
+                                <button type="submit" class="btn btn-sm delete" onclick="return confirm('¿Estás seguro de que deseas eliminar este material?');"><i class="fas fa-trash-alt"></i></button>
                             </form>
-                            {% endif %}
                         </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ 9 if usuario_rol == 'admin' else 8 }}" class="text-center text-muted">No hay materiales registrados.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        <br>
-        <a href="{{ url_for('interface_admin' if usuario_rol == 'admin' or usuario_rol == '0' else 'interface_aux') }}" class="btn-regresar">
-            <i class="fas fa-arrow-left"></i> Regresar
-        </a>
-    </div>
-
+        
+        </main>
     <div id="agregarModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Agregar Nuevo Material</h2>
-                <span class="close" onclick="closeModal('agregarModal')">&times;</span>
+                <button type="button" class="close" onclick="closeModal('agregarModal')">&times;</button>
             </div>
             <form action="{{ url_for('agregar_material') }}" method="POST">
                 <div class="form-group">
                     <label for="nombre">Nombre del Material</label>
-                    <input type="text" id="nombre" name="nombre" required>
+                    <input type="text" id="nombre" name="nombre" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label for="tipo">Tipo</label>
-                    <input type="text" id="tipo" name="tipo">
+                    <input type="text" id="tipo" name="tipo" class="form-control">
                 </div>
                 <div class="form-group">
                     <label for="marca_modelo">Marca/Modelo</label>
-                    <input type="text" id="marca_modelo" name="marca_modelo">
+                    <input type="text" id="marca_modelo" name="marca_modelo" class="form-control">
                 </div>
                 <div class="form-group">
                     <label for="cantidad">Cantidad Total</label>
-                    <input type="number" id="cantidad" name="cantidad" min="1" required>
+                    <input type="number" id="cantidad" name="cantidad" min="1" class="form-control" required>
                 </div>
-                <button type="submit" class="btn-submit">Guardar Material</button>
+                 <div class="d-grid mt-3">
+                    <button type="submit" class="btn btn-submit">Guardar Material</button>
+                 </div>
             </form>
         </div>
     </div>
@@ -267,40 +205,40 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Editar Material</h2>
-                <span class="close" onclick="closeModal('editModal')">&times;</span>
+                 <button type="button" class="close" onclick="closeModal('editModal')">&times;</button>
             </div>
             <form action="{{ url_for('modificar_material') }}" method="POST">
                 <input type="hidden" id="edit_id_material" name="id_material">
                 <div class="form-group">
                     <label for="edit_nombre">Nombre del Material</label>
-                    <input type="text" id="edit_nombre" name="nombre" required>
+                    <input type="text" id="edit_nombre" name="nombre" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label for="edit_tipo">Tipo</label>
-                    <input type="text" id="edit_tipo" name="tipo">
+                    <input type="text" id="edit_tipo" name="tipo" class="form-control">
                 </div>
                 <div class="form-group">
                     <label for="edit_marca_modelo">Marca/Modelo</label>
-                    <input type="text" id="edit_marca_modelo" name="marca_modelo">
+                    <input type="text" id="edit_marca_modelo" name="marca_modelo" class="form-control">
                 </div>
                 <div class="form-group">
                     <label for="edit_cantidad">Cantidad Total</label>
-                    <input type="number" id="edit_cantidad" name="cantidad" min="0" required> 
+                    <input type="number" id="edit_cantidad" name="cantidad" min="0" class="form-control" required>
                 </div>
-                <button type="submit" class="btn-submit">Actualizar Material</button>
+                <div class="d-grid mt-3">
+                    <button type="submit" class="btn btn-submit">Actualizar Material</button>
+                </div>
             </form>
         </div>
     </div>
-    
+
+    {% if usuario_rol == 'admin' %}
     <div id="logModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2><i class="fas fa-history"></i> Registro de Movimientos de Inventario</h2>
-                <span class="close" onclick="closeModal('logModal')">&times;</span>
+        <div class="modal-content"> <div class="modal-header">
+                <h2><i class="fas fa-history"></i> Registro de Movimientos</h2>
+                <button type="button" class="close" onclick="closeModal('logModal')">&times;</button>
             </div>
-            <div class="table-responsive" style="max-height: 500px;">
-                <table class="table table-striped">
-                    <thead>
+            <div class="table-responsive"> <table class="table table-striped table-sm"> <thead>
                         <tr>
                             <th>Fecha</th>
                             <th>Usuario</th>
@@ -315,102 +253,170 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function openModal(modalId) { document.getElementById(modalId).style.display = "block"; }
-        function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+        // --- INICIO LÓGICA JAVASCRIPT DE INVENTARIO ---
         
-        function openEditModal(button) {
-            const material = JSON.parse(button.getAttribute('data-material'));
-            document.getElementById('edit_id_material').value = material.ID_MATERIAL;
-            document.getElementById('edit_nombre').value = material.NOMBRE;
-            document.getElementById('edit_tipo').value = material.TIPO || '';
-            document.getElementById('edit_marca_modelo').value = material.MARCA_MODELO || '';
-            document.getElementById('edit_cantidad').value = material.CANTIDAD_TOTAL; 
-            openModal('editModal');
+        // Hacer globales las funciones llamadas desde HTML
+        window.openModal = function(modalId) { 
+            const modal = document.getElementById(modalId);
+            if(modal) modal.style.display = "block"; 
+        }
+        window.closeModal = function(modalId) { 
+             const modal = document.getElementById(modalId);
+             if(modal) modal.style.display = "none"; 
+        }
+        
+        window.openEditModal = function(button) {
+            try {
+                const material = JSON.parse(button.getAttribute('data-material'));
+                document.getElementById('edit_id_material').value = material.ID_MATERIAL;
+                document.getElementById('edit_nombre').value = material.NOMBRE;
+                document.getElementById('edit_tipo').value = material.TIPO || '';
+                document.getElementById('edit_marca_modelo').value = material.MARCA_MODELO || '';
+                document.getElementById('edit_cantidad').value = material.CANTIDAD_TOTAL; 
+                openModal('editModal');
+            } catch (e) {
+                console.error("Error al parsear datos del material:", e);
+                alert("Error al cargar datos para editar.");
+            }
         }
 
-        async function openLogModal() {
+        window.openLogModal = async function() {
             const logTableBody = document.getElementById('logTableBody');
+            if (!logTableBody) return; // Salir si no existe
+            
             logTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Cargando...</td></tr>';
             openModal('logModal');
             
             try {
                 const response = await fetch("{{ url_for('movimientos_inventario') }}");
-                if (!response.ok) throw new Error('Error al cargar los datos.');
+                if (!response.ok) {
+                    // Si falla por no autorizado (ej. auxiliar intentando), cerrar modal
+                    if(response.status === 403 || response.status === 401) {
+                         closeModal('logModal');
+                         alert("No tienes permiso para ver los movimientos.");
+                         return; // No continuar
+                    }
+                    throw new Error(`Error al cargar los datos (${response.status})`);
+                }
                 const movimientos = await response.json();
                 
-                logTableBody.innerHTML = '';
+                logTableBody.innerHTML = ''; // Limpiar 'Cargando...'
+                if (movimientos.error) { // Manejar error devuelto por la API
+                     throw new Error(movimientos.error);
+                }
                 if (movimientos.length === 0) {
-                    logTableBody.innerHTML = '<tr><td colspan="5" class="text-center">No hay movimientos registrados.</td></tr>';
+                    logTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay movimientos registrados.</td></tr>';
                     return;
                 }
                 
                 movimientos.forEach(mov => {
                     const tr = document.createElement('tr');
-                    const fecha = new Date(mov.FECHA_MOVIMIENTO.replace(' ', 'T')).toLocaleString('es-MX');
+                    // Formateo de fecha más robusto
+                    let fechaStr = 'Fecha inválida';
+                    try {
+                        // Intenta detectar el formato y convertirlo
+                         const fechaISO = mov.FECHA_MOVIMIENTO.includes('.') ? mov.FECHA_MOVIMIENTO.split('.')[0] : mov.FECHA_MOVIMIENTO;
+                         const fecha = new Date(fechaISO.replace(' ', 'T'));
+                         if (!isNaN(fecha)) { // Verifica si la fecha es válida
+                            fechaStr = fecha.toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'medium' });
+                         }
+                    } catch (e) { console.error("Error formateando fecha:", mov.FECHA_MOVIMIENTO, e); }
+
                     tr.innerHTML = `
-                        <td>${fecha}</td>
+                        <td>${fechaStr}</td>
                         <td>${mov.USUARIO || 'Sistema'}</td>
-                        <td>${mov.TIPO_ACCION}</td>
-                        <td>${mov.NOMBRE_MATERIAL_AFECTADO}</td>
-                        <td>${mov.DETALLE}</td>
+                        <td>${mov.TIPO_ACCION || 'N/A'}</td>
+                        <td>${mov.NOMBRE_MATERIAL_AFECTADO || 'N/A'}</td>
+                        <td>${mov.DETALLE || ''}</td>
                     `;
                     logTableBody.appendChild(tr);
                 });
             } catch (error) {
-                logTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+                 console.error("Error en fetch para logs:", error);
+                 logTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error al cargar: ${error.message}</td></tr>`;
             }
         }
 
-        const searchInput = document.getElementById('searchInput');
-        const checkboxesFiltro = document.querySelectorAll('.filter-container .form-check-input');
-        
-        function filterTable() {
-            const filtroTexto = searchInput.value.toUpperCase();
-            const filtrosActivos = Array.from(checkboxesFiltro).filter(cb => cb.checked).map(cb => cb.value);
+        // Función de inicialización para los listeners
+        function initializeInventarioScripts() {
+            const searchInput = document.getElementById('searchInput');
+            const checkboxesFiltro = document.querySelectorAll('.filter-container .form-check-input');
             const table = document.getElementById("inventoryTable");
-            const tr = table.getElementsByTagName("tr");
-            
-            for (let i = 1; i < tr.length; i++) {
-                const fila = tr[i];
-                if (!fila.dataset.id) continue;
+            const tbody = table ? table.getElementsByTagName("tbody")[0] : null;
 
-                let encontrado = false;
-                if (filtrosActivos.length === 0 && filtroTexto === '') {
-                    // Si no hay filtros ni texto, mostrar todo (o manejar como prefieras)
-                    encontrado = true;
-                } else if (filtrosActivos.length > 0 && filtroTexto === '') {
-                    // Si hay filtros pero no texto, mostrar todo (o manejar como prefieras)
-                    encontrado = true;
-                } else if (filtrosActivos.length === 0 && filtroTexto !== '') {
-                    // Si no hay filtros seleccionados pero sí hay texto, no buscar en nada
-                    encontrado = false;
-                }
-                else {
-                     for (const filtro of filtrosActivos) {
-                        const textoCelda = fila.dataset[filtro] || '';
-                        if (textoCelda.toUpperCase().includes(filtroTexto)) {
-                            encontrado = true;
-                            break; 
+            // Hacer global la función de filtro para que los listeners funcionen
+            window.filterTable = function() {
+                if (!searchInput || !checkboxesFiltro || !tbody) return; // Salir si falta algo
+
+                const filtroTexto = searchInput.value.toUpperCase();
+                const filtrosActivos = Array.from(checkboxesFiltro).filter(cb => cb.checked).map(cb => cb.value);
+                const tr = tbody.getElementsByTagName("tr");
+
+                for (let i = 0; i < tr.length; i++) {
+                    const fila = tr[i];
+                    if (!fila.dataset.id) continue; // Saltar filas sin data-id (ej. 'No hay materiales')
+
+                    let encontrado = false;
+                    // Caso 1: Sin filtros activos y sin texto -> Mostrar todo
+                    if (filtrosActivos.length === 0 && filtroTexto === '') {
+                        encontrado = true;
+                    } 
+                    // Caso 2: Con filtros activos (texto puede o no haber)
+                    else if (filtrosActivos.length > 0) {
+                         for (const filtro of filtrosActivos) {
+                            // Usar dataset para obtener los valores
+                            const textoCelda = (fila.dataset[filtro] || '').toUpperCase();
+                            if (textoCelda.includes(filtroTexto)) {
+                                encontrado = true;
+                                break; 
+                            }
                         }
+                    } 
+                    // Caso 3: Sin filtros activos PERO con texto -> Buscar solo en ID y Nombre por defecto
+                    else if (filtrosActivos.length === 0 && filtroTexto !== '') {
+                         const nombre = (fila.dataset.nombre || '').toUpperCase();
+                         const id = (fila.dataset.id || '').toUpperCase();
+                         if (nombre.includes(filtroTexto) || id.includes(filtroTexto)) {
+                             encontrado = true;
+                         }
                     }
+                    
+                    fila.style.display = encontrado ? "" : "none";
                 }
-                fila.style.display = encontrado ? "" : "none";
+            } // Fin window.filterTable
+
+            if (searchInput) {
+                searchInput.addEventListener('keyup', filterTable);
             }
-        }
+            if (checkboxesFiltro) {
+                checkboxesFiltro.forEach(cb => cb.addEventListener('change', filterTable));
+            }
 
-        searchInput.addEventListener('keyup', filterTable);
-        checkboxesFiltro.forEach(cb => cb.addEventListener('change', filterTable));
+            // Cerrar modales al hacer clic fuera
+            window.onclick = function(event) {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (event.target == modal) {
+                        closeModal(modal.id);
+                    }
+                });
+            }
+            
+            // Inicializar filtro al cargar por si hay texto pre-existente (raro, pero seguro)
+            filterTable();
 
-        window.onclick = function(event) {
-            document.querySelectorAll('.modal').forEach(modal => {
-                if (event.target == modal) {
-                    closeModal(modal.id);
-                }
-            });
+        } // Fin initializeInventarioScripts
+
+        // Ejecutar scripts:
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeInventarioScripts);
+        } else {
+            initializeInventarioScripts();
         }
+        // --- FIN LÓGICA JAVASCRIPT ---
     </script>
 </body>
 </html>

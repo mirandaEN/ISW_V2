@@ -3,20 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soporte Técnico - Laboratorio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
+        /* Estilos (ajustados para carga dinámica) */
+        main#soporteContent .container { /* Aplicar estilos al contenedor DENTRO de main */
             max-width: 800px;
             width: 100%;
-            margin: 20px auto;
+            margin: 20px auto; /* Centrar y dar espacio */
             background-color: #ffffff;
             padding: 40px;
             border-radius: 8px;
@@ -24,152 +18,138 @@
             box-sizing: border-box;
         }
 
-        header {
+        main#soporteContent header { /* Estilos para el encabezado DENTRO de main */
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #e0e0e0;
             padding-bottom: 20px;
         }
 
-        header h1 { font-size: 2em; color: #005a9c; margin: 0; }
-        header p { font-size: 1.1em; color: #555; }
+        main#soporteContent header h1 { font-size: 2em; color: #005a9c; margin: 0; }
+        main#soporteContent header p { font-size: 1.1em; color: #555; }
 
         .support-content { display: flex; flex-wrap: wrap; gap: 40px; }
         .contact-info, .contact-form { flex: 1; min-width: 300px; }
-        .contact-info h2, .contact-form h2 { font-size: 1.5em; color: #005a9c; margin-top: 0; }
-        .contact-info p { font-size: 1em; line-height: 1.6; }
+        .contact-info h2, .contact-form h2 { font-size: 1.5em; color: #005a9c; margin-top: 0; margin-bottom: 1rem; } /* Añadido margen */
+        .contact-info p { font-size: 1em; line-height: 1.6; margin-bottom: 0.8rem; }
         .contact-info strong { color: #333; }
         
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; }
         .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em; transition: border-color 0.2s; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #007bff; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); } /* Añadido box-shadow focus */
         
         .form-group input.invalid, .form-group textarea.invalid { border-color: #dc3545; }
         .error-message { color: #dc3545; font-size: 0.875em; margin-top: 5px; display: none; }
         
-        /* --- NUEVO: Estilos para el contador de caracteres --- */
-        .char-counter {
-            font-size: 0.8em;
-            color: #6c757d;
-            text-align: right;
-            margin-top: 4px;
-        }
+        .char-counter { font-size: 0.8em; color: #6c757d; text-align: right; margin-top: 4px; }
         .char-counter.warning { color: #fd7e14; }
         .char-counter.limit { color: #dc3545; font-weight: bold; }
 
         textarea { resize: vertical; min-height: 120px; }
-        button { width: 100%; padding: 15px; background-color: #007bff; color: #ffffff; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
+        button[type="submit"] { /* Selector más específico */
+             width: 100%; padding: 15px; background-color: #007bff; color: #ffffff; 
+             border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; 
+             cursor: pointer; transition: background-color 0.2s; 
+        }
+        button[type="submit"]:hover { background-color: #0056b3; }
 
-        .back-button-container { text-align: center; margin-top: 30px; }
-        .back-button { display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; transition: background-color 0.2s; }
-        .back-button:hover { background-color: #5a6268; }
-
-        .flash-messages { position: fixed; top: 20px; right: 20px; z-index: 9999; width: 300px; }
-        .alert { padding: 15px; margin-bottom: 10px; border-radius: 5px; color: #fff; opacity: 1; animation: fadeIn 0.5s, fadeOut 0.5s 4.5s forwards; }
+        /* Botón regresar eliminado */
+        /* Mensajes flash (se mantienen por si acaso, aunque deberían mostrarse en el contenedor principal) */
+        .flash-messages-local { margin-bottom: 1.5rem; } /* Contenedor local */
+        .alert { padding: 15px; margin-bottom: 10px; border-radius: 5px; color: #fff; }
         .alert-success { background-color: #28a745; }
         .alert-danger { background-color: #dc3545; }
         .alert-warning { background-color: #ffc107; color: #212529;}
 
-        @keyframes fadeIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
-
         @media (max-width: 768px) {
-            .container { padding: 20px; }
+            main#soporteContent .container { padding: 20px; }
             .support-content { flex-direction: column; }
         }
     </style>
 </head>
-<body>
-    
-    <div class="flash-messages">
+<body> <div class="flash-messages-local">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
     </div>
 
-    <div class="container">
-        <header>
-            <h1>Soporte Técnico</h1>
-            <p>¿Necesitas ayuda? Contáctanos.</p>
-        </header>
+    <main id="soporteContent">
+        <div class="container"> <header>
+                <h1><i class="fas fa-headset me-2"></i>Soporte Técnico</h1>
+                <p>¿Necesitas ayuda? Contáctanos.</p>
+            </header>
 
-        <div class="support-content">
-            <div class="contact-info">
-                <h2>Información de Contacto</h2>
-                <p>Si tienes un problema urgente o prefieres hablar directamente con nosotros, puedes utilizar los siguientes medios:</p>
-                <p><strong>Correo Electrónico:</strong><br> soporte.laboratorio@itsaltillo.edu.mx</p>
-                <p><strong>Teléfono:</strong><br> +52 (844) 123-4567</p>
-                <p><strong>Horario de Atención:</strong><br> Lunes a Viernes de 9:00 AM a 5:00 PM</p>
+            <div class="support-content">
+                <div class="contact-info">
+                    <h2>Información de Contacto</h2>
+                    <p>Si tienes un problema urgente o prefieres hablar directamente, utiliza estos medios:</p>
+                    <p><strong>Correo:</strong><br> mirandaneyra1@gmail.com <br> yoshio99@live.com.mx</p>
+                    <p><strong>Teléfono:</strong><br> +52 (844) 276-4871 <br> +52 (844) 448-4848 </p>
+                    <p><strong>Horario:</strong> Lunes a Viernes, 9:00 AM - 5:00 PM</p>
+                </div>
+
+                <div class="contact-form">
+                    <h2>Envíanos un Mensaje</h2>
+                    <form id="support-form" action="{{ url_for('soporte') }}" method="post">
+                        <div class="form-group">
+                            <label for="name">Nombre Completo</label>
+                            <input type="text" id="name" name="name" class="form-control" required
+                                   pattern="^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$"
+                                   title="Solo se permiten letras y espacios."
+                                   maxlength="50" value="{{ form_data.name if form_data }}">
+                             <span id="name-error" class="error-message">Formato de nombre no válido.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Correo Electrónico</label>
+                            <input type="email" id="email" name="email" class="form-control" required value="{{ form_data.email if form_data }}">
+                            <span id="email-error" class="error-message">Correo electrónico inválido.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Asunto</label>
+                            <input type="text" id="subject" name="subject" class="form-control" required maxlength="150" value="{{ form_data.subject if form_data }}">
+                            <div id="subject-counter" class="char-counter">0/150</div>
+                            <span id="subject-error" class="error-message">El asunto es obligatorio.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Mensaje</label>
+                            <textarea id="message" name="message" class="form-control" required maxlength="2000">{{ form_data.message if form_data }}</textarea>
+                            <div id="message-counter" class="char-counter">0/2000</div>
+                            <span id="message-error" class="error-message">El mensaje es obligatorio.</span>
+                        </div>
+                        <button type="submit">Enviar Mensaje</button>
+                    </form>
+                </div>
             </div>
 
-            <div class="contact-form">
-                <h2>Envíanos un Mensaje</h2>
-                <form id="support-form" action="{{ url_for('soporte') }}" method="post">
-                    <div class="form-group">
-                        <label for="name">Nombre Completo</label>
-                        <input type="text" id="name" name="name" required 
-                               pattern="[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+"
-                               title="Solo se permiten letras y espacios."
-                               maxlength="100" value="{{ form_data.name if form_data }}">
-                        <span id="name-error" class="error-message">No se permiten números ni caracteres especiales.</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Correo Electrónico</label>
-                        <input type="email" id="email" name="email" required value="{{ form_data.email if form_data }}">
-                        <span id="email-error" class="error-message">Por favor, introduce un correo electrónico válido.</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="subject">Asunto</label>
-                        <input type="text" id="subject" name="subject" required maxlength="150" value="{{ form_data.subject if form_data }}">
-                        <div id="subject-counter" class="char-counter">0/150</div>
-                        <span id="subject-error" class="error-message">El asunto no puede estar vacío.</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="message">Mensaje</label>
-                        <textarea id="message" name="message" required maxlength="2000">{{ form_data.message if form_data }}</textarea>
-                        <div id="message-counter" class="char-counter">0/2000</div>
-                        <span id="message-error" class="error-message">El mensaje no puede estar vacío.</span>
-                    </div>
-                    <button type="submit">Enviar Mensaje</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="back-button-container">
-            {% if session.get('user_rol') == 'admin' %}
-                <a href="{{ url_for('interface_admin') }}" class="back-button">Volver al Panel de Administrador</a>
-            {% elif session.get('user_rol') == 'auxiliar' %}
-                <a href="{{ url_for('interface_aux') }}" class="back-button">Volver al Panel de Auxiliar</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="back-button">Volver al Inicio</a>
-            {% endif %}
-        </div>
-    </div>
-
+            </div> </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // --- INICIO LÓGICA JAVASCRIPT SOPORTE ---
+        function initializeSoporteScripts() {
             const form = document.getElementById('support-form');
+            // Asegurarse que los elementos existan antes de añadir listeners
             const nameInput = document.getElementById('name');
             const emailInput = document.getElementById('email');
             const subjectInput = document.getElementById('subject');
             const messageInput = document.getElementById('message');
-
             const nameError = document.getElementById('name-error');
             const emailError = document.getElementById('email-error');
             const subjectError = document.getElementById('subject-error');
             const messageError = document.getElementById('message-error');
-            
             const subjectCounter = document.getElementById('subject-counter');
             const messageCounter = document.getElementById('message-counter');
 
-            // --- Función para actualizar contadores ---
-            function updateCounter(input, counterElement) {
+            // Función global para actualizar contadores (por si se necesita externamente)
+            window.updateCounter = function(input, counterElement) {
+                if (!input || !counterElement) return; // Salir si no existen
                 const maxLength = input.maxLength;
                 const currentLength = input.value.length;
                 counterElement.textContent = `${currentLength}/${maxLength}`;
@@ -182,68 +162,98 @@
                 }
             }
             
-            // --- Eventos de Input para contadores y validación en tiempo real ---
-            subjectInput.addEventListener('input', () => updateCounter(subjectInput, subjectCounter));
-            messageInput.addEventListener('input', () => updateCounter(messageInput, messageCounter));
+            // --- Eventos de Input ---
+            if (subjectInput && subjectCounter) {
+                subjectInput.addEventListener('input', () => updateCounter(subjectInput, subjectCounter));
+                updateCounter(subjectInput, subjectCounter); // Inicializar
+            }
+            if (messageInput && messageCounter) {
+                messageInput.addEventListener('input', () => updateCounter(messageInput, messageCounter));
+                 updateCounter(messageInput, messageCounter); // Inicializar
+            }
+            if (nameInput && nameError) {
+                 nameInput.addEventListener('input', () => {
+                    if (nameInput.validity.patternMismatch) {
+                        nameInput.classList.add('invalid');
+                        nameError.style.display = 'block';
+                    } else {
+                        nameInput.classList.remove('invalid');
+                        nameError.style.display = 'none';
+                    }
+                });
+            }
+
+            // --- Validación al enviar ---
+            if (form) {
+                form.removeEventListener('submit', handleSupportSubmit); // Remover listener previo
+                form.addEventListener('submit', handleSupportSubmit);
+            }
+        } // Fin initializeSoporteScripts
+
+        // Función separada para manejar el submit
+        function handleSupportSubmit(event) {
+            event.preventDefault(); // Siempre prevenir envío normal primero
             
-            // Disparar una vez al cargar por si hay datos precargados
-            updateCounter(subjectInput, subjectCounter);
-            updateCounter(messageInput, messageCounter);
+            let isValid = true;
+            // Seleccionar elementos dentro de esta función asegura que existan al momento del submit
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const subjectInput = document.getElementById('subject');
+            const messageInput = document.getElementById('message');
+            const nameError = document.getElementById('name-error');
+            const emailError = document.getElementById('email-error');
+            const subjectError = document.getElementById('subject-error');
+            const messageError = document.getElementById('message-error');
 
-            nameInput.addEventListener('input', () => {
-                if (nameInput.validity.patternMismatch) {
-                    nameInput.classList.add('invalid');
-                    nameError.style.display = 'block';
-                } else {
-                    nameInput.classList.remove('invalid');
-                    nameError.style.display = 'none';
-                }
-            });
+            // Ocultar errores previos
+            document.querySelectorAll('#soporteContent .error-message').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('#soporteContent .invalid').forEach(el => el.classList.remove('invalid'));
 
-            // --- Validación robusta al enviar el formulario ---
-            form.addEventListener('submit', function(event) {
-                // Al presionar enviar, detenemos el envío para validar manualmente.
-                event.preventDefault();
-
-                let isValid = true;
-                
-                // Ocultar todos los mensajes de error al inicio de la validación
-                document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
-
-                if (!nameInput.checkValidity()) {
-                    nameInput.classList.add('invalid');
+            if (nameInput && !nameInput.checkValidity()) {
+                nameInput.classList.add('invalid');
+                if(nameError) {
                     nameError.textContent = nameInput.validationMessage || "Formato de nombre no válido.";
                     nameError.style.display = 'block';
-                    isValid = false;
                 }
-                
-                if (!emailInput.checkValidity()) {
-                    emailInput.classList.add('invalid');
+                isValid = false;
+            }
+            if (emailInput && !emailInput.checkValidity()) {
+                emailInput.classList.add('invalid');
+                if(emailError) {
                     emailError.textContent = emailInput.validationMessage || "Formato de correo no válido.";
                     emailError.style.display = 'block';
-                    isValid = false;
                 }
-
-                if (subjectInput.value.trim() === '') {
-                    subjectInput.classList.add('invalid');
+                isValid = false;
+            }
+            if (subjectInput && subjectInput.value.trim() === '') {
+                subjectInput.classList.add('invalid');
+                if(subjectError) {
                     subjectError.textContent = "El asunto no puede estar vacío.";
                     subjectError.style.display = 'block';
-                    isValid = false;
                 }
-                
-                if (messageInput.value.trim() === '') {
-                    messageInput.classList.add('invalid');
+                isValid = false;
+            }
+            if (messageInput && messageInput.value.trim() === '') {
+                messageInput.classList.add('invalid');
+                if(messageError) {
                     messageError.textContent = "El mensaje no puede estar vacío.";
                     messageError.style.display = 'block';
-                    isValid = false;
                 }
-                
-                if (isValid) {
-                    form.submit();
-                }
-            });
-        });
+                isValid = false;
+            }
+            
+            if (isValid) {
+                event.target.submit(); // Si todo es válido, enviar el formulario
+            }
+        }
+
+        // Ejecutar scripts al cargar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSoporteScripts);
+        } else {
+            initializeSoporteScripts();
+        }
+        // --- FIN LÓGICA JAVASCRIPT ---
     </script>
 
 </body>
