@@ -1,0 +1,14 @@
+Flask
+weasyprint
+python-dotenv
+sendgrid
+apscheduler
+oracledb
+flask-sqlalchemy
+flask-login
+gunicorn
+pandas
+pypdf
+bcrypt
+flask-cors
+qrcode

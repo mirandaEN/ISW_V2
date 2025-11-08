@@ -4,156 +4,462 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil - LabFlow</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Puedes añadir estilos específicos para la página de perfil aquí */
-        #inactivityModal .modal-header { background-color: #ffc107; color: #333; }
-        .profile-card {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            max-width: 600px; /* Ancho del contenido del perfil */
-            margin: 20px auto; /* Centrar tarjeta */
-        }
-        /*.profile-placeholder-img {
-            width: 120px;
-            height: 120px;
-            background-color: #e9ecef;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0 auto 20px auto;
-            font-size: 3em;
-            color: #adb5bd;
-        }
-            */
-    </style>
-</head>
-<body class="dashboard-layout"> <aside class="sidebar">
-        <div class="sidebar-header">
-            {% if usuario_rol == 'admin' %}
-            <a href="{{ url_for('interface_admin') }}" class="logo-text">LabFlow</a>
-            {% else %}
-            <a href="{{ url_for('interface_aux') }}" class="logo-text">LabFlow</a>
-            {% endif %}
-        </div>
-        <ul class="sidebar-nav">
-            <li>
-                <a href="{{ url_for('profile') }}" class="active"> 
-                    <i class="fas fa-user-circle nav-icon"></i> Perfil 
-                </a>
-            </li>
-            {% if usuario_rol == 'admin' %}
-                <li><a href="{{ url_for('prestamos') }}"><i class="fas fa-exchange-alt nav-icon"></i> Préstamos</a></li>
-                <li><a href="{{ url_for('inventario') }}"><i class="fas fa-boxes nav-icon"></i> Inventario</a></li>
-                <li><a href="{{ url_for('gestion_danos') }}"><i class="fas fa-tools nav-icon"></i> Daños</a></li>
-                <li><a href="{{ url_for('gestion_alumnos') }}"><i class="fas fa-user-graduate nav-icon"></i> Gestión Alumnos</a></li>
-                <li><a href="{{ url_for('gestion_auxiliares') }}"><i class="fas fa-users-cog nav-icon"></i> Gestión Auxiliares</a></li>
-                <li><a href="{{ url_for('reportes') }}"><i class="fas fa-chart-line nav-icon"></i> Reportes</a></li>
-                <li><a href="{{ url_for('soporte') }}"><i class="fas fa-headset nav-icon"></i> Soporte</a></li>
-            {% else %}
-                <li><a href="{{ url_for('prestamos') }}"><i class="fas fa-exchange-alt nav-icon"></i> Préstamos</a></li>
-                <li><a href="{{ url_for('inventario') }}"><i class="fas fa-boxes nav-icon"></i> Inventario</a></li>
-                <li><a href="{{ url_for('gestion_danos') }}"><i class="fas fa-tools nav-icon"></i> Daños</a></li>
-                <li><a href="{{ url_for('soporte') }}"><i class="fas fa-headset nav-icon"></i> Soporte</a></li>
-                {% if 'login_time_iso' in session %} {# Usamos la variable de sesión directamente #}
-                <li class="session-timer-item"> 
-                    <i class="fas fa-clock"></i> Tiempo Sesión: 
-                    <span id="session-timer">00:00:00</span>
-                </li>
-                {% endif %}
-            {% endif %}
-        </ul>
-        <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="btn btn-logout">
-                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </a>
-        </div>
-    </aside>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
 
+    <style>
+        /* 1. Anulación y Estilo de Tarjeta de Perfil */
+        /* Usamos la misma clase de las otras páginas para consistencia */
+        .profile-card {
+            background-color: rgba(255, 255, 255, 0.7); /* Fondo traslúcido */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            height: 100%; /* Para que las columnas coincidan */
+        }
+
+        /* 2. Estilos para la Foto de Perfil */
+        .profile-img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+        }
+
+        /* 3. Estilo amigable para el input de archivo */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: .375rem;
+        }
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-input-label {
+            display: block;
+            padding: .375rem 2.25rem .375rem .75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background-color: #fff;
+            color: #6c757d;
+        }
+        .file-input-wrapper::after {
+            content: 'Buscar';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding: .375rem .75rem;
+            background-color: #e9ecef;
+            border-left: 1px solid #ced4da;
+            color: #495057;
+            pointer-events: none;
+        }
+        
+        /* 4. NUEVO: Estilos para "Mis Estadísticas" */
+        .stat-box {
+            background-color: rgba(255, 255, 255, 0.5); /* Ligeramente más traslúcido */
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .stat-box-icon {
+            font-size: 2.5em;
+            color: var(--color-acento-morado);
+            margin-bottom: 10px;
+        }
+        .stat-box-title {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .stat-box-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        /* 5. Estilos para Modales (Claro) */
+        #inactivityModal .modal-content {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+        }
+        #inactivityModal .modal-header {
+            background-color: rgba(255, 193, 7, 0.8) !important;
+            color: #333; border-bottom: none;
+        }
+        
+        /* === ESTILOS PARA MODO NOCHE (Heredados de stile_inadmin.css) === */
+        /* Sobreescribimos los estilos claros para que funcionen en modo noche */
+        body.dark-mode .profile-card {
+            background-color: rgba(40, 40, 60, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        body.dark-mode .profile-img {
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        body.dark-mode .profile-card h3 {
+            color: #fff;
+        }
+        body.dark-mode .profile-card .text-muted {
+            color: #a0a0b0 !important;
+        }
+        body.dark-mode .profile-card hr {
+            border-top-color: rgba(255, 255, 255, 0.2);
+        }
+        body.dark-mode .profile-card .form-label {
+            color: #f0f0f0;
+        }
+        body.dark-mode .file-input-wrapper {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        body.dark-mode .file-input-label {
+            background-color: #1e1e2f;
+            color: #ccc;
+        }
+        body.dark-mode .file-input-wrapper::after {
+            background-color: #2a2a45;
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            color: #f0f0f0;
+        }
+        
+        body.dark-mode .stat-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        body.dark-mode .stat-box-icon {
+            color: #fff; /* Icono blanco en modo noche */
+        }
+        body.dark-mode .stat-box-title {
+            color: #a0a0b0;
+        }
+        body.dark-mode .stat-box-value {
+            color: #fff;
+        }
+    </style>
+    </head>
+<body>
+    
+    <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
+        <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
+          
+          <a class="navbar-brand fw-bold" href="{{ url_for('interface_admin') if usuario_rol == 'admin' else url_for('interface_aux') }}">
+              <i class="fas fa-flask me-1"></i> LabFlow
+          </a>
+          
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                
+                {% if usuario_rol == 'admin' %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('interface_admin') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gestion_alumnos') }}">Alumnos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gestion_auxiliares') }}">Auxiliares</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('reportes') }}">Reportes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('mostrar_dashboard') }}">Predicciones</a></li>
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('interface_aux') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a></li>
+                {% endif %}
+
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{{ url_for('profile') }}">
+                        <i class="fas fa-user-circle nav-icon"></i> Perfil
+                    </a>
+                </li>
+            </ul>
+            
+            {% if usuario_rol == 'auxiliar' and 'login_time_iso' in session %}
+            <span class="navbar-text ms-3 d-none d-lg-block"> 
+                <i class="fas fa-clock"></i> 
+                <span id="nav-session-timer">00:00:00</span> </span>
+            {% endif %}
+
+          </div>
+        </div>
+    </nav>
     <main class="main-content">
         <div class="welcome-header">
             <h1>Mi Perfil</h1>
-            <p>Administra tu información personal.</p>
+            <p>Administra tu información personal y revisa tu actividad.</p>
         </div>
 
-        <div class="profile-card">
-            <div class="profile-picture-container mb-3 text-center">
-                {% if user_info.profile_pic_filename %}
-                    <img src="{{ url_for('static', filename='profile_pics/' + user_info.profile_pic_filename) }}" 
-                         alt="Foto de Perfil" class="profile-img rounded-circle" 
-                         style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #eee;">
-                {% else %}
-                    <div class="profile-placeholder-img d-inline-block">
-                         <i class="fas fa-user"></i>
+        <div class="row g-4">
+
+            <div class="col-lg-4">
+                <div class="profile-card">
+                    <div class="profile-picture-container mb-3 text-center">
+                        {% if user_info.profile_pic_filename %}
+                            <img src="{{ url_for('static', filename='profile_pics/' + user_info.profile_pic_filename) }}" 
+                                 alt="Foto de Perfil" class="profile-img">
+                        {% else %}
+                            <div class="profile-placeholder-img d-inline-block bg-light rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 150px; height: 150px; border: 4px solid #eee;">
+                                 <i class="fas fa-user fa-3x text-secondary"></i>
+                            </div>
+                        {% endif %}
                     </div>
-                {% endif %}
+        
+                    <h3 class="text-center">{{ user_info.nombre }}</h3>
+                    <p class="text-center text-muted mb-4">{{ user_info.rol|capitalize }}</p>
+        
+                    <hr>
+        
+                    <form action="{{ url_for('upload_profile_pic') }}" method="post" enctype="multipart/form-data" class="mt-4" id="upload-form">
+                        <div class="mb-3">
+                            <label for="profile_pic" class="form-label fw-bold">Cambiar foto de perfil:</label>
+                            <div class="file-input-wrapper">
+                                <input class="form-control" type="file" id="profile_pic" name="profile_pic" accept="image/png, image/jpeg, image/gif" required>
+                                <span class="file-input-label" id="file-input-label">Seleccionar archivo...</span>
+                            </div>
+                            <div class="form-text mt-2">Tamaño máximo: 2MB. Formatos: JPG, PNG, GIF.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mt-2">Subir Nueva Foto</button>
+                    </form>
+                </div>
             </div>
 
-            <h3 class="text-center">{{ user_info.nombre }}</h3>
-            <p class="text-center text-muted mb-4">{{ user_info.rol|capitalize }}</p>
-
-            <hr>
-
-            <form action="{{ url_for('upload_profile_pic') }}" method="post" enctype="multipart/form-data" class="mt-4">
-                <div class="mb-3">
-                    <label for="profile_pic" class="form-label">Cambiar foto de perfil:</label>
-                    <input class="form-control" type="file" id="profile_pic" name="profile_pic" accept="image/png, image/jpeg, image/gif" required>
-                    <div class="form-text">Tamaño máximo: 2MB. Formatos: JPG, PNG, GIF.</div>
+            <div class="col-lg-8">
+                <h5 class="mb-4 d-flex align-items-center">
+                    <i class="fas fa-chart-bar me-2"></i> Mis Estadísticas
+                </h5>
+                <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+                    <div class="col">
+                        <div class="stat-card p-3 text-center rounded shadow-sm">
+                            <i class="fas fa-exchange-alt fa-2x mb-2 text-primary"></i>
+                            <h6 class="text-muted text-uppercase">Préstamos Registrados (Hoy)</h6>
+                            <p id="stat-prestamos-hoy" class="h3 mb-0">12</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stat-card p-3 text-center rounded shadow-sm">
+                            <i class="fas fa-wrench fa-2x mb-2 text-danger"></i>
+                            <h6 class="text-muted text-uppercase">Daños Reportados (Este Mes)</h6>
+                            <p id="stat-danos-mes" class="h3 mb-0">3</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stat-card p-3 text-center rounded shadow-sm">
+                            <i class="fas fa-user-graduate fa-2x mb-2 text-success"></i>
+                            <h6 class="text-muted text-uppercase">Alumnos Activos Totales</h6>
+                            <p id="stat-alumnos-totales" class="h3 mb-0">142</p>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Subir Nueva Foto</button>
-            </form>
-       </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, msg in messages %}
+                            <div class="alert alert-{{ category }}">{{ msg }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <div class="profile-card">
+                    <h3><i class="fas fa-key me-2"></i> Cambiar Contraseña</h3>
+                    <hr>
+                    <form action="{{ url_for('change_password') }}" method="POST" id="form-change-password">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label fw-bold">Contraseña Actual</Flabel>
+                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label fw-bold">Nueva Contraseña</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label fw-bold">Confirmar Nueva Contraseña</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mt-2">Guardar Contraseña</button>
+                    </form>
+                </div>
 
+            </div>
+        </div>
     </main>
-
     <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-         <div class="modal-dialog modal-dialog-centered">
-             <div class="modal-content">
-                 <div class="modal-header">
-                     <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
-                 </div>
-                  <div class="modal-body">
-                     <p>Tu sesión está a punto de expirar debido a inactividad.</p>
-                     <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
-                 </div>
-                 <div class="modal-footer">
-                     <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión Ahora</button>
-                     <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar Sesión</button>
-                 </div>
-             </div>
-         </div>
-     </div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                </div>
+                 <div class="modal-body">
+                    <p>Tu sesión está a punto de expirar.</p>
+                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión</button>
+                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-fab-menu">
+        <div class="settings-options">
+            <button class="settings-option" id="btn-night-mode" title="Modo Noche">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="{{ url_for('logout') }}" class="settings-option" title="Cerrar Sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+        <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
+            <i class="fas fa-cog"></i>
+        </button>
+    </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     {% if usuario_rol == 'auxiliar' and 'login_time_iso' in session %}
     <script>
-        const timerElement = document.getElementById('session-timer');
+        const navTimerElement = document.getElementById('nav-session-timer'); // Timer de la Navbar
+        const statTimerElement = document.getElementById('session-timer');   // Timer de la tarjeta de Stats
         const loginTimeISO = '{{ session["login_time_iso"] | safe }}'; 
-        if (timerElement && loginTimeISO && loginTimeISO !== 'None') {
+        
+        if (loginTimeISO && loginTimeISO !== 'None') {
             const loginTime = new Date(loginTimeISO);
+            
             function updateSessionTimer() {
                 const now = new Date();
                 const elapsedSeconds = Math.floor((now - loginTime) / 1000);
                 const hours = Math.floor(elapsedSeconds / 3600);
                 const minutes = Math.floor((elapsedSeconds % 3600) / 60);
                 const seconds = elapsedSeconds % 60;
-                timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                // Actualiza ambos temporizadores si existen
+                if (navTimerElement) navTimerElement.textContent = timeString;
+                if (statTimerElement) statTimerElement.textContent = timeString;
             }
             setInterval(updateSessionTimer, 1000);
             updateSessionTimer(); 
         }
     </script>
     {% endif %}
+    
     <script>
         const inactivityLimitSeconds = {{ inactivity_limit | default(300) }};
         const warningTimeSeconds = 60; 
         let inactivityTimer, warningTimer, countdownValue, inactivityModal, isWarningModalShown = false;
         function initializeModalInstance(){if(!inactivityModal){const e=document.getElementById("inactivityModal");e?inactivityModal=new bootstrap.Modal(e,{backdrop:"static",keyboard:!1}):console.error("Modal element #inactivityModal not found!")}}function handleUserActivity(){clearTimeout(inactivityTimer),isWarningModalShown&&hideInactivityWarning(),inactivityTimer=setTimeout(showInactivityWarning,(inactivityLimitSeconds-warningTimeSeconds)*1e3)}function showInactivityWarning(){isWarningModalShown=!0,countdownValue=warningTimeSeconds;const e=document.getElementById("inactiveTimeLeft");if(!e)return;e.textContent=countdownValue,initializeModalInstance();if(!inactivityModal)return;try{inactivityModal.show()}catch(e){return void console.error("Error showing modal:",e)}clearInterval(warningTimer),warningTimer=setInterval(()=>{countdownValue--,e&&(e.textContent=countdownValue),countdownValue<=0&&forceLogout()},1e3)}function hideInactivityWarning(){if(isWarningModalShown&&inactivityModal)try{const e=document.getElementById("inactivityModal"),t=bootstrap.Modal.getInstance(e);e&&t&&e.classList.contains("show")&&t.hide()}catch(e){console.error("Error hiding modal:",e)}isWarningModalShown=!1,clearInterval(warningTimer)}async function resetInactivityTimer(){hideInactivityWarning();try{const e=await fetch("{{ url_for('keepalive') }}");if(!e.ok)return console.warn("Server session seems expired. Redirecting to login."),void forceLogout();handleUserActivity()}catch(e){console.error("Error calling keepalive:",e),handleUserActivity()}}function forceLogout(){clearTimeout(inactivityTimer),clearInterval(warningTimer),window.location.href="{{ url_for('logout') }}?reason=inactivity"}document.addEventListener("click",handleUserActivity,!0),document.addEventListener("mousemove",handleUserActivity,!0),document.addEventListener("keypress",handleUserActivity,!0),document.addEventListener("scroll",handleUserActivity,!0),document.addEventListener("DOMContentLoaded",()=>{initializeModalInstance(),handleUserActivity()});
+    </script>
+
+    <script>
+        document.getElementById('profile_pic').addEventListener('change', function(e) {
+            var fileName = e.target.files[0] ? e.target.files[0].name : 'Seleccionar archivo...';
+            document.getElementById('file-input-label').textContent = fileName;
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar tema guardado
+            const currentTheme = localStorage.getItem('theme');
+            const nightModeIcon = document.querySelector('#btn-night-mode i');
+            if (currentTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                if(nightModeIcon) {
+                    nightModeIcon.classList.remove('fa-moon');
+                    nightModeIcon.classList.add('fa-sun');
+                }
+            }
+
+            // Lógica del menú flotante
+            const settingsMenu = document.querySelector('.settings-fab-menu');
+            const settingsMainBtn = document.getElementById('btn-settings-main');
+            if(settingsMainBtn) {
+                settingsMainBtn.addEventListener('click', function() {
+                    settingsMenu.classList.toggle('active');
+                });
+            }
+
+            // Lógica del botón Modo Noche
+            const nightModeBtn = document.getElementById('btn-night-mode');
+            if(nightModeBtn) {
+                nightModeBtn.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    const icon = nightModeBtn.querySelector('i');
+                    if (document.body.classList.contains('dark-mode')) {
+                        localStorage.setItem('theme', 'dark');
+                        icon.classList.remove('fa-moon');
+                        icon.classList.add('fa-sun');
+                    } else {
+                        localStorage.setItem('theme', 'light');
+                        icon.classList.remove('fa-sun');
+                        icon.classList.add('fa-moon');
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Esta función idealmente llamaría a tu backend
+            // para obtener los datos reales.
+            async function loadStats() {
+                // Por ahora, usamos los valores de placeholder que puse en el HTML.
+                // En el futuro, harías esto:
+                /*
+                try {
+                    // 1. Primero crearías la ruta en app.py, por ejemplo:
+                    // @app.route('/api/my_stats')
+                    // def get_my_stats():
+                    //     # ... (lógica de tu consulta SQL) ...
+                    //     return jsonify(prestamos_hoy=12, danos_mes=3, ...)
+
+                    // 2. Luego la llamarías desde aquí (sin 'url_for'):
+                    // const response = await fetch("/api/my_stats");
+                    // const stats = await response.json();
+
+                    // 3. Y finalmente actualizarías los valores:
+                    // document.getElementById('stat-prestamos-hoy').textContent = stats.prestamos_hoy;
+                    // document.getElementById('stat-danos-mes').textContent = stats.danos_mes;
+
+                } catch (error) {
+                    console.error("Error al cargar estadísticas:", error);
+                }
+                */
+            }
+            
+            // Llamamos a la función al cargar la página
+            loadStats();
+        });
     </script>
 
 </body>

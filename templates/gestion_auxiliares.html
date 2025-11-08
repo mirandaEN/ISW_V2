@@ -5,65 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Estilos específicos (ajustados) */
-        :root {
-            --color-principal: #7d0015;
-            --color-secundario: #a71d2a;
-            --color-texto-claro: white;
-            --color-peligro: #dc3545;
-            --color-aviso: #ffc107;
-            --color-exito: #198754;
-        }
-        main#gestionAuxiliaresContent { /* ID para selector */
-             padding: 1.5rem;
-             /* Fondo blanco ya lo da el .card, no es necesario aquí si se usa grid */
-        }
-        /* Ajustar grid para que funcione dentro del main-content */
-        .container-main-grid { /* Renombrado para evitar conflicto con Bootstrap */
-             display: grid;
-             grid-template-columns: 2fr 1fr;
-             gap: 30px;
-             max-width: 1200px; /* Mantener ancho máximo */
-             margin: 0 auto; /* Centrar el grid */
-        }
-         .card { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 25px; height: 100%; /* Para que las columnas tengan misma altura */ }
-        .card h2 { color: var(--color-principal); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; font-size: 1.3em; font-weight: 600; }
-        .table { margin-bottom: 0; }
-        .table th { font-weight: 600; background-color: #f8f9fa; } /* Fondo claro para cabecera */
-        .table td { vertical-align: middle; }
-        .table td .btn { padding: 0.3rem 0.6rem; font-size: 0.9em; margin-right: 5px; }
-        .btn-editar { background-color: var(--color-aviso); color: #333; border: none; }
-        .btn-eliminar { background-color: var(--color-peligro); color: white; border: none; }
-        .form-label { font-weight: 600; }
-        .form-control:focus { border-color: var(--color-secundario); box-shadow: 0 0 0 0.25rem rgba(167, 29, 42, 0.25); }
-        .btn-primary { background-color: var(--color-principal); border-color: var(--color-principal); }
-        .btn-primary:hover { background-color: var(--color-secundario); border-color: var(--color-secundario); }
-        .btn-danger { background-color: #c82333; border-color: #bd2130; }
-        .mantenimiento h2 { color: #c82333; font-size: 1.2em; /* Tamaño ajustado */ }
-        .mantenimiento p { font-size: 0.9em; color: #6c757d; margin-bottom: 1rem; }
-        .flash-messages-container-local { /* Contenedor local */
-             margin-bottom: 1.5rem;
-             max-width: 1200px; /* Ancho consistente */
-             margin-left: auto;
-             margin-right: auto;
-        }
-        /* Botón regresar eliminado */
-        .modal-header { background-color: var(--color-principal); color: white; }
-        .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-        .modal-body .form-text { font-size: 0.85em; }
-        .invalid-feedback { display: none; color: var(--color-peligro); font-size: 0.8em; }
-        input.is-invalid + .invalid-feedback, input:invalid { /* Mostrar feedback en invalid */
-             border-color: var(--color-peligro); /* Borde rojo si es inválido */
-        }
-         input.is-invalid + .invalid-feedback { display: block; }
-
-        @media (max-width: 992px) {
-            .container-main-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
+    
+    <title>Gestión de Auxiliares - LabFlow</title>
 </head>
-<body> <div class="flash-messages-container-local">
+<body> 
+    <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
+        <div class="container-fluid">
+          
+          <a class="navbar-brand fw-bold" href="{{ url_for('interface_admin') }}">
+              <i class="fas fa-flask me-1"></i>
+              Gestión Laboratorio
+          </a>
+          
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('interface_admin') }}">Inicio</a>
+                  </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_alumnos') }}">Alumnos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link"  href="{{ url_for('reportes') }}">Reportes</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="{{ url_for('gestion_auxiliares') }}">Auxiliares</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('mostrar_dashboard') }}">Predicciones</a>
+              </li>
+            </ul>
+          </div>
+      </nav>
+      
+    <div class="flash-messages-container-local">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, msg in messages %}
@@ -86,6 +79,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Nombre de Usuario</th>
+                                <th>Correo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -94,8 +88,10 @@
                             <tr>
                                 <td>{{ aux.ID }}</td>
                                 <td>{{ aux.USUARIO }}</td>
+                                <td>{{ aux.EMAIL | default('N/A') }}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-editar" onclick="openEditModal({{ aux.ID }}, '{{ aux.USUARIO }}')">
+                                    <button class="btn btn-sm btn-editar" 
+                                            onclick="openEditModal({{ aux.ID }}, '{{ aux.USUARIO }}', '{{ aux.EMAIL | default('') }}')">
                                         <i class="fas fa-pencil-alt"></i> Editar
                                     </button>
                                     <form action="{{ url_for('eliminar_auxiliar') }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar a {{ aux.USUARIO }}? Esta acción no se puede deshacer.');">
@@ -108,7 +104,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="3" class="text-center text-muted fst-italic py-3">No hay auxiliares registrados.</td>
+                                <td colspan="4" class="text-center text-muted fst-italic py-3">No hay auxiliares registrados.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -125,6 +121,13 @@
                             <input type="text" class="form-control" id="add_usuario" name="usuario" required pattern="^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$" maxlength="50">
                             <div class="invalid-feedback">El nombre solo debe contener letras y espacios.</div>
                         </div>
+                        
+                        <div class="mb-3">
+                            <label for="add_email" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="add_email" name="email" required>
+                            <div class="invalid-feedback">Por favor, ingresa un correo válido.</div>
+                        </div>
+                        
                         <div class="mb-3">
                             <label for="add_contrasena" class="form-label">Contraseña</label>
                             <input type="password" class="form-control" id="add_contrasena" name="contrasena" required>
@@ -151,6 +154,7 @@
         </div>
 
     </main>
+    
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -166,6 +170,13 @@
                             <input type="text" class="form-control" id="edit_usuario" name="usuario" required pattern="^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$" maxlength="50">
                             <div class="invalid-feedback">El nombre solo debe contener letras y espacios.</div>
                         </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit_email" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="edit_email" name="email" required>
+                            <div class="invalid-feedback">Por favor, ingresa un correo válido.</div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="edit_contrasena" class="form-label">Nueva Contraseña (opcional)</label>
                             <input type="password" class="form-control" id="edit_contrasena" name="contrasena">
@@ -180,22 +191,48 @@
             </div>
         </div>
     </div>
+    
+    <div class="settings-fab-menu">
+        <div class="settings-options">
+            
+            <button class="settings-option" id="btn-night-mode" title="Modo Noche">
+                <i class="fas fa-moon"></i>
+            </button>
+    
+            <a href="{{ url_for('profile') }}" class="settings-option" title="Perfil">
+                <i class="fas fa-user"></i>
+            </a>
+            
+            <a href="{{ url_for('logout') }}" class="settings-option" title="Cerrar Sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+    
+        </div>
+    
+        <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
+            <i class="fas fa-cog"></i> </button>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // --- INICIO LÓGICA JAVASCRIPT GESTION AUXILIARES ---
 
-        // Hacer global la función para abrir modal
-        window.openEditModal = function(id, usuario) {
+        // ¡CAMBIO! La función ahora acepta 'email'
+        window.openEditModal = function(id, usuario, email) {
             // Asegurarse que los elementos existen antes de asignarles valor
             const idInput = document.getElementById('edit_id_usuario');
             const usuarioInput = document.getElementById('edit_usuario');
+            const emailInput = document.getElementById('edit_email'); // Nuevo
             const passInput = document.getElementById('edit_contrasena');
             
             if(idInput) idInput.value = id;
             if(usuarioInput) {
                 usuarioInput.value = usuario;
                 usuarioInput.classList.remove('is-invalid'); // Limpiar validación previa
+            }
+            if(emailInput) { // Nuevo
+                emailInput.value = email;
+                emailInput.classList.remove('is-invalid');
             }
             if(passInput) passInput.value = ''; // Limpiar campo contraseña
             
@@ -207,6 +244,8 @@
             }
         }
 
+        // ... (el resto de tu script de validación se mantiene igual) ...
+        
         // Función de inicialización
         function initializeGestionAuxiliaresScripts() {
             
@@ -277,5 +316,46 @@
         // --- FIN LÓGICA JAVASCRIPT ---
 
     </script>
-</body>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- 1. REFERENCIAS A LOS ELEMENTOS ---
+            const settingsMenu = document.querySelector('.settings-fab-menu');
+            const settingsMainBtn = document.getElementById('btn-settings-main');
+            const nightModeBtn = document.getElementById('btn-night-mode');
+            const nightModeIcon = nightModeBtn.querySelector('i');
+            const currentTheme = localStorage.getItem('theme'); // Revisa el tema guardado
+    
+            // --- 2. APLICAR TEMA AL CARGAR LA PÁGINA ---
+            if (currentTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                nightModeIcon.classList.remove('fa-moon');
+                nightModeIcon.classList.add('fa-sun'); // Pone el sol si ya está oscuro
+            }
+    
+            // --- 3. LÓGICA PARA ABRIR/CERRAR EL MENÚ DE "BOLITAS" ---
+            settingsMainBtn.addEventListener('click', function() {
+                settingsMenu.classList.toggle('active');
+            });
+    
+            // --- 4. LÓGICA PARA EL BOTÓN DE MODO NOCHE ---
+            nightModeBtn.addEventListener('click', function() {
+                // Activa/desactiva la clase en el BODY
+                document.body.classList.toggle('dark-mode');
+    
+                // Guarda la preferencia en el navegador
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark'); // Guardar como oscuro
+                    nightModeIcon.classList.remove('fa-moon');
+                    nightModeIcon.classList.add('fa-sun'); // Cambia a icono de sol
+                } else {
+                    localStorage.setItem('theme', 'light'); // Guardar como claro
+                    nightModeIcon.classList.remove('fa-sun');
+                    nightModeIcon.classList.add('fa-moon'); // Cambia a icono de luna
+                }
+            });
+        });
+    </script>
+    </body>
 </html>

@@ -1,0 +1,101 @@
+ id_equipo,nombre_equipo,categoria,vida_util_estimada_horas,horas_uso_acumuladas,costo_adquisicion,CANTIDAD,CANTIDAD_DISPONIBLE,ESTATUS
+1,Proyector Epson PowerLite E20,Proyector,2500,2310,6000,1,1,Disponible'
+2,Proyector BenQ MW550,Proyector,2500,2150,6000,1,1,Disponible'
+3,Proyector ViewSonic PA503S,Proyector,3000,2890,6000,1,1,Disponible'
+4,Proyector Epson PowerLite E20,Proyector,2500,1980,6000,1,1,Disponible'
+5,Proyector BenQ MW550,Proyector,2500,2420,6000,1,1,Disponible'
+6,Estacion de Soldadura WELLER,Cautin,1200,950,1500,1,1,Disponible'
+7,Estacion de Soldadura WELLER,Cautin,1200,880,1500,1,1,Disponible'
+8,Cautin de Lapiz Steren,Cautin,800,750,1500,1,1,Disponible'
+9,Cautin de Lapiz Steren,Cautin,800,690,1500,1,1,Disponible'
+10,Estacion de Soldadura WELLER,Cautin,1200,1150,1500,1,1,Disponible'
+11,Cautin de Lapiz Steren,Cautin,800,780,1500,1,1,Disponible'
+12,Estacion de Soldadura AiXun T3A,Cautin,1500,1300,1500,1,1,Disponible'
+13,Estacion de Soldadura AiXun T3A,Cautin,1500,1250,1500,1,1,Disponible'
+14,Estacion de Soldadura WELLER,Cautin,1200,1080,1500,1,1,Disponible'
+15,Estacion de Soldadura AiXun T3A,Cautin,1500,1100,1500,1,1,Disponible'
+16,Multimetro Digital Fluke 115,Multimetro,15000,6200,2500,1,1,Disponible'
+17,Multimetro Digital Fluke 115,Multimetro,15000,4500,2500,1,1,Disponible'
+18,Multimetro Digital Fluke 115,Multimetro,15000,7100,2500,1,1,Disponible'
+19,Multimetro Digital Fluke 115,Multimetro,15000,5300,2500,1,1,Disponible'
+20,Multimetro Digital UNI-T UT33C,Multimetro,10000,3200,2500,1,1,Disponible'
+21,Multimetro Digital UNI-T UT33C,Multimetro,10000,4100,2500,1,1,Disponible'
+22,Multimetro Digital UNI-T UT33C,Multimetro,10000,2900,2500,1,1,Disponible'
+23,Multimetro Digital UNI-T UT33C,Multimetro,10000,3800,2500,1,1,Disponible'
+24,Multimetro Digital Fluke 115,Multimetro,15000,8000,2500,1,1,Disponible'
+25,Multimetro Digital UNI-T UT33C,Multimetro,10000,5100,2500,1,1,Disponible'
+26,Osciloscopio Tektronix TBS1052B,Osciloscopio,25000,11500,8000,1,1,Disponible'
+27,Osciloscopio Rigol DS1054Z,Osciloscopio,20000,8300,8000,1,1,Disponible'
+28,Osciloscopio Tektronix TBS1052B,Osciloscopio,25000,9200,8000,1,1,Disponible'
+29,Osciloscopio Rigol DS1054Z,Osciloscopio,20000,10100,8000,1,1,Disponible'
+30,Osciloscopio Tektronix TBS1052B,Osciloscopio,25000,9800,8000,1,1,Disponible'
+31,Fuente de Poder de Banco UNI-T,Fuente de Poder,30000,2500,4500,1,1,Disponible'
+32,Fuente de Poder de Banco Rigol,Fuente de Poder,40000,4200,4500,1,1,Disponible'
+33,Fuente de Poder de Banco UNI-T,Fuente de Poder,30000,3100,4500,1,1,Disponible'
+34,Fuente de Poder de Banco Rigol,Fuente de Poder,40000,1900,4500,1,1,Disponible'
+35,Fuente de Poder de Banco UNI-T,Fuente de Poder,30000,2200,4500,1,1,Disponible'
+36,Arduino UNO R3,Microcontrolador,80000,520,,,,
+37,Arduino UNO R3,Microcontrolador,80000,830,,,,
+38,Arduino UNO R3,Microcontrolador,80000,400,,,,
+39,Arduino UNO R3,Microcontrolador,80000,610,,,,
+40,Arduino UNO R3,Microcontrolador,80000,900,,,,
+41,Arduino UNO R3,Microcontrolador,80000,750,,,,
+42,Arduino UNO R3,Microcontrolador,80000,430,,,,
+43,Arduino UNO R3,Microcontrolador,80000,1100,,,,
+44,Arduino UNO R3,Microcontrolador,80000,680,,,,
+45,Arduino UNO R3,Microcontrolador,80000,550,,,,
+46,Arduino NANO,Microcontrolador,80000,1100,,,,
+47,Arduino NANO,Microcontrolador,80000,950,,,,
+48,Arduino NANO,Microcontrolador,80000,1200,,,,
+49,Arduino NANO,Microcontrolador,80000,800,,,,
+50,Arduino NANO,Microcontrolador,80000,760,,,,
+51,Raspberry Pi 4 (4GB),Microcontrolador,50000,1500,,,,
+52,Raspberry Pi 4 (4GB),Microcontrolador,50000,2100,,,,
+53,Raspberry Pi 4 (4GB),Microcontrolador,50000,1800,,,,
+54,Raspberry Pi 4 (4GB),Microcontrolador,50000,1650,,,,
+55,Raspberry Pi 4 (4GB),Microcontrolador,50000,2300,,,,
+56,ESP32 DevKit V1,Microcontrolador,60000,900,,,,
+57,ESP32 DevKit V1,Microcontrolador,60000,1150,,,,
+58,ESP32 DevKit V1,Microcontrolador,60000,700,,,,
+59,ESP32 DevKit V1,Microcontrolador,60000,810,,,,
+60,ESP32 DevKit V1,Microcontrolador,60000,930,,,,
+61,Sensor Ultras\'f3nico HC-SR04,Sensor,40000,150,,,,
+62,Sensor Ultras\'f3nico HC-SR04,Sensor,40000,220,,,,
+63,Sensor Ultras\'f3nico HC-SR04,Sensor,40000,180,,,,
+64,Sensor Ultras\'f3nico HC-SR04,Sensor,40000,300,,,,
+65,Sensor Ultras\'f3nico HC-SR04,Sensor,40000,190,,,,
+66,Sensor de Temp. y Humedad DHT11,Sensor,30000,210,,,,
+67,Sensor de Temp. y Humedad DHT11,Sensor,30000,330,,,,
+68,Sensor de Temp. y Humedad DHT11,Sensor,30000,250,,,,
+69,Sensor de Temp. y Humedad DHT11,Sensor,30000,400,,,,
+70,Sensor de Temp. y Humedad DHT11,Sensor,30000,180,,,,
+71,Sensor de Movimiento PIR HC-SR501,Sensor,40000,120,,,,
+72,Sensor de Movimiento PIR HC-SR501,Sensor,40000,200,,,,
+73,Sensor de Movimiento PIR HC-SR501,Sensor,40000,140,,,,
+74,Sensor de Movimiento PIR HC-SR501,Sensor,40000,160,,,,
+75,Sensor de Movimiento PIR HC-SR501,Sensor,40000,210,,,,
+76,Kit de Fotorresistencias LDR,Sensor,50000,300,,,,
+77,Kit de Fotorresistencias LDR,Sensor,50000,250,,,,
+78,Kit de Fotorresistencias LDR,Sensor,50000,310,,,,
+79,Kit de Fotorresistencias LDR,Sensor,50000,280,,,,
+80,Kit de Fotorresistencias LDR,Sensor,50000,450,,,,
+81,Kit de Resistencias (300 pcs),Componente,100000,50,,,,
+82,Kit de LEDs (100 pcs),Componente,100000,80,,,,
+83,Protoboard 830 Puntos,Herramienta,20000,250,,,,
+84,Protoboard 830 Puntos,Herramienta,20000,310,,,,
+85,Protoboard 830 Puntos,Herramienta,20000,190,,,,
+86,Protoboard 830 Puntos,Herramienta,20000,400,,,,
+87,Protoboard 830 Puntos,Herramienta,20000,350,,,,
+88,Cables Jumper Macho-Macho (65 pcs),Herramienta,15000,120,,,,
+89,Cables Jumper Macho-Macho (65 pcs),Herramienta,15000,200,,,,
+90,Cables Jumper Macho-Macho (65 pcs),Herramienta,15000,150,,,,
+91,Cables Jumper Macho-Macho (65 pcs),Herramienta,15000,180,,,,
+92,Cables Jumper Macho-Macho (65 pcs),Herramienta,15000,210,,,,
+93,Modulo Relevador 2 Canales,Componente,50000,310,,,,
+94,Modulo Relevador 2 Canales,Componente,50000,400,,,,
+95,Modulo Relevador 2 Canales,Componente,50000,280,,,,
+96,Modulo Relevador 2 Canales,Componente,50000,330,,,,
+97,Modulo Relevador 2 Canales,Componente,50000,250,,,,
+98,Display LCD 16x2,Componente,20000,400,,,,
+99,Display LCD 16x2,Componente,20000,350,,,,
+100,Kit de Resistencias (300 pcs),Componente,100000,90,,,,

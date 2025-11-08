@@ -7,152 +7,629 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        #inactivityModal .modal-header { background-color: #ffc107; color: #333; }
-        /* Estilo para el spinner de carga */
-        #mainContentArea .spinner-border { width: 3rem; height: 3rem; }
-    </style>
+    
 </head>
-<body class="dashboard-layout"> <aside class="sidebar">
-        <div class="sidebar-header">
-            <a href="{{ url_for('interface_admin') }}" class="logo-text">ITS</a>
-        </div>
-        <ul class="sidebar-nav">
-            <li>
-                <a href="{{ url_for('profile') }}" onclick="event.preventDefault(); loadContent('{{ url_for('profile') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-user-circle nav-icon"></i> Perfil
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('prestamos') }}" onclick="event.preventDefault(); loadContent('{{ url_for('prestamos') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-exchange-alt nav-icon"></i> Préstamos
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('inventario') }}" onclick="event.preventDefault(); loadContent('{{ url_for('inventario') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-boxes nav-icon"></i> Inventario
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('gestion_danos') }}" onclick="event.preventDefault(); loadContent('{{ url_for('gestion_danos') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-tools nav-icon"></i> Daños
-                </a>
-            </li>
-             <li>
-                <a href="{{ url_for('gestion_alumnos') }}" onclick="event.preventDefault(); loadContent('{{ url_for('gestion_alumnos') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-user-graduate nav-icon"></i> Gestión Alumnos
-                </a>
-            </li>
-             <li>
-                <a href="{{ url_for('gestion_auxiliares') }}" onclick="event.preventDefault(); loadContent('{{ url_for('gestion_auxiliares') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-users-cog nav-icon"></i> Gestión Auxiliares
-                </a>
-            </li>
-             <li>
-                <a href="{{ url_for('reportes') }}" onclick="event.preventDefault(); loadContent('{{ url_for('reportes') }}'); highlightActiveLink(this);">
-                    <i class="fas fa-chart-line nav-icon"></i> Reportes
-                </a>
-            </li>
-             <li>
-                <a href="{{ url_for('soporte') }}" onclick="event.preventDefault(); loadContent('{{ url_for('soporte') }}'); highlightActiveLink(this);">
-                     <i class="fas fa-headset nav-icon"></i> Soporte
-                </a>
-            </li>
-        </ul>
-        <div class="sidebar-footer">
-             <a href="{{ url_for('logout') }}" class="btn btn-logout">
-                 <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-             </a>
-        </div>
-    </aside>
+<body>
 
-    <main class="main-content" id="mainContentArea">
-        <div class="welcome-header">
-            <h1>Bienvenido Administrador 💻</h1>
-            <p>Panel de control del Laboratorio de Electrónica / Analógica.</p>
-        </div>
-    </main>
-
-    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+    <div class="dashboard-v2-container">
+        
+        <div class="admin-top-bar d-flex justify-content-between align-items-center w-100">
+            <div class="admin-brand">
+                <img src="{{ url_for('static', filename='sources/labflow-LG.png') }}" alt="LabFlow Logo" class="labflow-logo">
+                <h1>LabFlow</h1>
+            </div>
+            
+            <div class="admin-user-actions d-flex align-items-center">
+                <div class="profile-container">
+                    <label for="profile-upload" class="profile-bubble" title="Cambiar foto de perfil">
+                        <img src="{{ url_for('static', filename='profile_pics/' + profile_pic_filename) }}" alt="Foto de perfil" id="profile-img">
+                    </label>
+                    <input type="file" id="profile-upload" accept="image/*">
                 </div>
-                <div class="modal-body">
-                    <p>Tu sesión está a punto de expirar debido a inactividad.</p>
-                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión Ahora</button>
-                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar Sesión</button>
-                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout-v2">Cerrar Sesión</a>
             </div>
         </div>
+        <div class="settings-fab-menu">
+            <div class="settings-options">
+                
+                <button class="settings-option" id="btn-night-mode" title="Modo Noche">
+                    <i class="fas fa-moon"></i>
+                </button>
+        
+                <a href="{{ url_for('profile') }}" class="settings-option" title="Perfil">
+                    <i class="fas fa-user"></i>
+                </a>
+                
+                <a href="{{ url_for('logout') }}" class="settings-option" title="Cerrar Sesión">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+        
+            </div>
+        
+            <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
+                <i class="fas fa-cog"></i> </button>
+        </div>
+        <div class="dashboard-body">
+
+            <div class="main-content">
+                
+                <div class="institute-header">
+                    <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo ITS">
+                    <h3>Instituto Tecnológico de Saltillo</h3>
+                </div>
+        
+                <div class="welcome-message">
+                    <h2>Bienvenido Administrador 💻</h2>
+                    <p>Laboratorio de Electrónica / Analógica</p>
+                </div>
+        
+                <main class="dashboard-grid">
+                    <a href="{{ url_for('prestamos') }}" class="grid-button">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Préstamos</span>
+                    </a>
+                    <a href="{{ url_for('inventario') }}" class="grid-button">
+                        <i class="fas fa-boxes"></i>
+                        <span>Inventario</span>
+                    </a>
+                    <a href="{{ url_for('gestion_danos') }}" class="grid-button">
+                        <i class="fas fa-tools"></i>
+                        <span>Daños</span>
+                    </a>
+                    <a href="{{ url_for('gestion_alumnos') }}" class="grid-button">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Gestión Alumnos</span>
+                    </a>
+                    <a href="{{ url_for('gestion_auxiliares') }}" class="grid-button">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Gestión Auxiliares</span>
+                    </a>
+                    <a href="{{ url_for('reportes') }}" class="grid-button">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Reportes</span>
+                    </a>
+                     <a href="{{ url_for('soporte') }}" class="grid-button">
+                        <i class="fas fa-headset"></i>
+                        <span>Soporte</span>
+                    </a>
+                    <a href="{{ url_for('mostrar_dashboard') }}" class="grid-button">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard (BI)</span>
+                    </a>
+                </main>
+                
+            </div> <aside class="sidebar-content">
+                <div class="calendar-widget">
+                    <div class="calendar-header">
+                        <h4 id="calendar-month-year">Octubre 2025</h4>
+                        <div class="calendar-nav">
+                            <button id="calendar-prev" title="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+                            <button id="calendar-next" title="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="calendar-day-header">Do</div>
+                        <div class="calendar-day-header">Lu</div>
+                        <div class="calendar-day-header">Ma</div>
+                        <div class="calendar-day-header">Mi</div>
+                        <div class="calendar-day-header">Ju</div>
+                        <div class="calendar-day-header">Vi</div>
+                        <div class="calendar-day-header">Sá</div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-days">
+                        </div>
+                </div>
+            </aside> </div> </div>
+        <div class="chat-bubble" id="chat-bubble">
+            <i class="fas fa-comment-dots"></i>
+        </div>
+        
+        <div class="chat-window" id="chat-window">
+            
+            <div class="chat-header">
+                Asistente LabFlow
+                <button id="chat-close-btn">&times;</button>
+            </div>
+    
+            <div class="chat-content-wrapper">
+                
+                <div id="chat-welcome-screen">
+                    <img src="{{ url_for('static', filename='sources/labflow-bot.png') }}" class="welcome-mascot" alt="Mascota LabFlow">
+                    <h2>¡Hola, soy FlowBot!</h2>
+                    <p>Tu asistente de IA en el laboratorio. Estoy aquí para ayudarte con tus dudas.</p>
+                    <button id="chat-start-btn">¡Quiero probarlo!</button>
+                </div>
+    
+                <div id="chat-conversation-area" class="is-hidden">
+                    
+                    <div class="chat-background-elements">
+                        <div class="mascot-container"></div>
+                        <div class="voice-waves"></div>
+                    </div>
+    
+                    <div class="chat-body" id="chat-body">
+                        <div class="chat-message bot">
+                            <i class="fas fa-robot"></i>
+                            <span>¡Hola! Soy el asistente de LabFlow. ¿En qué puedo ayudarte?</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-footer">
+                        <input type="text" id="chat-input" placeholder="Escribe tu duda...">
+                        <button id="chat-voice-btn" title="Hablar con el asistente">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button id="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                    
+                    <div id="chatbot-indicator" class="chatbot-indicator-hidden">
+                        <img src="{{ url_for('static', filename='sources/labflow-LG.png') }}" alt="LabFlow Logo" class="labflow-logo-indicator">
+                    </div>
+    
+            </div> </div>
+    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+         <div class="modal-dialog modal-dialog-centered">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                 </div>
+                 <div class="modal-body">
+                     <p>Tu sesión está a punto de expirar.</p>
+                     <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                 </div>
+                 <div class="modal-footer">
+                     <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión</button>
+                     <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar</button>
+                 </div>
+             </div>
+         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // --- INICIO SCRIPT INACTIVIDAD ---
+        // --- SCRIPT INACTIVIDAD (sin cambios) ---
         const inactivityLimitSeconds = {{ inactivity_limit | default(300) }};
         const warningTimeSeconds = 60;
         let inactivityTimer, warningTimer, countdownValue, inactivityModal, isWarningModalShown = false;
         function initializeModalInstance(){if(!inactivityModal){const e=document.getElementById("inactivityModal");e?inactivityModal=new bootstrap.Modal(e,{backdrop:"static",keyboard:!1}):console.error("Modal element #inactivityModal not found!")}}function handleUserActivity(){clearTimeout(inactivityTimer),isWarningModalShown&&hideInactivityWarning(),inactivityTimer=setTimeout(showInactivityWarning,(inactivityLimitSeconds-warningTimeSeconds)*1e3)}function showInactivityWarning(){isWarningModalShown=!0,countdownValue=warningTimeSeconds;const e=document.getElementById("inactiveTimeLeft");if(!e)return;e.textContent=countdownValue,initializeModalInstance();if(!inactivityModal)return;try{inactivityModal.show()}catch(e){return void console.error("Error showing modal:",e)}clearInterval(warningTimer),warningTimer=setInterval(()=>{countdownValue--,e&&(e.textContent=countdownValue),countdownValue<=0&&forceLogout()},1e3)}function hideInactivityWarning(){if(isWarningModalShown&&inactivityModal)try{const e=document.getElementById("inactivityModal"),t=bootstrap.Modal.getInstance(e);e&&t&&e.classList.contains("show")&&t.hide()}catch(e){console.error("Error hiding modal:",e)}isWarningModalShown=!1,clearInterval(warningTimer)}async function resetInactivityTimer(){hideInactivityWarning();try{const e=await fetch("{{ url_for('keepalive') }}");if(!e.ok)return console.warn("Server session seems expired. Redirecting to login."),void forceLogout();handleUserActivity()}catch(e){console.error("Error calling keepalive:",e),handleUserActivity()}}function forceLogout(){clearTimeout(inactivityTimer),clearInterval(warningTimer),window.location.href="{{ url_for('logout') }}?reason=inactivity"}document.addEventListener("click",handleUserActivity,!0),document.addEventListener("mousemove",handleUserActivity,!0),document.addEventListener("keypress",handleUserActivity,!0),document.addEventListener("scroll",handleUserActivity,!0),document.addEventListener("DOMContentLoaded",()=>{initializeModalInstance(),handleUserActivity()});
-        // --- FIN SCRIPT INACTIVIDAD ---
     </script>
+
     <script>
-        const mainContentArea = document.getElementById('mainContentArea');
-        const sidebarLinks = document.querySelectorAll('.sidebar-nav a'); // Selecciona todos los enlaces
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('profile-upload');
+            const profileImg = document.getElementById('profile-img');
 
-        async function loadContent(url) {
-            try {
-                mainContentArea.innerHTML = '<div class="d-flex justify-content-center align-items-center" style="min-height: 300px;"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                // --- AJUSTA ESTE SELECTOR SI ES NECESARIO ---
-                const newContent = doc.querySelector('main') || doc.querySelector('.container-main') || doc.querySelector('.container.main-content') || doc.body; // Busca <main> o clases comunes
-                // --- FIN AJUSTE ---
-                if (newContent) {
-                    mainContentArea.innerHTML = newContent.innerHTML;
-                    executeScriptsInElement(mainContentArea);
-                } else {
-                     mainContentArea.innerHTML = '<div class="alert alert-danger">Error: No se pudo extraer el contenido principal.</div>';
-                }
-            } catch (error) {
-                console.error('Error al cargar el contenido:', error);
-                mainContentArea.innerHTML = `<div class="alert alert-danger">Error al cargar la sección: ${error.message}</div>`;
-            }
-        }
-
-        function highlightActiveLink(clickedLink) {
-            sidebarLinks.forEach(link => link.classList.remove('active'));
-            if (clickedLink) clickedLink.classList.add('active');
-        }
-
-        function executeScriptsInElement(element) {
-            const scripts = element.querySelectorAll('script');
-            scripts.forEach(oldScript => {
-                const newScript = document.createElement('script');
-                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                if (oldScript.innerHTML) newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                oldScript.parentNode.replaceChild(newScript, oldScript);
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const initialUrl = "{{ url_for('profile') }}"; // Carga el perfil al inicio
-            const profileLink = document.querySelector('.sidebar-nav a[href="' + initialUrl + '"]');
-            if (initialUrl && profileLink) {
-                 loadContent(initialUrl);
-                 highlightActiveLink(profileLink);
-            } else {
-                 // Si no se carga nada, muestra el mensaje inicial
-                 // (ya está en el HTML por defecto)
+            if (fileInput && profileImg) {
+                fileInput.addEventListener('change', function(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            profileImg.src = e.target.result;
+                        }
+                        reader.readAsDataURL(file);
+                        uploadProfilePic(file);
+                    }
+                });
             }
         });
+        async function uploadProfilePic(file) {
+            const formData = new FormData();
+            formData.append('profile_pic', file);
+            try {
+                const response = await fetch("{{ url_for('upload_profile_pic') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Foto de perfil actualizada!');
+                } else {
+                    console.error('Error al subir la imagen:', result.error);
+                    alert('Error al subir la imagen: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error de red:', error);
+                alert('Error de conexión al subir la foto.');
+            }
+        }
     </script>
-    </body>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const monthYearEl = document.getElementById('calendar-month-year');
+            const daysEl = document.getElementById('calendar-days');
+            const prevBtn = document.getElementById('calendar-prev');
+            const nextBtn = document.getElementById('calendar-next');
+            
+            let currentDate = new Date();
+            
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            function renderCalendar() {
+                const today = new Date();
+                const month = currentDate.getMonth();
+                const year = currentDate.getFullYear();
+                
+                monthYearEl.textContent = `${monthNames[month]} ${year}`;
+                
+                daysEl.innerHTML = ''; // Limpiar días anteriores
+                
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                
+                // 1. Rellenar espacios vacíos del mes anterior
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.classList.add('calendar-day', 'other-month');
+                    daysEl.appendChild(emptyDiv);
+                }
+                
+                // 2. Dibujar los días del mes
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.classList.add('calendar-day');
+                    dayDiv.textContent = day;
+                    
+                    // Marcar hoy
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        dayDiv.classList.add('today');
+                    }
+                    
+                    daysEl.appendChild(dayDiv);
+                }
+            }
+
+            prevBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+            
+            nextBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            renderCalendar(); // Dibujar el calendario al cargar
+        });
+    </script>
+    <script>
+        // =============================================
+        // ===== INICIO: SCRIPT DE CHATBOT ACTUALIZADO =====
+        // =============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- 1. REFERENCIAS A ELEMENTOS ---
+            const chatBubble = document.getElementById('chat-bubble');
+            const chatWindow = document.getElementById('chat-window');
+            const closeBtn = document.getElementById('chat-close-btn');
+            
+            // Elementos de la conversación
+            const chatConversationArea = document.getElementById('chat-conversation-area');
+            const sendBtn = document.getElementById('chat-send-btn');
+            const chatInput = document.getElementById('chat-input');
+            const chatBody = document.getElementById('chat-body');
+            
+            // Elementos de la bienvenida (NUEVOS)
+            const chatWelcomeScreen = document.getElementById('chat-welcome-screen');
+            const chatStartBtn = document.getElementById('chat-start-btn');
+
+        
+            // --- 2. LÓGICA DE ABRIR/CERRAR/INICIAR ---
+            
+            // Al hacer clic en la burbuja
+            chatBubble.addEventListener('click', () => {
+                chatWindow.classList.toggle('active');
+                
+                // ¡NUEVO! Al abrir, siempre mostramos la bienvenida
+                chatWelcomeScreen.classList.remove('is-hidden');
+                chatConversationArea.classList.add('is-hidden');
+            });
+            
+            // Al hacer clic en el botón de cerrar
+            closeBtn.addEventListener('click', () => {
+                chatWindow.classList.remove('active');
+            });
+
+            // ¡NUEVO! Al hacer clic en "¡Quiero probarlo!"
+            chatStartBtn.addEventListener('click', () => {
+                chatWelcomeScreen.classList.add('is-hidden');
+                chatConversationArea.classList.remove('is-hidden');
+                chatInput.focus(); // Pone el cursor en el input
+            });
+
+        
+            // --- 3. FUNCIÓN PARA ENVIAR EL MENSAJE ---
+            async function sendMessage() {
+                const messageText = chatInput.value.trim();
+                if (messageText === "") return;
+        
+                // Mostrar el mensaje del usuario
+                appendMessage(messageText, 'user');
+                chatInput.value = ""; // Limpiar input
+        
+                try {
+                    // Enviar a Flask
+                    const response = await fetch("{{ url_for('chat') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: messageText })
+                    });
+        
+                    if (!response.ok) {
+                        appendMessage("Error de conexión con el asistente.", 'bot');
+                        hablar("Error de conexión con el asistente.");
+                        return;
+                    }
+        
+                    const data = await response.json();
+                    
+                    // Mostrar respuesta del bot
+                    setTimeout(() => { // Simular que "piensa"
+                         appendMessage(data.response, 'bot');
+                         hablar(data.response); // <-- ¡Respuesta con voz!
+                    }, 500);
+        
+                } catch (error) {
+                    console.error("Error en chat:", error);
+                    appendMessage("No puedo conectarme ahora. Intenta más tarde.", 'bot');
+                    hablar("No puedo conectarme ahora. Intenta más tarde.");
+                }
+            }
+        
+            // --- 4. FUNCIÓN PARA AÑADIR MENSAJES (Sin cambios) ---
+            function appendMessage(text, type) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message', type);
+            
+                const icon = document.createElement('i');
+                const textSpan = document.createElement('span');
+                textSpan.textContent = text;
+            
+                if (type === 'bot') {
+                    icon.classList.add('fas', 'fa-robot'); 
+                } else {
+                    icon.classList.add('fas', 'fa-user'); 
+                }
+                
+                messageDiv.appendChild(icon); 
+                messageDiv.appendChild(textSpan); 
+            
+                chatBody.appendChild(messageDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        
+            // --- 5. LISTENERS PARA ENVIAR (Sin cambios) ---
+            sendBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // ===========================================
+            // --- 6. LÓGICA DE VOZ (Speech-to-Text) ---
+            // ===========================================
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            
+            const voiceBtn = document.getElementById('chat-voice-btn');
+            const voiceIcon = voiceBtn.querySelector('i');
+            const chatbotIndicator = document.getElementById('chatbot-indicator'); 
+
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'es-MX'; 
+                recognition.interimResults = false; 
+                recognition.maxAlternatives = 1;
+
+                let isListening = false; 
+
+                voiceBtn.addEventListener('click', () => {
+                    if (isListening) {
+                        recognition.stop();
+                        isListening = false;
+                    } else {
+                        try {
+                            recognition.start();
+                            isListening = true;
+                        } catch(e) {
+                            console.error("Error al iniciar reconocimiento:", e);
+                            appendMessage("Parece que el micrófono ya está en uso por otra app.", 'bot');
+                        }
+                    }
+                });
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    voiceBtn.classList.add('is-listening');
+                    voiceIcon.classList.remove('fa-microphone');
+                    voiceIcon.classList.add('fa-stop'); 
+                    showChatbotIndicator('listening'); 
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    voiceBtn.classList.remove('is-listening');
+                    voiceIcon.classList.add('fa-microphone');
+                    voiceIcon.classList.remove('fa-stop'); 
+                    hideChatbotIndicator(); 
+                };
+
+                recognition.onerror = (event) => {
+                    isListening = false;
+                    let errorMsg = "Ocurrió un error con el micrófono.";
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                        errorMsg = "Necesito permiso para usar tu micrófono. Revísalo en la barra de direcciones.";
+                    } else if (event.error === 'no-speech') {
+                        errorMsg = "No detecté ninguna voz, ¿puedes intentarlo de nuevo?";
+                    }
+                    appendMessage(errorMsg, 'bot');
+                    console.error('Error de SpeechRecognition:', event.error);
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    chatInput.value = transcript;
+                    sendMessage();
+                };
+
+            } else {
+                console.warn("Web Speech API no es compatible con este navegador.");
+                voiceBtn.style.display = 'none';
+            }
+
+            // ===========================================
+            // --- 7. LÓGICA DE VOZ (Text-to-Speech) ---
+            // ===========================================
+            function hablar(texto) {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(texto);
+                    utterance.lang = 'es-MX';
+                    utterance.rate = 1.0; 
+                    const voices = window.speechSynthesis.getVoices();
+                    let spanishVoice = voices.find(voice => voice.lang === 'es-MX' || voice.lang === 'es-ES');
+                    if (spanishVoice) {
+                        utterance.voice = spanishVoice;
+                    }
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    console.warn("Speech Synthesis no es compatible con este navegador.");
+                }
+            }
+            // Precargar las voces
+            window.speechSynthesis.getVoices();
+
+        });
+        // =============================================
+        // ===== FIN: SCRIPT DE CHATBOT ACTUALIZADO =====
+        // =============================================
+    </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                
+                // --- 1. REFERENCIAS A LOS ELEMENTOS ---
+                const settingsMenu = document.querySelector('.settings-fab-menu');
+                const settingsMainBtn = document.getElementById('btn-settings-main');
+                const nightModeBtn = document.getElementById('btn-night-mode');
+                const nightModeIcon = nightModeBtn.querySelector('i');
+                const currentTheme = localStorage.getItem('theme'); // Revisa el tema guardado
+        
+                // --- 2. APLICAR TEMA AL CARGAR LA PÁGINA ---
+                if (currentTheme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    nightModeIcon.classList.remove('fa-moon');
+                    nightModeIcon.classList.add('fa-sun'); // Pone el sol si ya está oscuro
+                }
+        
+                // --- 3. LÓGICA PARA ABRIR/CERRAR EL MENÚ DE "BOLITAS" ---
+                settingsMainBtn.addEventListener('click', function() {
+                    settingsMenu.classList.toggle('active');
+                });
+        
+                // --- 4. LÓGICA PARA EL BOTÓN DE MODO NOCHE ---
+                nightModeBtn.addEventListener('click', function() {
+                    // Activa/desactiva la clase en el BODY
+                    document.body.classList.toggle('dark-mode');
+        
+                    // Guarda la preferencia en el navegador
+                    if (document.body.classList.contains('dark-mode')) {
+                        localStorage.setItem('theme', 'dark'); // Guardar como oscuro
+                        nightModeIcon.classList.remove('fa-moon');
+                        nightModeIcon.classList.add('fa-sun'); // Cambia a icono de sol
+                    } else {
+                        localStorage.setItem('theme', 'light'); // Guardar como claro
+                        nightModeIcon.classList.remove('fa-sun');
+                        nightModeIcon.classList.add('fa-moon'); // Cambia a icono de luna
+                    }
+                });
+            });
+            // (Añadir a tu script.js o donde tengas tus funciones del chatbot)
+
+            const chatbotIndicator = document.getElementById('chatbot-indicator');
+            const chatInput = document.getElementById('chat-input'); // Asumiendo que tu input tiene este ID
+
+            // Función para mostrar el indicador de que el bot está activo
+            function showChatbotIndicator(state = 'active') {
+                chatbotIndicator.classList.remove('chatbot-indicator-hidden');
+                chatbotIndicator.classList.remove('is-listening'); // Limpiamos estados anteriores
+
+                if (state === 'listening') {
+                    chatbotIndicator.classList.add('is-listening');
+                }
+                // Puedes añadir más estados si el bot 'está pensando', 'escribiendo', etc.
+            }
+
+            // Función para ocultar el indicador
+            function hideChatbotIndicator() {
+                chatbotIndicator.classList.add('chatbot-indicator-hidden');
+                chatbotIndicator.classList.remove('is-listening');
+            }
+
+
+            // --- MODIFICAR TU FUNCIÓN send_message() ---
+            async function send_message() {
+                const user_message = chatInput.value.trim();
+                if (user_message === "") return;
+
+                // 1. Mostrar el mensaje del usuario (esto ya lo haces)
+                display_message(user_message, 'user');
+                chatInput.value = ''; // Limpiar el input
+
+                // 2. MOSTRAR EL INDICADOR DEL BOT MIENTRAS PIENSA
+                showChatbotIndicator('listening'); // O simplemente 'active' si no quieres el pulso aún
+
+                // 3. Enviar la petición al backend (TU CÓDIGO ACTUAL)
+                const response = await fetch('/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: user_message }),
+                });
+
+                const data = await response.json();
+                const bot_response = data.response;
+
+                // 4. OCULTAR EL INDICADOR DEL BOT DESPUÉS DE RECIBIR LA RESPUESTA
+                hideChatbotIndicator();
+
+                // 5. Mostrar la respuesta del bot (esto ya lo haces)
+                display_message(bot_response, 'bot');
+
+                // Aquí puedes añadir un pequeño delay si quieres para que la animación se vea bien
+                // setTimeout(() => {
+                //     hideChatbotIndicator();
+                // }, 500); // Ocultar después de 0.5 segundos para que la animación termine
+            }
+
+            // Opcional: Si tienes un botón para abrir/cerrar el chat, puedes hacer que el indicador aparezca
+            // brevemente al abrir el chatbox.
+            const chatboxToggleBtn = document.getElementById('chatbox-toggle-btn'); // Asume que tienes un botón con este ID
+            if (chatboxToggleBtn) {
+                chatboxToggleBtn.addEventListener('click', () => {
+                    const chatbox = document.getElementById('chat-box'); // Asume tu chatbox tiene este ID
+                    if (chatbox.classList.contains('chat-box-hidden')) { // Si se va a abrir
+                        showChatbotIndicator('active'); // O simplemente mostrarlo estático
+                    } else {
+                        hideChatbotIndicator(); // Si se va a cerrar
+                    }
+                });
+            }
+
+            // Para empezar, ocultar el indicador si el chat no está visible al cargar la página
+            window.onload = () => {
+                // Puedes verificar el estado inicial de tu chatbox y ocultar el indicador si está cerrado
+                // const chatbox = document.getElementById('chat-box');
+                // if (chatbox.classList.contains('chat-box-hidden')) {
+                //     hideChatbotIndicator();
+                // }
+                hideChatbotIndicator(); // Ocultar al inicio por defecto
+            };
+        </script>
+
+</body>
 </html>

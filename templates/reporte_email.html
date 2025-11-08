@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte Ejecutivo de Labflow</title>
+    <style>
+        /* Estilos en línea para máxima compatibilidad con PDF y email */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #6a5acd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #6a5acd;
+            margin: 0;
+        }
+        .header p {
+            font-size: 0.9em;
+            color: #555;
+            margin: 5px 0 0 0;
+        }
+        .header .logo-container {
+            /* 1. Centramos el contenedor de logos */
+            text-align: center; 
+            padding-bottom: 15px;
+        }
+        .header .logo-container img {
+            max-height: 60px; /* Controla el tamaño */
+            width: auto;
+            
+            /* 2. Los tratamos como "palabras" en línea */
+            display: inline-block;
+            
+            /* 3. Añadimos espacio (el "gap") manualmente */
+            margin: 0 10px;
+            
+            /* 4. Aseguramos que se alineen verticalmente */
+            vertical-align: middle;
+        }
+        h2 {
+            font-size: 1.4em;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        .resumen {
+            background-color: #f4f4f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f9f9f9;
+            font-weight: 600;
+        }
+        .danger-row {
+            background-color: #f8d7da;
+            color: #58151c;
+        }
+        .warning-row {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+        .danger-row strong, .warning-row strong {
+            font-weight: 700;
+        }
+        .list {
+            padding-left: 20px;
+        }
+        .list li {
+            margin-bottom: 5px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-container">
+                <img src="/static/sources/labflow-LG.png" alt="Labflow Logo">
+                <img src="/static/sources/itislogo.png" alt="ITS Logo">
+                <img src="/static/sources/tecnm.png" alt="ITS Logo">
+            </div>
+            <h1>Reporte Ejecutivo de Labflow</h1>
+            <p>Generado automáticamente el: {{ fecha }}</p>
+        </div>
+
+        <h2>Resumen Ejecutivo</h2>
+        <div class="resumen">
+            {{ resumen | safe }}
+        </div>
+
+        <h2>🚨 Alertas de Mantenimiento Predictivo</h2>
+        {% if datos.alertas %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Uso Acumulado</th>
+                        <th>Vida Estimada</th>
+                        <th>% de Vida Consumida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in datos.alertas %}
+                        {% set clase = 'warning-row' if item.porcentaje_vida_consumida <= 95 else 'danger-row' %}
+                        <tr class="{{ clase }}">
+                            <td>{{ item.nombre }}</td>
+                            <td>{{ item.horas_uso_acumuladas }} hrs</td>
+                            <td>{{ item.vida_util_estimada_horas }} hrs</td>
+                            <td><strong>{{ item.porcentaje_vida_consumida }}%</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No hay alertas de mantenimiento predictivo.</p>
+        {% endif %}
+
+        <h2>💸 Valor del Inventario (Stock)</h2>
+        {% if datos.financiero %}
+            <ul class="list">
+                {% for item in datos.financiero %}
+                    <li>
+                        <strong>{{ item.tipo }}:</strong> 
+                        ${{ "%.2f"|format(item.valor_total_stock) }} MXN
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No hay datos financieros de stock.</p>
+        {% endif %}
+
+        <h2>🔥 Top 5 Activos Más Usados</h2>
+        {% if datos.top5 %}
+            <ul class="list">
+                {% for item in datos.top5 %}
+                    <li>
+                        <strong>{{ item.nombre }}:</strong> 
+                        {{ item.horas_uso_acumuladas }} horas de uso
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No hay datos de uso de activos.</p>
+        {% endif %}
+
+        <div class="footer">
+            Este es un reporte confidencial generado por el Sistema de Gestión Labflow.
+        </div>
+    </div>
+</body>
+</html>

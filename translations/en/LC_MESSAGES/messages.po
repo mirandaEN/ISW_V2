@@ -1,0 +1,191 @@
+# English translations for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-11-04 14:41-0600\n"
+"PO-Revision-Date: 2025-11-04 14:39-0600\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: app.py:167
+msgid "Error de conexión con la base de datos."
+msgstr ""
+
+#: app.py:175
+msgid "Usuario o contraseña incorrectos."
+msgstr ""
+
+#: app.py:183
+#, python-format
+msgid "Cuenta bloqueada. Intenta de nuevo en %(minutes)s minuto(s)."
+msgstr ""
+
+#: app.py:202
+msgid "Acceso concedido."
+msgstr ""
+
+#: app.py:208
+msgid "Usuario o contraseña incorrectos. La cuenta ha sido bloqueada."
+msgstr ""
+
+#: app.py:213
+#, python-format
+msgid "Usuario o contraseña incorrectos. Te quedan %(attempts)s intento(s)."
+msgstr ""
+
+#: app.py:220
+msgid "Error de base de datos. Revisa la consola de Flask."
+msgstr ""
+
+#: app.py:257
+msgid ""
+"Lo siento, no entendí tu pregunta. ¿Puedes reformularla? También puedes "
+"consultar la sección de 'Soporte'."
+msgstr ""
+
+#: app.py:264
+msgid "Error: No autorizado"
+msgstr ""
+
+#: app.py:269
+msgid "Error: No hay mensaje"
+msgstr ""
+
+#: app.py:287
+msgid "Ambos campos son obligatorios."
+msgstr ""
+
+#: app.py:332
+#, python-format
+msgid ""
+"¡Alerta, Guillermo! Has cerrado sesión con %(count)s préstamo(s) "
+"activo(s)."
+msgstr ""
+
+#: app.py:343
+msgid "Has cerrado sesión exitosamente."
+msgstr ""
+
+#: templates/gestion_alumnos.html:10
+msgid "Gestión de Alumnos - LabFlow"
+msgstr ""
+
+#: templates/gestion_alumnos.html:18
+msgid "Gestión Laboratorio"
+msgstr ""
+
+#: templates/gestion_alumnos.html:28
+msgid "Inicio"
+msgstr ""
+
+#: templates/gestion_alumnos.html:31
+msgid "Préstamos"
+msgstr ""
+
+#: templates/gestion_alumnos.html:34
+msgid "Inventario"
+msgstr ""
+
+#: templates/gestion_alumnos.html:37
+msgid "Daños"
+msgstr ""
+
+#: templates/gestion_alumnos.html:40
+msgid "Auxiliares"
+msgstr ""
+
+#: templates/gestion_alumnos.html:43
+msgid "Soporte"
+msgstr ""
+
+#: templates/gestion_alumnos.html:46
+msgid "Reportes"
+msgstr ""
+
+#: templates/gestion_alumnos.html:49
+msgid "Alumnos"
+msgstr ""
+
+#: templates/gestion_alumnos.html:56
+msgid "Gestión de Alumnos"
+msgstr ""
+
+#: templates/gestion_alumnos.html:76
+msgid "Nombre"
+msgstr ""
+
+#: templates/gestion_alumnos.html:77
+msgid "N° Control"
+msgstr ""
+
+#: templates/gestion_alumnos.html:78
+msgid "Correo"
+msgstr ""
+
+#: templates/gestion_alumnos.html:79
+msgid "Carrera"
+msgstr ""
+
+#: templates/gestion_alumnos.html:80
+msgid "Sem."
+msgstr ""
+
+#: templates/gestion_alumnos.html:81
+msgid "Estatus"
+msgstr ""
+
+#: templates/gestion_alumnos.html:82
+msgid "Acciones"
+msgstr ""
+
+#: templates/gestion_alumnos.html:95
+msgid "Activo"
+msgstr ""
+
+#: templates/gestion_alumnos.html:97
+msgid "Inactivo"
+msgstr ""
+
+#: templates/gestion_alumnos.html:110
+msgid "Modificar"
+msgstr ""
+
+#: templates/gestion_alumnos.html:130
+msgid "No hay alumnos registrados."
+msgstr ""
+
+#: templates/gestion_alumnos.html:143
+msgid "Modificar Alumno"
+msgstr ""
+
+#: templates/interfaceAdmin.html:40
+msgid "Cambiar a Inglés"
+msgstr ""
+
+#: templates/interfaceAdmin.html:40
+msgid "Cambiar a Español"
+msgstr ""
+
+#: templates/interfaceAdmin.html:44
+msgid "Perfil"
+msgstr ""
+
+#: templates/interfaceAdmin.html:48
+msgid "Cerrar Sesión"
+msgstr ""
+
+#: templates/interfaceAdmin.html:54
+msgid "Ajustes"
+msgstr ""
+

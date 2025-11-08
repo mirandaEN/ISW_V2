@@ -1,421 +1,725 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Multímetro Avanzado</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { 
-            font-family: 'Roboto', sans-serif; 
-            background-color: #111827; /* Dark background */
-            overflow: hidden;
-        }
-        #game-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            padding: 2rem;
-            gap: 2rem;
-        }
-        #circuit-panel {
-            background-color: #1F2937;
-            border: 1px solid #374151;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            flex-basis: 60%;
-        }
-        #multimeter-panel {
-             flex-basis: 40%;
-             height: 100%;
-        }
-        .multimeter-dial {
-            cursor: grab;
-        }
-        .multimeter-dial:active {
-            cursor: grabbing;
-        }
-        .probe { cursor: grab; }
-        .probe:active { cursor: grabbing; }
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Multímetro Digital</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-        .probe-tip { 
-            stroke-width: 2;
-            filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
-        }
-        .target {
-            stroke: #9ca3af;
-            fill: #374151;
-            stroke-width: 2;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
-        }
-        .target:hover {
-            stroke: #f59e0b;
-            fill: #4b5563;
-            transform: scale(1.1);
-        }
-        .target-connected-red, .target-connected-black {
-            stroke: #ef4444;
-            fill: #f87171;
-            animation: pulse 1.5s infinite;
-        }
-        .target-connected-black {
-            stroke: #6b7280;
-            fill: #9ca3af;
-            animation: none; /* GND no necesita pulsar */
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        @keyframes pulse {
-            0% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.7)); }
-            50% { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 1)); }
-            100% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.7)); }
-        }
+    .container {
+      width: 95%;
+      max-width: 1200px;
+      padding: 2.5%;
+    }
 
-        #lcd-text { 
-            fill: #111827; 
-            font-family: 'Orbitron', monospace;
-            font-size: 38px; 
-            font-weight: 700; 
-            letter-spacing: 2px;
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
-        }
-        .flash-message {
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .flash-visible { 
-            opacity: 1; 
-            transform: translateY(0);
-        }
-        
-        .wire-pulse {
-            stroke-dasharray: 10 20;
-            animation: dash 2s linear infinite;
-        }
-        @keyframes dash {
-            to { stroke-dashoffset: -30; }
-        }
+    .header {
+      text-align: center;
+      margin-bottom: 3%;
+    }
 
-    </style>
-</head>
-<body class="p-4">
+    .header h1 {
+      color: #ffffff;
+      margin: 0 0 1.5% 0;
+      font-size: 2.2em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
 
-    <div id="feedback-message" class="flash-message fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 text-center"></div>
+    .instructions {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2%;
+      border-radius: 12px;
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 3%;
+      font-size: 1.1em;
+      backdrop-filter: blur(10px);
+    }
 
-    <div id="game-container">
-        
-        <div id="circuit-panel" class="p-8 rounded-2xl flex flex-col justify-between h-full">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-100 mb-2">Simulador de Multímetro Avanzado</h1>
-                <p class="text-gray-400 mb-6">Arrastra las sondas y gira la perilla para medir. Activa el sonido para una mejor experiencia.</p>
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3%;
+      margin-bottom: 3%;
+    }
 
-                <svg id="circuit-svg" viewBox="0 0 600 400" class="w-full h-auto bg-[#0d1117] border-2 border-gray-700 rounded-lg shadow-inner">
-                    <defs>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
+    .multimeter-section {
+      background: #2c2c2c;
+      border-radius: 20px;
+      padding: 4%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
 
-                    <rect x="50" y="150" width="60" height="120" fill="#4B5563" rx="5"/>
-                    <rect x="55" y="155" width="50" height="110" fill="#374151" rx="3"/>
-                    <text x="80" y="215" fill="#FBBF24" font-size="16" font-weight="bold" text-anchor="middle">12 V</text>
-                    <circle cx="80" cy="130" r="10" fill="#111827" stroke="#EF4444" stroke-width="2"/>
-                    <text x="80" y="120" fill="#EF4444" font-size="12" text-anchor="middle">+</text>
-                    <circle cx="80" cy="290" r="10" fill="#111827" stroke="#9CA3AF" stroke-width="2"/>
-                    
-                    <path d="M 80 130 H 180" stroke="#9CA3AF" stroke-width="3" fill="none"/>
-                    <path d="M 80 290 H 520 V 180" stroke="#9CA3AF" stroke-width="3" fill="none"/>
-                    
-                    <path d="M 80 130 H 180" stroke="#FBBF24" stroke-width="2" fill="none" class="wire-pulse" filter="url(#glow)"/>
+    .multimeter-body {
+      background: linear-gradient(145deg, #3a3a3a, #2c2c2c);
+      border-radius: 15px;
+      padding: 5%;
+      border: 3px solid #1a1a1a;
+    }
 
-                    <rect x="180" y="120" width="120" height="20" fill="#EF4444" rx="5"/>
-                    <text x="240" y="135" fill="#FFFFFF" font-size="12" text-anchor="middle">100 Ω</text>
-                    <path d="M 300 130 H 400" stroke="#9CA3AF" stroke-width="3" fill="none"/>
-                    
-                    <rect x="400" y="170" width="120" height="20" fill="#10B981" rx="5"/>
-                    <text x="460" y="185" fill="#FFFFFF" font-size="12" text-anchor="middle">50 Ω</text>
+    .display {
+      background: #1a3a1a;
+      border: 4px solid #0d0d0d;
+      border-radius: 8px;
+      padding: 5%;
+      margin-bottom: 5%;
+      text-align: right;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
 
-                    <circle id="targetA" class="target" cx="180" cy="130" r="12" data-type="V" data-value="12.0" data-label="Punto A"/>
-                    <text x="180" y="105" fill="#E5E7EB" font-size="14" text-anchor="middle">A</text>
-                    
-                    <circle id="targetB" class="target" cx="400" cy="130" r="12" data-type="V" data-value="8.0" data-label="Punto B"/>
-                    <text x="400" y="105" fill="#E5E7EB" font-size="14" text-anchor="middle">B</text>
-                    
-                    <circle id="targetC" class="target" cx="400" cy="180" r="12" data-type="R" data-value="50" data-label="Punto C"/>
-                    <text x="400" y="215" fill="#E5E7EB" font-size="14" text-anchor="middle">C</text>
-                    
-                    <circle id="targetGND" class="target" cx="80" cy="290" r="12" data-type="GND" data-value="0.0" data-label="GND"/>
-                    <text x="80" y="325" fill="#E5E7EB" font-size="14" text-anchor="middle">GND</text>
-                </svg>
-            </div>
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold text-gray-300 mb-2">Instrucciones</h3>
-                <ul class="list-disc list-inside text-sm text-gray-400 space-y-1">
-                    <li>Gira la perilla para seleccionar una función.</li>
-                    <li>Arrastra las puntas de las sondas a los puntos de medición (A, B, C, GND).</li>
-                    <li class="font-bold text-yellow-400">Medir Resistencia (Ω): Teóricamente, el circuito debe estar sin energía.</li>
-                    <li class="font-bold text-red-500">Advertencia: Medir Voltaje (V) en modo Amperaje (A) quemará el fusible.</li>
-                </ul>
-            </div>
+    .display-value {
+      font-family: 'Courier New', monospace;
+      font-size: 3em;
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .display-unit {
+      font-family: 'Courier New', monospace;
+      font-size: 1.5em;
+      color: #00cc00;
+      margin-top: 2%;
+    }
+
+    .selector {
+      text-align: center;
+      margin-bottom: 5%;
+    }
+
+    .selector-label {
+      color: #ffffff;
+      font-size: 0.9em;
+      margin-bottom: 3%;
+      display: block;
+      font-weight: bold;
+    }
+
+    .selector-knob {
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, #4a4a4a, #2a2a2a);
+      border-radius: 50%;
+      margin: 0 auto;
+      position: relative;
+      border: 5px solid #1a1a1a;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .selector-knob:hover {
+      transform: scale(1.05);
+    }
+
+    .selector-pointer {
+      position: absolute;
+      width: 4px;
+      height: 45%;
+      background: #ff3333;
+      top: 10%;
+      left: 50%;
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(0deg);
+      border-radius: 2px;
+      transition: transform 0.3s ease;
+    }
+
+    .selector-options {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 4%;
+    }
+
+    .selector-option {
+      background: #3a3a3a;
+      color: #ffffff;
+      border: 2px solid #4a4a4a;
+      padding: 3% 5%;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: all 0.2s;
+      font-weight: bold;
+    }
+
+    .selector-option:hover {
+      background: #4a4a4a;
+      transform: translateY(-2px);
+    }
+
+    .selector-option.active {
+      background: #ff6b35;
+      border-color: #ff6b35;
+      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+    }
+
+    .probes {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 5%;
+    }
+
+    .probe {
+      text-align: center;
+    }
+
+    .probe-connector {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin: 0 auto 3%;
+      border: 3px solid #1a1a1a;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    .probe-connector.red {
+      background: radial-gradient(circle, #ff4444, #cc0000);
+    }
+
+    .probe-connector.black {
+      background: radial-gradient(circle, #333333, #000000);
+    }
+
+    .probe-label {
+      color: #ffffff;
+      font-size: 0.8em;
+      font-weight: bold;
+    }
+
+    .circuits-section {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 4%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .circuits-title {
+      color: #1e3c72;
+      font-size: 1.5em;
+      margin-bottom: 5%;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .circuit-card {
+      background: #f8f9fa;
+      border: 3px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 5%;
+      margin-bottom: 4%;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .circuit-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      border-color: #ff6b35;
+    }
+
+    .circuit-card.selected {
+      border-color: #ff6b35;
+      background: #fff5f0;
+      box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+    }
+
+    .circuit-name {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #2c2c2c;
+      margin-bottom: 3%;
+    }
+
+    .circuit-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4% 0;
+      min-height: 80px;
+    }
+
+    .circuit-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 3%;
+    }
+
+    .connection-points {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 4%;
+    }
+
+    .connection-point {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 3px solid #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .connection-point.positive {
+      background: #ffcccc;
+    }
+
+    .connection-point.negative {
+      background: #cccccc;
+    }
+
+    .connection-point:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+    }
+
+    .connection-point.connected {
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+      border-color: #00ff00;
+      background: #00ff00 !important;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.8); }
+      50% { box-shadow: 0 0 25px rgba(0, 255, 0, 1); }
+      100% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.8); }
+    }
+
+    .status-bar {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2%;
+      border-radius: 12px;
+      text-align: center;
+      color: #ffffff;
+      font-size: 1em;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 2%;
+      background: #666;
+    }
+
+    .status-indicator.active {
+      background: #00ff00;
+      box-shadow: 0 0 10px #00ff00;
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 1.8em;
+      }
+
+      .display-value {
+        font-size: 2.5em;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container">
+   <div class="header">
+    <h1 id="main-title">Simulador de Multímetro Digital</h1>
+   </div>
+   <div class="instructions" id="instructions">
+    🎯 PASO 1: Haz clic en una caja de circuito (batería o fuente) para elegirla<br>
+     🔴 PASO 2: Haz clic en el círculo ROJO (positivo) - se pondrá verde cuando esté conectado<br>
+     ⚫ PASO 3: Haz clic en el círculo NEGRO (negativo) - también se pondrá verde<br>
+     📊 ¡Ya verás el voltaje en la pantalla verde del multímetro!
+   </div>
+   <div class="main-content">
+    <div class="multimeter-section">
+     <div class="multimeter-body">
+      <div class="display">
+       <div class="display-value" id="display-value">
+        0.00
+       </div>
+       <div class="display-unit" id="display-unit">
+        V DC
+       </div>
+      </div>
+      <div class="selector"><span class="selector-label">RANGO DE VOLTAJE</span>
+       <div class="selector-knob" id="selector-knob">
+        <div class="selector-pointer" id="selector-pointer"></div>
+       </div>
+       <div class="selector-options"><button class="selector-option active" data-range="20">20V</button> <button class="selector-option" data-range="200">200V</button> <button class="selector-option" data-range="600">600V</button>
+       </div>
+      </div>
+      <div class="probes">
+       <div class="probe">
+        <div class="probe-connector red"></div>
+        <div class="probe-label">
+         COM
         </div>
-
-        <div id="multimeter-panel" class="p-6 flex flex-col items-center justify-center">
-             <svg viewBox="0 0 300 450" class="w-full h-auto" style="filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));">
-                <defs>
-                    <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:#4B5563;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#1F2937;stop-opacity:1" />
-                    </linearGradient>
-                </defs>
-
-                <rect x="10" y="10" width="280" height="430" rx="30" fill="url(#bodyGradient)" />
-                <rect x="15" y="15" width="270" height="420" rx="25" fill="none" stroke="#111827" stroke-width="2"/>
-                
-                <rect x="35" y="35" width="230" height="90" rx="5" fill="#2D3748" />
-                <rect x="40" y="40" width="220" height="80" rx="3" fill="#9AE6B4" style="filter: inset(0 2px 4px rgba(0,0,0,0.5));"/>
-                <text x="150" y="98" id="lcd-text" text-anchor="middle">OFF</text>
-
-                <text x="150" y="175" text-anchor="middle" font-size="18" fill="#FBBF24" font-weight="bold">V~</text>
-                <text x="225" y="225" text-anchor="middle" font-size="18" fill="white" font-weight="bold">V-</text>
-                <text x="225" y="325" text-anchor="middle" font-size="18" fill="#6EE7B7" font-weight="bold">Ω</text>
-                <text x="75" y="325" text-anchor="middle" font-size="18" fill="#F87171" font-weight="bold">A-</text>
-                <text x="75" y="225" text-anchor="middle" font-size="18" fill="#9CA3AF" font-weight="bold">OFF</text>
-                
-                <g id="dial-group" class="multimeter-dial">
-                    <!-- CORREGIDO: Círculo invisible para capturar eventos de arrastre -->
-                    <circle cx="150" cy="270" r="75" fill="transparent"/>
-                    <circle cx="150" cy="270" r="70" fill="#374151" stroke="#111827" stroke-width="2"/>
-                    <circle cx="150" cy="270" r="65" fill="#1F2937"/>
-                    <polygon points="150,200 147,220 153,220" fill="#DC2626"/>
-                </g>
-
-                <circle cx="90" cy="390" r="15" fill="#111827" id="com-port"/>
-                <text x="90" y="425" text-anchor="middle" font-size="12" fill="white">COM</text>
-                
-                <circle cx="210" cy="390" r="15" fill="#111827" id="main-port"/>
-                <text x="210" y="425" text-anchor="middle" font-size="12" fill="white">VΩmA</text>
-            </svg>
+       </div>
+       <div class="probe">
+        <div class="probe-connector black"></div>
+        <div class="probe-label">
+         VΩ
         </div>
-
-        <svg id="probe-svg" class="absolute w-full h-full top-0 left-0 pointer-events-none">
-            <defs>
-                <filter id="cableShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.5" />
-                </filter>
-            </defs>
-            <line id="probeBlackLine" stroke="#111827" stroke-width="4" filter="url(#cableShadow)"/>
-            <circle id="probeBlackTip" class="probe-tip" fill="#374151" stroke="#111827" r="8"/>
-            
-            <line id="probeRedLine" stroke="#DC2626" stroke-width="4" filter="url(#cableShadow)"/>
-            <circle id="probeRedTip" class="probe probe-tip" fill="#F87171" stroke="#DC2626" r="8" style="pointer-events: all;"/>
-
-            <circle id="spark" cx="0" cy="0" r="5" fill="yellow" opacity="0" filter="url(#glow)"/>
-        </svg>
+       </div>
+      </div>
+     </div>
     </div>
+    <div class="circuits-section">
+     <div class="circuits-title">
+      Circuitos de Práctica
+     </div>
+     <div class="circuit-card" data-circuit="1">
+      <div class="circuit-name" id="circuit1-name">
+       Batería 9V
+      </div>
+      <div class="circuit-diagram">
+       <svg width="200" height="80" viewbox="0 0 200 80"><line x1="20" y1="40" x2="60" y2="40" stroke="#333" stroke-width="2" /> <rect x="60" y="20" width="80" height="40" fill="none" stroke="#333" stroke-width="2" rx="5" /> <text x="100" y="45" text-anchor="middle" font-size="16" fill="#333" font-weight="bold">
+         9V
+        </text> <line x1="140" y1="40" x2="180" y2="40" stroke="#333" stroke-width="2" /> <circle cx="20" cy="40" r="4" fill="#ff4444" /> <circle cx="180" cy="40" r="4" fill="#333" />
+       </svg>
+      </div>
+      <div class="circuit-info"><span>Voltaje: 9.0V</span> <span>Tipo: DC</span>
+      </div>
+      <div class="connection-points">
+       <div class="connection-point positive" data-circuit="1" data-pole="positive" title="¡Haz clic aquí! Punto ROJO (+)"></div>
+       <div class="connection-point negative" data-circuit="1" data-pole="negative" title="¡Haz clic aquí! Punto NEGRO (-)"></div>
+      </div>
+      <div style="display: flex; justify-content: space-around; margin-top: 2%; font-size: 0.8em; color: #666;"><span>👆 ROJO (+)</span> <span>👆 NEGRO (-)</span>
+      </div>
+     </div>
+     <div class="circuit-card" data-circuit="2">
+      <div class="circuit-name" id="circuit2-name">
+       Fuente 12V
+      </div>
+      <div class="circuit-diagram">
+       <svg width="200" height="80" viewbox="0 0 200 80"><line x1="20" y1="40" x2="50" y2="40" stroke="#333" stroke-width="2" /> <rect x="50" y="15" width="100" height="50" fill="none" stroke="#333" stroke-width="2" rx="5" /> <text x="100" y="45" text-anchor="middle" font-size="16" fill="#333" font-weight="bold">
+         12V DC
+        </text> <line x1="150" y1="40" x2="180" y2="40" stroke="#333" stroke-width="2" /> <circle cx="20" cy="40" r="4" fill="#ff4444" /> <circle cx="180" cy="40" r="4" fill="#333" />
+       </svg>
+      </div>
+      <div class="circuit-info"><span>Voltaje: 12.0V</span> <span>Tipo: DC</span>
+      </div>
+      <div class="connection-points">
+       <div class="connection-point positive" data-circuit="2" data-pole="positive" title="¡Haz clic aquí! Punto ROJO (+)"></div>
+       <div class="connection-point negative" data-circuit="2" data-pole="negative" title="¡Haz clic aquí! Punto NEGRO (-)"></div>
+      </div>
+      <div style="display: flex; justify-content: space-around; margin-top: 2%; font-size: 0.8em; color: #666;"><span>👆 ROJO (+)</span> <span>👆 NEGRO (-)</span>
+      </div>
+     </div>
+     <div class="circuit-card" data-circuit="3">
+      <div class="circuit-name" id="circuit3-name">
+       Circuito en Serie
+      </div>
+      <div class="circuit-diagram">
+       <svg width="200" height="80" viewbox="0 0 200 80"><line x1="20" y1="40" x2="50" y2="40" stroke="#333" stroke-width="2" /> <rect x="50" y="30" width="30" height="20" fill="none" stroke="#333" stroke-width="2" /> <text x="65" y="45" text-anchor="middle" font-size="12" fill="#333">
+         6V
+        </text> <line x1="80" y1="40" x2="100" y2="40" stroke="#333" stroke-width="2" /> <rect x="100" y="30" width="30" height="20" fill="none" stroke="#333" stroke-width="2" /> <text x="115" y="45" text-anchor="middle" font-size="12" fill="#333">
+         6V
+        </text> <line x1="130" y1="40" x2="180" y2="40" stroke="#333" stroke-width="2" /> <circle cx="20" cy="40" r="4" fill="#ff4444" /> <circle cx="180" cy="40" r="4" fill="#333" />
+       </svg>
+      </div>
+      <div class="circuit-info"><span>Voltaje Total: 12.0V</span> <span>Tipo: Serie</span>
+      </div>
+      <div class="connection-points">
+       <div class="connection-point positive" data-circuit="3" data-pole="positive" title="¡Haz clic aquí! Punto ROJO (+)"></div>
+       <div class="connection-point negative" data-circuit="3" data-pole="negative" title="¡Haz clic aquí! Punto NEGRO (-)"></div>
+      </div>
+      <div style="display: flex; justify-content: space-around; margin-top: 2%; font-size: 0.8em; color: #666;"><span>👆 ROJO (+)</span> <span>👆 NEGRO (-)</span>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="status-bar"><span class="status-indicator" id="status-indicator"></span> <span id="status-text">Selecciona un circuito para comenzar</span>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      title_text: "Simulador de Multímetro Digital",
+      instructions_text: "Selecciona un circuito y conecta las puntas del multímetro a los puntos de medición. Ajusta el rango de voltaje según sea necesario.",
+      circuit1_label: "Batería 9V",
+      circuit2_label: "Fuente 12V",
+      circuit3_label: "Circuito en Serie",
+      background_color: "#1e3c72",
+      surface_color: "#ffffff",
+      text_color: "#2c2c2c",
+      primary_action_color: "#ff6b35",
+      secondary_action_color: "#2a5298",
+      font_family: "Arial",
+      font_size: 16
+    };
 
-    <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        await Tone.start();
-        gsap.registerPlugin(Draggable);
+    let selectedCircuit = null;
+    let selectedRange = 20;
+    let positiveConnected = false;
+    let negativeConnected = false;
 
-        const dialGroup = document.getElementById('dial-group');
-        const lcdText = document.getElementById('lcd-text');
-        const targets = Array.from(document.querySelectorAll('.target'));
-        const feedbackMessage = document.getElementById('feedback-message');
-        const probeRedTip = document.getElementById('probeRedTip');
-        const probeRedLine = document.getElementById('probeRedLine');
-        const probeBlackTip = document.getElementById('probeBlackTip');
-        const probeBlackLine = document.getElementById('probeBlackLine');
-        const mainPort = document.getElementById('main-port');
-        const comPort = document.getElementById('com-port');
-        const spark = document.getElementById('spark');
+    const circuits = {
+      1: { voltage: 9.0, name: "Batería 9V" },
+      2: { voltage: 12.0, name: "Fuente 12V" },
+      3: { voltage: 12.0, name: "Circuito en Serie" }
+    };
 
-        const dialClick = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.02, sustain: 0, release: 0.1 } }).toDestination();
-        const connectSound = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
-        const errorSound = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 } }).toDestination();
+    function updateDisplay() {
+      const displayValue = document.getElementById('display-value');
+      const statusIndicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+
+      if (selectedCircuit && positiveConnected && negativeConnected) {
+        const voltage = circuits[selectedCircuit].voltage;
         
-        let state = {
-            currentFunction: 'OFF',
-            connectedTargets: { red: null, black: 'targetGND' },
-            dialAngle: -90
-        };
-        const dialPositions = { 'OFF': -90, 'V~': -45, 'V-': 45, 'Ω': 135, 'A-': -135 };
-        const dialPositionsArray = Object.values(dialPositions);
-
-        const getAbsCoords = (element) => {
-            const rect = element.getBoundingClientRect();
-            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        if (voltage > selectedRange) {
+          displayValue.textContent = 'OL';
+          statusText.textContent = 'Sobrecarga - Aumenta el rango';
+          statusIndicator.classList.remove('active');
+        } else {
+          displayValue.textContent = voltage.toFixed(2);
+          statusText.textContent = `Midiendo ${circuits[selectedCircuit].name}`;
+          statusIndicator.classList.add('active');
         }
-
-        function showFeedback(message, type = 'info') {
-            feedbackMessage.textContent = message;
-            feedbackMessage.className = 'flash-message fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 text-center flash-visible';
-            const colorClass = { success: 'bg-green-500', warning: 'bg-yellow-500 text-black', error: 'bg-red-600', info: 'bg-blue-500' }[type];
-            feedbackMessage.classList.add(colorClass);
-            gsap.to(feedbackMessage, { opacity: 0, y: -20, duration: 0.4, delay: 2.5 });
+      } else if (selectedCircuit && (positiveConnected || negativeConnected)) {
+        displayValue.textContent = '0.00';
+        if (positiveConnected && !negativeConnected) {
+          statusText.textContent = '✅ ROJO conectado! Ahora haz clic en el círculo NEGRO';
+        } else if (!positiveConnected && negativeConnected) {
+          statusText.textContent = '✅ NEGRO conectado! Ahora haz clic en el círculo ROJO';
         }
-        
-        function animateLCD(text) {
-            gsap.to(lcdText, { opacity: 0, duration: 0.1, onComplete: () => {
-                lcdText.textContent = text;
-                gsap.to(lcdText, { opacity: 1, duration: 0.1 });
-            }});
-        }
-        
-        function playSpark(x, y) {
-            gsap.set(spark, { attr: { cx: x, cy: y } });
-            gsap.fromTo(spark, { opacity: 1, scale: 0.5 }, { opacity: 0, scale: 2, duration: 0.3, ease: 'power2.out' });
-        }
+        statusIndicator.classList.remove('active');
+      } else {
+        displayValue.textContent = '0.00';
+        statusText.textContent = selectedCircuit ? '👆 Haz clic en los círculos ROJO y NEGRO para conectar las puntas' : '🎯 Haz clic en una caja de circuito para empezar';
+        statusIndicator.classList.remove('active');
+      }
+    }
 
-        function performMeasurement() {
-            if (state.currentFunction === 'OFF') { animateLCD('OFF'); return; }
-            if (!state.connectedTargets.red || !state.connectedTargets.black) { animateLCD('----'); return; }
-
-            const targetRed = document.getElementById(state.connectedTargets.red);
-            const targetBlack = document.getElementById(state.connectedTargets.black);
-            
-            const valueRed = parseFloat(targetRed.dataset.value), typeRed = targetRed.dataset.type;
-            const valueBlack = parseFloat(targetBlack.dataset.value), typeBlack = targetBlack.dataset.type;
-
-            if (state.connectedTargets.red === state.connectedTargets.black) {
-                animateLCD(state.currentFunction === 'Ω' ? "0.00 Ω" : "0.00 V");
-                return;
-            }
-            if (state.currentFunction === 'A-' && (typeRed === 'V' || typeBlack === 'V')) {
-                animateLCD("FUSE");
-                showFeedback("¡FUSIBLE QUEMADO! No se mide voltaje en modo Amperaje.", 'error');
-                errorSound.triggerAttackRelease('C3', '0.2s');
-                gsap.to("#multimeter-panel", { x: '+=5', yoyo: true, repeat: 5, duration: 0.08 });
-                return;
-            }
-            if (state.currentFunction === 'V-' || state.currentFunction === 'V~') {
-                if ((typeRed === 'V' || typeRed === 'GND') && (typeBlack === 'V' || typeBlack === 'GND')) {
-                    animateLCD(`${Math.abs(valueRed - valueBlack).toFixed(2)} V`);
-                } else { animateLCD("OL"); }
-                return;
-            }
-            if (state.currentFunction === 'Ω') {
-                if (typeRed === 'R' && typeBlack === 'GND') {
-                    animateLCD(`${valueRed.toFixed(1)} Ω`);
-                } else if (typeRed === 'V' || typeBlack === 'V') {
-                    animateLCD("OL");
-                    showFeedback("¡ERROR! Mide resistencia solo en circuitos SIN energía.", 'warning');
-                    errorSound.triggerAttackRelease('A3', '0.1s', '+0.1');
-                } else { animateLCD("OL"); }
-                return;
-            }
-            animateLCD("----");
-        }
-
-        Draggable.create(dialGroup, {
-            type: "rotation",
-            inertia: true,
-            onDragEnd: function() {
-                let newRotation = gsap.utils.snap(dialPositionsArray, this.rotation);
-                
-                if (state.dialAngle !== newRotation) {
-                    state.dialAngle = newRotation;
-                    for (const key in dialPositions) {
-                        if (dialPositions[key] === newRotation) {
-                            state.currentFunction = key;
-                            break;
-                        }
-                    }
-                    dialClick.triggerAttackRelease("C5", "8n");
-                    showFeedback(`Función: ${state.currentFunction}`, 'info');
-                    performMeasurement();
-                }
-                
-                gsap.to(this.target, { rotation: state.dialAngle, duration: 0.4, ease: "elastic.out(1, 0.75)" });
-            }
-        });
-
-        Draggable.create(probeRedTip, {
-            bounds: "#game-container",
-            onPress: function() { gsap.to(this.target, { attr: { r: 12 }, duration: 0.1, ease: 'power2.out' }); },
-            onDrag: function() {
-                const portCoords = getAbsCoords(mainPort);
-                gsap.set(probeRedLine, { attr: { x1: portCoords.x, y1: portCoords.y, x2: this.pointerX, y2: this.pointerY } });
-            },
-            onRelease: function() {
-                gsap.to(this.target, { attr: { r: 8 }, duration: 0.2, ease: 'power2.out' });
-                if (state.connectedTargets.red) document.getElementById(state.connectedTargets.red).classList.remove('target-connected-red');
-                
-                let closestTarget = null, minDistance = 50;
-                targets.forEach(target => {
-                    const targetCoords = getAbsCoords(target);
-                    const distance = Math.hypot(this.pointerX - targetCoords.x, this.pointerY - targetCoords.y);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestTarget = target;
-                    }
-                });
-
-                if (closestTarget) {
-                    connectSound.triggerAttackRelease("G5", "8n");
-                    state.connectedTargets.red = closestTarget.id;
-                    closestTarget.classList.add('target-connected-red');
-                    const targetCoords = getAbsCoords(closestTarget);
-                    playSpark(targetCoords.x, targetCoords.y);
-                    gsap.to(this.target, { attr: { cx: targetCoords.x, cy: targetCoords.y }, duration: 0.2, ease: "power2.out" });
-                    gsap.to(probeRedLine, { attr: { x2: targetCoords.x, y2: targetCoords.y }, duration: 0.2, ease: "power2.out" });
-                } else {
-                    state.connectedTargets.red = null;
-                    const portCoords = getAbsCoords(mainPort);
-                    gsap.to(this.target, { attr: { cx: portCoords.x, cy: portCoords.y }, duration: 0.3, ease: "elastic.out(1, 0.5)" });
-                    gsap.to(probeRedLine, { attr: { x2: portCoords.x, y2: portCoords.y }, duration: 0.3, ease: "elastic.out(1, 0.5)" });
-                }
-                performMeasurement();
-            }
-        });
-
-        function updateProbePositions() {
-            const mainPortCoords = getAbsCoords(mainPort);
-            const comPortCoords = getAbsCoords(comPort);
-            const gndTargetCoords = getAbsCoords(document.getElementById('targetGND'));
-
-            gsap.set(probeBlackTip, { attr: { cx: gndTargetCoords.x, cy: gndTargetCoords.y } });
-            gsap.set(probeBlackLine, { attr: { x1: comPortCoords.x, y1: comPortCoords.y, x2: gndTargetCoords.x, y2: gndTargetCoords.y } });
-
-            const redTarget = state.connectedTargets.red ? document.getElementById(state.connectedTargets.red) : mainPort;
-            const redTargetCoords = getAbsCoords(redTarget);
-            gsap.set(probeRedTip, { attr: { cx: redTargetCoords.x, cy: redTargetCoords.y } });
-            gsap.set(probeRedLine, { attr: { x1: mainPortCoords.x, y1: mainPortCoords.y, x2: redTargetCoords.x, y2: redTargetCoords.y } });
-        }
-
-        function initialize() {
-            document.getElementById('targetGND').classList.add('target-connected-black');
-            
-            // CORREGIDO: Aplicamos la rotación inicial y el origen con GSAP para mayor fiabilidad
-            gsap.set(dialGroup, { 
-                rotation: state.dialAngle, 
-                transformOrigin: "150px 270px" 
-            });
-
-            updateProbePositions();
-            window.addEventListener('resize', updateProbePositions);
-            
-            gsap.from("#circuit-panel", { x: -200, opacity: 0, duration: 0.8, ease: 'power2.out' });
-            gsap.from("#multimeter-panel", { x: 200, opacity: 0, duration: 0.8, ease: 'power2.out' });
-            
-            showFeedback("Simulador listo. ¡A medir!", 'success');
-        }
-
-        initialize();
+    document.querySelectorAll('.circuit-card').forEach(card => {
+      card.addEventListener('click', function() {
+        document.querySelectorAll('.circuit-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedCircuit = this.dataset.circuit;
+        positiveConnected = false;
+        negativeConnected = false;
+        document.querySelectorAll('.connection-point').forEach(p => p.classList.remove('connected'));
+        updateDisplay();
+      });
     });
-    </script>
-</body>
+
+    document.querySelectorAll('.connection-point').forEach(point => {
+      point.addEventListener('click', function() {
+        const circuit = this.dataset.circuit;
+        const pole = this.dataset.pole;
+
+        if (circuit === selectedCircuit) {
+          this.classList.toggle('connected');
+          
+          // Efecto visual de clic
+          this.style.transform = 'scale(1.3)';
+          setTimeout(() => {
+            this.style.transform = '';
+          }, 200);
+          
+          if (pole === 'positive') {
+            positiveConnected = this.classList.contains('connected');
+          } else {
+            negativeConnected = this.classList.contains('connected');
+          }
+          
+          updateDisplay();
+        } else if (!selectedCircuit) {
+          // Mensaje si no hay circuito seleccionado
+          const statusText = document.getElementById('status-text');
+          statusText.textContent = '⚠️ Primero selecciona un circuito haciendo clic en una caja';
+          setTimeout(() => {
+            updateDisplay();
+          }, 2000);
+        }
+      });
+    });
+
+    document.querySelectorAll('.selector-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.selector-option').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        selectedRange = parseInt(this.dataset.range);
+        
+        const pointer = document.getElementById('selector-pointer');
+        const ranges = { 20: -45, 200: 0, 600: 45 };
+        pointer.style.transform = `translateX(-50%) rotate(${ranges[selectedRange]}deg)`;
+        
+        updateDisplay();
+      });
+    });
+
+    async function onConfigChange(config) {
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseFontStack = 'Arial, sans-serif';
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryActionColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryActionColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+
+      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
+      document.body.style.background = `linear-gradient(135deg, ${backgroundColor} 0%, ${secondaryActionColor} 100%)`;
+
+      document.getElementById('main-title').textContent = config.title_text || defaultConfig.title_text;
+      document.getElementById('main-title').style.fontSize = `${baseSize * 1.375}px`;
+
+      document.getElementById('instructions').textContent = config.instructions_text || defaultConfig.instructions_text;
+      document.getElementById('instructions').style.fontSize = `${baseSize * 0.6875}px`;
+
+      document.getElementById('circuit1-name').textContent = config.circuit1_label || defaultConfig.circuit1_label;
+      document.getElementById('circuit2-name').textContent = config.circuit2_label || defaultConfig.circuit2_label;
+      document.getElementById('circuit3-name').textContent = config.circuit3_label || defaultConfig.circuit3_label;
+
+      circuits[1].name = config.circuit1_label || defaultConfig.circuit1_label;
+      circuits[2].name = config.circuit2_label || defaultConfig.circuit2_label;
+      circuits[3].name = config.circuit3_label || defaultConfig.circuit3_label;
+
+      document.querySelectorAll('.circuits-section').forEach(el => {
+        el.style.background = surfaceColor;
+      });
+
+      document.querySelectorAll('.circuits-title').forEach(el => {
+        el.style.color = backgroundColor;
+        el.style.fontSize = `${baseSize * 0.9375}px`;
+      });
+
+      document.querySelectorAll('.circuit-name').forEach(el => {
+        el.style.color = textColor;
+        el.style.fontSize = `${baseSize * 0.6875}px`;
+      });
+
+      document.querySelectorAll('.circuit-info').forEach(el => {
+        el.style.fontSize = `${baseSize * 0.5625}px`;
+      });
+
+      document.querySelectorAll('.selector-option').forEach(el => {
+        el.style.fontSize = `${baseSize * 0.53125}px`;
+      });
+
+      document.querySelectorAll('.selector-option.active').forEach(el => {
+        el.style.background = primaryActionColor;
+        el.style.borderColor = primaryActionColor;
+      });
+
+      document.querySelectorAll('.circuit-card:hover, .circuit-card.selected').forEach(el => {
+        el.style.borderColor = primaryActionColor;
+      });
+
+      document.querySelectorAll('.display-value').forEach(el => {
+        el.style.fontSize = `${baseSize * 1.875}px`;
+      });
+
+      document.querySelectorAll('.display-unit').forEach(el => {
+        el.style.fontSize = `${baseSize * 0.9375}px`;
+      });
+
+      document.querySelectorAll('.status-bar').forEach(el => {
+        el.style.fontSize = `${baseSize * 0.625}px`;
+      });
+
+      updateDisplay();
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["title_text", config.title_text || defaultConfig.title_text],
+          ["instructions_text", config.instructions_text || defaultConfig.instructions_text],
+          ["circuit1_label", config.circuit1_label || defaultConfig.circuit1_label],
+          ["circuit2_label", config.circuit2_label || defaultConfig.circuit2_label],
+          ["circuit3_label", config.circuit3_label || defaultConfig.circuit3_label]
+        ])
+      });
+    }
+
+    updateDisplay();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9976a70b62ef07a3',t:'MTc2MTk1MDQwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

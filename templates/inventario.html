@@ -4,69 +4,200 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Estilos (mantenidos por si se accede directo, pero ajustados) */
+        /* --- NUEVO: Estilos Unificados de Inventario (Basados en Admin v4) --- */
+        
+        /* 1. Definición de colores */
         :root {
-            --color-principal: #7d0015;
+            /* Colores de acento (los mantenemos de tu original) */
+            --color-principal: #61021d;
             --color-secundario: #a71d2a;
             --color-texto-claro: white;
             --color-activo: #28a745;
             --color-peligro: #dc3545;
             --color-aviso: #ffc107;
+            
+            /* Colores del tema claro (Morado y Guindo/Rosa claros) */
+            --color-acento-morado: #6a5acd; /* Morado del admin */
+            --color-fondo-claro: #ffcaca; /* Lavanda muy claro */
+            --color-fondo-claro-2: #8e6d6d;/* Rosa/Guindo muy claro */
         }
-        main#inventarioContent { /* ID para asegurar selección correcta */
-            padding: 1.5rem; /* Espacio interno */
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin: 20px 0; /* Margen superior/inferior si se carga solo */
+        
+        /* 2. Estilo del Body (Fondo degradado claro) */
+        body {
+            background: linear-gradient(135deg, var(--color-fondo-claro) 0%, var(--color-fondo-claro-2) 100%);
+            background-attachment: fixed;
+            color: #212529; /* Texto oscuro */
         }
-        main#inventarioContent h1 { /* Estilo del título principal */
-            color: var(--color-principal);
-            border-bottom: 2px solid #dee2e6;
+
+        /* 3. MODIFICADO: Contenedor principal "Frosted Glass" */
+        main#inventarioContent {
+            padding: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.7); /* Fondo traslúcido */
+            backdrop-filter: blur(10px); /* Efecto "Frosted Glass" */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Borde sutil */
+            border-radius: 16px; /* Más redondeado */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Sombra suave */
+            margin: 20px auto; /* Centrado (reforzado por el style en <html>) */
+        }
+
+        /* 4. MODIFICADO: Estilos de la Navbar */
+        .navbar-custom-guindo {
+            background-color: rgba(255, 255, 255, 0.7); /* Fondo traslúcido */
+            backdrop-filter: blur(10px); /* Efecto "Frosted Glass" */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .navbar-custom-guindo .navbar-brand,
+        .navbar-custom-guindo .nav-link {
+            color: #333; /* Texto oscuro */
+        }
+        .navbar-custom-guindo .nav-link:hover {
+            color: #000;
+        }
+        /* Link activo con el acento morado */
+        .navbar-custom-guindo .nav-link.active {
+            font-weight: 600;
+            color: var(--color-acento-morado); 
+            border-bottom: 2px solid var(--color-acento-morado); 
+        }
+        /* Forza el ícono del menú (sándwich) a ser oscuro */
+        .navbar-custom-guindo .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 0.7)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+        /* --- FIN ESTILOS NAVBAR --- */
+
+        /* 5. MODIFICADO: Título principal */
+        main#inventarioContent h1 {
+            color: #333; /* Texto oscuro */
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1); /* Borde sutil */
             padding-bottom: 10px;
             margin-top: 0;
-            margin-bottom: 1.5rem; /* Espacio debajo del título */
+            margin-bottom: 1.5rem;
             font-weight: 700;
             font-size: 1.8em;
         }
+
+        /* 6. MODIFICADO: Modales "Frosted Glass" */
+        .modal-content {
+            background-color: rgba(255, 255, 255, 0.9); /* Más opaco */
+            backdrop-filter: blur(10px);
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 16px; /* Redondeado */
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Borde sutil */
+            padding-bottom: 10px;
+        }
+        .modal-header h2 { margin: 0; font-size: 1.4em; }
+        
+        /* Modal más grande para el Log */
+        #logModal .modal-content { 
+            max-width: 900px; 
+        }
+
+        /* 7. MODIFICADO: Filtros */
+        .filter-container { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 1rem; 
+            flex-wrap: wrap; 
+            padding: 10px; 
+            background-color: rgba(0, 0, 0, 0.03); /* Fondo sutil */
+            border-radius: 5px; 
+        }
+        .filter-container label { font-size: 0.9em; cursor: pointer; }
+
+        /* --- ESTILOS FUNCIONALES (MANTENIDOS) --- */
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 20px; }
-        .actions button { background-color: var(--color-principal); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s; margin-right: 10px; }
+        .actions button { color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s; margin-right: 10px; }
+        .actions button { background-color: var(--color-principal); }
         .actions button:hover { background-color: #4a000a; }
         .actions button.btn-log { background-color: #17a2b8; }
         .actions button.btn-log:hover { background-color: #138496; }
         .actions button.delete { background-color: var(--color-peligro); }
         .actions button.edit { background-color: #ffc107; color: #212529; }
+        
         .search-section { flex-grow: 1; max-width: 500px; }
         .search-bar input { border: 1px solid #ced4da; padding: 10px; border-radius: 5px; width: 100%; }
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; vertical-align: middle;} /* Alineación vertical */
-        th { background-color: #f8f9fa; font-weight: 600; color: #343a40; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; vertical-align: middle;}
+        th { background-color: rgba(0, 0, 0, 0.03); font-weight: 600; color: #343a40; } /* Fondo de header de tabla más sutil */
+        
         .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .disponible { background-color: var(--color-activo); }
         .en-uso { background-color: var(--color-aviso); }
         .sin-stock { background-color: var(--color-peligro); }
-        .flash-messages-container { position: fixed; top: 20px; right: 20px; z-index: 1050; width: 350px; }
-        /* Botón regresar eliminado */
-        .modal { display: none; position: fixed; z-index: 1050; /* Mayor z-index */ left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
-        .modal-header h2 { margin: 0; font-size: 1.4em; }
+        
+        .flash-messages-container { position: fixed; top: 80px; /* Abajo de la navbar */ right: 20px; z-index: 1050; width: 350px; }
+        
+        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
         .close { color: #555; font-size: 28px; font-weight: bold; cursor: pointer; background: none; border: none;}
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
         .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
         .btn-submit { background-color: var(--color-activo); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
-        .filter-container { display: flex; gap: 15px; margin-bottom: 1rem; flex-wrap: wrap; padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
-        .filter-container label { font-size: 0.9em; cursor: pointer; }
-        /* Estilo para modal de log */
-        #logModal .modal-content { max-width: 900px; }
+        
         #logModal .table-responsive { max-height: 500px; }
     </style>
 </head>
-<body> <div class="flash-messages-container">
+<body> 
+    <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
+        <div class="container-fluid">
+          
+          <a class="navbar-brand fw-bold" href="{{ url_for('interface_admin') }}">
+              <i class="fas fa-flask me-1"></i>
+              Gestión Laboratorio
+          </a>
+          
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('interface_admin') }}">Inicio</a>
+                  </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_alumnos') }}">Alumnos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_auxiliares') }}">Auxiliares</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="{{ url_for('reportes') }}">Reportes</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('inventario') }}">Inventario</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('mostrar_dashboard') }}">Predicciones</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    <div class="flash-messages-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, msg in messages %}
@@ -79,7 +210,7 @@
         {% endwith %}
     </div>
 
-    <main id="inventarioContent">
+    <main id="inventarioContent" style="max-width: 1400px; margin: 20px auto;">
 
         <h1><i class="fas fa-boxes"></i> Gestión de Materiales</h1>
 
@@ -140,6 +271,12 @@
                         <td>{{ material.CANTIDAD_DISPONIBLE }}</td>
                         <td>{{ material.CANTIDAD_DANADA or 0 }}</td>
                         <td>
+                            <a href="{{ url_for('generate_qr', material_id=material.ID_MATERIAL) }}" 
+                                target="_blank" 
+                                class="btn btn-secondary btn-sm"
+                                title="Generar Código de Barras">
+                                <i class="fas fa-qrcode"></i>
+                            </a>
                             {% set status_upper = (material.ESTATUS or '') | upper %}
                             {% if status_upper == 'DISPONIBLE' %}
                                 <span class="status-dot disponible"></span> Disponible
@@ -254,6 +391,26 @@
         </div>
     </div>
     {% endif %}
+    <div class="settings-fab-menu">
+        <div class="settings-options">
+            
+            <button class="settings-option" id="btn-night-mode" title="Modo Noche">
+                <i class="fas fa-moon"></i>
+            </button>
+    
+            <a href="{{ url_for('profile') }}" class="settings-option" title="Perfil">
+                <i class="fas fa-user"></i>
+            </a>
+            
+            <a href="{{ url_for('logout') }}" class="settings-option" title="Cerrar Sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+    
+        </div>
+    
+        <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
+            <i class="fas fa-cog"></i> </button>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -418,5 +575,48 @@
         }
         // --- FIN LÓGICA JAVASCRIPT ---
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- 1. REFERENCIAS A LOS ELEMENTOS ---
+            const settingsMenu = document.querySelector('.settings-fab-menu');
+            const settingsMainBtn = document.getElementById('btn-settings-main');
+            const nightModeBtn = document.getElementById('btn-night-mode');
+            const nightModeIcon = nightModeBtn.querySelector('i');
+            const currentTheme = localStorage.getItem('theme'); // Revisa el tema guardado
+    
+            // --- 2. APLICAR TEMA AL CARGAR LA PÁGINA ---
+            if (currentTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                nightModeIcon.classList.remove('fa-moon');
+                nightModeIcon.classList.add('fa-sun'); // Pone el sol si ya está oscuro
+            }
+    
+            // --- 3. LÓGICA PARA ABRIR/CERRAR EL MENÚ DE "BOLITAS" ---
+            settingsMainBtn.addEventListener('click', function() {
+                settingsMenu.classList.toggle('active');
+            });
+    
+            // --- 4. LÓGICA PARA EL BOTÓN DE MODO NOCHE ---
+            nightModeBtn.addEventListener('click', function() {
+                // Activa/desactiva la clase en el BODY
+                document.body.classList.toggle('dark-mode');
+    
+                // Guarda la preferencia en el navegador
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark'); // Guardar como oscuro
+                    nightModeIcon.classList.remove('fa-moon');
+                    nightModeIcon.classList.add('fa-sun'); // Cambia a icono de sol
+                } else {
+                    localStorage.setItem('theme', 'light'); // Guardar como claro
+                    nightModeIcon.classList.remove('fa-sun');
+                    nightModeIcon.classList.add('fa-moon'); // Cambia a icono de luna
+                }
+            });
+        });
+    </script>
+    
+    </body>
+    </html>
 </body>
 </html>

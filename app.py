@@ -5,24 +5,33 @@ import uuid # Para nombres de archivo únicos
 from dotenv import load_dotenv
 import os
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
-import cx_Oracle
+from apscheduler.schedulers.background import BackgroundScheduler
+from weasyprint import HTML
+import oracledb
 import re
+import base64
 import traceback
 import json
 from datetime import datetime, time, timedelta
 import pandas as pd
+from pypdf import PdfWriter, PdfReader
 import io
+import qrcode
+import bcrypt
+from flask_cors import CORS
+
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = "supersecretkey"
 
 # --- CONFIGURACIÓN PARA SUBIDA DE ARCHIVOS ---
 # Carpeta donde se guardarán las fotos de perfil
-UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'profile_pics') 
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'profile_pics')
 # Extensiones permitidas
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} 
 # Tamaño máximo permitido (ej: 2MB)
@@ -47,21 +56,267 @@ app.permanent_session_lifetime = timedelta(minutes=INACTIVITY_TIMEOUT_MINUTES)
 
 
 # Configuración del cliente de Oracle
-cx_Oracle.init_oracle_client(lib_dir="/Users/mirandaestrada/instantclient_21_9")
+#cx_Oracle.init_oracle_client(lib_dir="/Users/mirandaestrada/instantclient_21_9")
 
 # --- CONEXIÓN A LA BASE DE DATOS ---
 db_user = 'JEFE_LAB'
 db_password = 'jefe123'
 dsn = 'localhost:1521/XEPDB1'
 
-def get_db_connection():
-    # ... (sin cambios)
+def get_db_connection(autocommit=False):
+    """Crea y retorna una nueva conexión a la base de datos."""
     try:
-        return cx_Oracle.connect(user=db_user, password=db_password, dsn=dsn)
-    except cx_Oracle.DatabaseError as e:
+        conn = oracledb.connect(user=db_user, password=db_password, dsn=dsn)
+        # ¡LÍNEA CORREGIDA! Asignamos el autocommit a la connexión.
+        conn.autocommit = autocommit 
+        # ¡LÍNEA CORREGIDA! Devolvemos la conexión configurada.
+        return conn 
+    except oracledb.DatabaseError as e:
         print(f"--- ERROR DE CONEXIÓN A ORACLE: {e} ---")
         traceback.print_exc()
         return None
+@app.route('/api/dashboard/predictivo')
+def api_predictivo():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "No se pudo conectar a la base de datos"}), 500
+    
+    cursor = conn.cursor()
+    sql = """
+        SELECT 
+            nombre, 
+            tipo,
+            horas_uso_acumuladas,
+            vida_util_estimada_horas,
+            ROUND( (horas_uso_acumuladas * 100.0 / vida_util_estimada_horas) , 2) AS porcentaje_vida_consumida
+        FROM 
+            MATERIALES
+        WHERE 
+            CANTIDAD = 1
+            AND (horas_uso_acumuladas * 1.0 / vida_util_estimada_horas) > 0.80
+        ORDER BY 
+            porcentaje_vida_consumida DESC
+    """
+    
+    try:
+        cursor.execute(sql)
+        # Convertir los resultados de Oracle (tuplas) a diccionarios (JSON)
+        columnas = [col[0].lower() for col in cursor.description]
+        resultados = [dict(zip(columnas, row)) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        return jsonify(resultados)
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+# --- Función para obtener los datos (como en tu dashboard.js) ---
+# (Necesitamos replicar la lógica de tus APIs pero en Python)
+def obtener_datos_reporte():
+    conn = get_db_connection()
+    if not conn:
+        print("Tarea programada: No se pudo conectar a la BD")
+        return None
+    
+    datos_reporte = {}
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Datos Predictivos
+        sql_predictivo = """
+            SELECT nombre, tipo, horas_uso_acumuladas, vida_util_estimada_horas,
+            ROUND((horas_uso_acumuladas * 100.0 / vida_util_estimada_horas), 2) AS porcentaje_vida_consumida
+            FROM MATERIALES
+            WHERE CANTIDAD = 1 AND (horas_uso_acumuladas * 1.0 / vida_util_estimada_horas) > 0.80
+            ORDER BY porcentaje_vida_consumida DESC
+        """
+        cursor.execute(sql_predictivo)
+        columnas = [col[0].lower() for col in cursor.description]
+        datos_reporte['alertas'] = [dict(zip(columnas, row)) for row in cursor.fetchall()]
+
+        # 2. Datos Financieros
+        sql_financiero = "SELECT tipo, SUM(CANTIDAD * costo_adquisicion) AS valor_total_stock FROM MATERIALES WHERE CANTIDAD > 1 GROUP BY tipo"
+        cursor.execute(sql_financiero)
+        columnas = [col[0].lower() for col in cursor.description]
+        datos_reporte['financiero'] = [dict(zip(columnas, row)) for row in cursor.fetchall()]
+        
+        # 3. Datos Top 5
+        sql_top5 = "SELECT nombre, horas_uso_acumuladas FROM MATERIALES WHERE CANTIDAD = 1 ORDER BY horas_uso_acumuladas DESC FETCH FIRST 5 ROWS ONLY"
+        cursor.execute(sql_top5)
+        columnas = [col[0].lower() for col in cursor.description]
+        datos_reporte['top5'] = [dict(zip(columnas, row)) for row in cursor.fetchall()]
+
+        # 4. Datos del Admin (Email y Password)
+        # (¡Asumimos que el admin tiene ID=1 y una columna 'PASSWORD_REPORTE'!)
+        # ¡IMPORTANTE! NUNCA uses la contraseña de login para esto.
+        cursor.execute("SELECT EMAIL, PASSWORD FROM USUARIOS WHERE TIPO = 0 AND ID = 1") # Asumimos ID 1 es el admin
+        admin_data = cursor.fetchone()
+        datos_reporte['admin_email'] = admin_data[0] if admin_data else "correo_admin_default@ejemplo.com"
+        datos_reporte['admin_password'] = "albertogomez" # Un password de fallback
+
+        return datos_reporte
+
+    except Exception as e:
+        print(f"Error al obtener datos_reporte: {e}")
+        traceback.print_exc()
+        return None
+    finally:
+        if conn:
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+
+# --- La Tarea Programada (¡LA MAGIA!) ---
+def tarea_programada_reporte():
+    """Esta es la función que se ejecutará cada día a las 10 p.m."""
+    print("EJECUTANDO TAREA: Iniciando generación de reporte diario...")
+    
+    # Usamos 'with app.app_context()' para poder usar 'render_template'
+    with app.app_context():
+        # 1. Obtener los datos frescos de la BD
+        datos = obtener_datos_reporte()
+        if not datos:
+            print("TAREA FALLIDA: No se pudieron obtener los datos.")
+            return
+
+        # 2. Preparar el texto del resumen (como en tu JS)
+        num_alertas = len(datos['alertas'])
+        valor_total = sum(item['valor_total_stock'] for item in datos['financiero'])
+        top_equipo = datos['top5'][0]['nombre'] if datos['top5'] else "N/A"
+        
+        resumen_texto = f"""
+            El análisis predictivo ha identificado {num_alertas} equipos en riesgo de falla 
+            que requieren mantenimiento inmediato. El valor total del inventario en stock 
+            está valorado en ${valor_total:,.2f} MXN, y el análisis de uso indica 
+            que el equipo más solicitado es el {top_equipo}.
+        """
+
+        # 3. Renderizar el HTML del PDF en el servidor
+        html_string = render_template(
+            'reporte_email.html', 
+            datos=datos,
+            resumen=resumen_texto,
+            fecha=datetime.now().strftime('%d/%m/%Y a las %H:%M:%S')
+        )
+        
+        # 4. Convertir HTML a PDF en memoria
+        # LÍNEA 203 (Correcta)
+        pdf_bytes = HTML(string=html_string,base_url='http://127.0.0.1:5000').write_pdf()
+
+        # 5. Encriptar el PDF
+        password_pdf = datos['admin_password'] # ¡La contraseña del admin!
+        pdf_encriptado = encriptar_pdf(pdf_bytes, password_pdf)
+        
+        if not pdf_encriptado:
+            print("TAREA FALLIDA: No se pudo encriptar el PDF.")
+            return
+
+        # 6. Enviar el correo (usando tu función de SendGrid que ya tienes)
+        admin_email = datos['admin_email']
+        asunto = f"Reporte Ejecutivo de Labflow - {datetime.now().strftime('%d/%m/%Y')}"
+        contenido_html = f"""
+            <p>Hola,</p>
+            <p>Se adjunta el reporte ejecutivo automático del sistema Labflow para el día de hoy.</p>
+            <p>Para abrir el documento, utilice la contraseña de reportes designada (la misma de su perfil de administrador).</p>
+            <p>Saludos,<br>Sistema Labflow.</p>
+        """
+
+        envio_ok, error = enviar_correo_con_adjunto(
+            admin_email, 
+            asunto, 
+            contenido_html,
+            pdf_encriptado,
+            "Reporte_Labflow.pdf"
+        )
+
+        if envio_ok:
+            print("¡TAREA COMPLETA! Reporte encriptado y enviado exitosamente.")
+        else:
+            print(f"TAREA FALLIDA: Error al enviar correo: {error}")
+
+
+# --- Configuración e inicio del Programador ---
+scheduler = BackgroundScheduler(daemon=True)
+# Se ejecuta todos los días a las 22:00 (10 p.m.)
+scheduler.add_job(tarea_programada_reporte, 'cron', hour=14, minute=58)
+scheduler.start()
+
+@app.route('/api/dashboard/financiero')
+def api_financiero():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "No se pudo conectar a la base de datos"}), 500
+        
+    cursor = conn.cursor()
+    sql = """
+        SELECT
+            tipo,
+            SUM(CANTIDAD * costo_adquisicion) AS valor_total_stock
+        FROM
+            MATERIALES
+        WHERE
+            CANTIDAD > 1
+        GROUP BY
+            tipo
+        ORDER BY
+            valor_total_stock DESC
+    """
+    
+    try:
+        cursor.execute(sql)
+        columnas = [col[0].lower() for col in cursor.description]
+        resultados = [dict(zip(columnas, row)) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        return jsonify(resultados)
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/dashboard/top-activos')
+def api_top_activos():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "No se pudo conectar a la base de datos"}), 500
+        
+    cursor = conn.cursor()
+    sql = """
+        SELECT 
+            nombre,
+            horas_uso_acumuladas
+        FROM
+            MATERIALES
+        WHERE
+            CANTIDAD = 1
+        ORDER BY
+            horas_uso_acumuladas DESC
+        FETCH FIRST 5 ROWS ONLY
+    """
+    
+    try:
+        cursor.execute(sql)
+        columnas = [col[0].lower() for col in cursor.description]
+        resultados = [dict(zip(columnas, row)) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        return jsonify(resultados)
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+# --- (Opcional) Ruta para MOSTRAR tu dashboard.html ---
+# Esta ruta cargará tu archivo HTML
+@app.route('/dashboard')
+def mostrar_dashboard():
+    # Asume que tu archivo se llama 'dashboard.html'
+    # y está en una carpeta 'templates'
+    return render_template('dashboard.html')
 
 def rows_to_dicts(cursor, rows):
     # ... (sin cambios)
@@ -71,9 +326,9 @@ def rows_to_dicts(cursor, rows):
         row_dict = dict(zip(column_names, row))
         cleaned_dict = {}
         for key, value in row_dict.items():
-            if isinstance(value, (datetime, cx_Oracle.Timestamp, timedelta)):
+            if isinstance(value, (datetime, timedelta)):
                 cleaned_dict[key] = str(value)
-            elif isinstance(value, cx_Oracle.LOB):
+            elif isinstance(value, oracledb.LOB):
                 cleaned_dict[key] = value.read()
             elif value is None:
                 cleaned_dict[key] = None
@@ -82,23 +337,44 @@ def rows_to_dicts(cursor, rows):
         results.append(cleaned_dict)
     return results
 
+def hash_password(password_texto_plano):
+    """Genera un hash seguro de la contraseña."""
+    bytes_pw = password_texto_plano.encode('utf-8')
+    # --- ¡CAMBIO AQUÍ! ---
+    salt = bcrypt.gensalt(rounds=10)
+    # --- FIN DEL CAMBIO ---
+    hash_pw = bcrypt.hashpw(bytes_pw, salt)
+    return hash_pw.decode('utf-8')
+
+def check_password(password_plano, hash_almacenado):
+    """Compara un password plano con un hash de bcrypt."""
+    try:
+        # Asegurarnos que ambos sean 'str' antes de 'encode'
+        if not isinstance(password_plano, str) or not isinstance(hash_almacenado, str):
+            return False
+            
+        return bcrypt.checkpw(password_plano.encode('utf-8'), hash_almacenado.encode('utf-8'))
+    except Exception as e:
+        print(f"Error al checar password (probablemente hash inválido): {e}")
+        return False
+# --- NUEVA FUNCIÓN: Se ejecuta ANTES de cada petición ---
 # --- NUEVA FUNCIÓN: Se ejecuta ANTES de cada petición ---
 @app.before_request
 def make_session_permanent():
     # Asegura que la sesión sea permanente para que aplique el timeout
     session.permanent = True
-    # Flask maneja el reinicio del timer si session.permanent es True
 # --- FIN NUEVA FUNCIÓN ---
-# --- FUNCIÓN AUXILIAR PARA VALIDAR EXTENSIÓN ---
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- FUNCIONES DE AUTENTICACIÓN ---
+# --- FUNCIONES DE AUTENTICACIÓN (ACTUALIZADA) ---
+# --- FUNCIONES DE AUTENTICACIÓN (REEMPLAZAR) ---
+# --- FUNCIONES DE AUTENTICACIÓN (REEMPLAZAR) ---
 def autenticar_con_bloqueo(usuario, contrasena):
-    # ... (sin cambios)
     conn = get_db_connection()
     if not conn: return (False, None, "Error de conexión con la base de datos.")
+    
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT ID, USUARIO, PASSWORD, TIPO, CREADO_EN, INTENTOS_FALLIDOS, BLOQUEADO_HASTA FROM USUARIOS WHERE USUARIO = :usr", usr=usuario)
@@ -108,17 +384,41 @@ def autenticar_con_bloqueo(usuario, contrasena):
 
         id_db, user_db, pwd_db, tipo_db, creado_en_db, intentos_db, bloqueado_hasta_db = row
 
+        # --- Lógica de bloqueo (sin cambios) ---
         if bloqueado_hasta_db is not None and bloqueado_hasta_db > datetime.now():
             cursor.execute("SELECT CEIL((CAST(BLOQUEADO_HASTA AS DATE) - CAST(SYSDATE AS DATE)) * 24 * 60) FROM USUARIOS WHERE USUARIO = :usr", usr=usuario)
             mins_left = cursor.fetchone()[0]
             return (False, None, f"Cuenta bloqueada. Intenta de nuevo en {int(mins_left) if mins_left and mins_left > 0 else 1} minuto(s).")
 
-        if contrasena == pwd_db:
+        # --- ¡NUEVA LÓGICA DE CONTRASEÑA! ---
+        # Comprueba si la contraseña guardada es un hash o texto plano
+        password_matches = False
+        if pwd_db and pwd_db.startswith('$2b$'):
+            # La contraseña es un hash, usamos bcrypt para comparar
+            password_matches = check_password(contrasena, pwd_db)
+        else:
+            # La contraseña es texto plano (sistema antiguo), comparamos directo
+            password_matches = (contrasena == pwd_db)
+        # --- FIN NUEVA LÓGICA ---
+
+        if password_matches:
+            # Éxito: Limpiar intentos
             cursor.execute("UPDATE USUARIOS SET INTENTOS_FALLIDOS = 0, BLOQUEADO_HASTA = NULL WHERE USUARIO = :usr", usr=usuario)
+            
+            # --- MEJORA DE SEGURIDAD ---
+            # Si el login fue exitoso Y la contraseña era de texto plano,
+            # la actualizamos a un hash automáticamente.
+            if not (pwd_db and pwd_db.startswith('$2b$')):
+                print(f"Actualizando contraseña a hash para el usuario: {user_db}")
+                new_hashed_pass = hash_password(contrasena)
+                cursor.execute("UPDATE USUARIOS SET PASSWORD = :hash_pw WHERE ID = :id", hash_pw=new_hashed_pass, id=id_db)
+            # --- FIN MEJORA ---
+            
             conn.commit()
             return (True, {'id': id_db, 'nombre': user_db, 'tipo': tipo_db}, "Acceso concedido.")
         else:
-            nuevos_intentos = intentos_db + 1
+            # Fracaso: Incrementar intentos y bloquear si es necesario
+            nuevos_intentos = (intentos_db or 0) + 1 # Manejar NULL
             if nuevos_intentos >= LOCK_MAX_ATTEMPTS:
                 cursor.execute("UPDATE USUARIOS SET INTENTOS_FALLIDOS = :i, BLOQUEADO_HASTA = SYSTIMESTAMP + NUMTODSINTERVAL(:m, 'MINUTE') WHERE USUARIO = :usr", i=nuevos_intentos, m=LOCK_TIME_MIN, usr=usuario)
                 msg = f"Usuario o contraseña incorrectos. La cuenta ha sido bloqueada."
@@ -127,83 +427,165 @@ def autenticar_con_bloqueo(usuario, contrasena):
                 msg = f"Usuario o contraseña incorrectos. Te quedan {LOCK_MAX_ATTEMPTS - nuevos_intentos} intento(s)."
             conn.commit()
             return (False, None, msg)
+            
     except Exception as e:
         print(f"Error Oracle en autenticar_con_bloqueo: {e}"); traceback.print_exc()
         return (False, None, "Error de base de datos. Revisa la consola de Flask.")
     finally:
+        if 'cursor' in locals() and cursor: cursor.close()
         if conn: conn.close()
+        
 @app.route("/")
 def splash_screen():
     # Simplemente renderiza la nueva plantilla splash.html
     return render_template("splash.html")
 
+# ====================================================================
+# --- INICIO: LÓGICA DEL CHATBOT (CORREGIDA) ---
+# ====================================================================
+# 1. Definimos nuestro "diccionario de conocimiento" (Reglas)
+# 1. Definimos nuestro "diccionario de conocimiento" (Reglas)
+knowledge_base = {
+    # --- FAQs Generales ---
+    r".*qu(e|é) es labflow.*": "LabFlow es el sistema de gestión para el laboratorio. Me encargo de ayudar a administrar el inventario, registrar préstamos y llevar un control de los alumnos y auxiliares.",
+    r".*qui(e|é)n eres.*": "Soy LabFlow-Bot, el asistente virtual del sistema de gestión del laboratorio. ¡Estoy aquí para ayudarte!",
+    r".*qu(e|é) (puedes|sabes) hacer.*|.*para qu(e|é) sirves.*": "Puedo ayudarte con preguntas comunes sobre cómo usar el sistema, por ejemplo: '¿qué hago si el sistema falla?' o '¿cómo registro material nuevo?'. También puedo darte la hora y la fecha.",
+    r".*(qui(e|é)n|c(o|ó)mo).*(cread|program|hizo|hicieron|fabric).*": "Fui programado por el increíble equipo de desarrollo de ISW. ¡Un saludo para ellos!",
+
+    # --- Saludos y Cortesía ---
+    r".*hola.*|.*buen(a|o)s (dias|tardes|noches).*": "¡Hola! Soy el asistente de LabFlow. ¿En qué puedo ayudarte hoy?",
+    r".*adi(o|ó)s.*|.*hasta luego.*": "¡Hasta luego! Que tengas un buen día.",
+    r".*gracias.*": "¡De nada! Estoy aquí para ayudar.",
+    r".*(ayuda|soporte|duda).*": "Claro, dime tu duda. También puedes contactar al administrador del laboratorio o revisar la sección de 'Soporte'.",
+
+    # --- Preguntas Operativas (Las que ya tenías) ---
+    r".*sistema (falla|cae|caido|no (funciona|sirve)).*": "Si el sistema principal falla, no te preocupes. Los auxiliares deben registrar los préstamos manualmente en la bitácora de papel. Notifica al administrador para que reinicie el servidor.",
+    r".*(material|equipo).*(nuevo|nueva).*|.*(nuevo|nueva).*(material|equipo).*|.*lleg(o|ó|a).*": "Cuando llegue material nuevo, debe ser registrado en la sección de 'Inventario'. Asegúrate de añadir el 'ID de Material', 'Nombre', 'Categoría' y 'Cantidad' antes de ponerlo disponible para préstamo.",
+    r".*(alumno|estudiante).*(inactivo|desactivar|desactive|baja).*|.*(inactivo|desactivar|desactive|baja).*(alumno|estudiante).*": "Si un alumno ya no asiste, puedes cambiar su estatus a 'Inactivo' en la 'Gestión de Alumnos'.",
+
+    # ========================================================
+    # --- ¡NUEVAS REGLAS DE AYUDA DEL SISTEMA (CORREGIDAS)! ---
+    # ========================================================
+
+    # --- Gestión de Préstamos ---
+    r".*c(o|ó)mo.*(pr(e|é)stamo|prestar).*": "Para registrar un préstamo, ve a la pestaña 'Préstamos'. Ingresa el número de control del alumno (esto cargará su nombre). Luego, busca el material en la tabla 'Inventario Disponible' y haz clic en 'Añadir'. Finalmente, presiona 'Registrar Préstamo'.",
+    
+    # ¡REGLA CORREGIDA! (Añade "devolución")
+    r".*c(o|ó)mo.*(devolv|devoluci(o|ó)n).*": "Para una devolución, ve a la pestaña 'Préstamos'. En la lista de 'Préstamos Activos', busca al alumno y haz clic en el botón verde 'Devolver'.",
+    
+    r".*(alumno|estudiante).*no (sale|aparece).*": "Si un alumno no aparece en la búsqueda, puede ser por dos razones: 1. Aún no se ha registrado en el sistema, o 2. El administrador lo marcó como 'Inactivo' en 'Gestión de Alumnos'.",
+
+    # --- Gestión de Daños ---
+    r".*c(o|ó)mo.*reporto un da(ñ|n)o.*": "Para reportar un daño, primero busca el préstamo activo en la pestaña 'Préstamos'. Haz clic en el botón rojo 'Reportar Daño'. Se abrirá un modal donde puedes seleccionar el material específico y la cantidad dañada.",
+    
+    # ¡REGLA CORREGIDA! (Se quita la parte de "material|equipo" para hacerla más flexible)
+    r".*c(o|ó)mo.*(repongo|reponer|administrar).*(da(ñ|n)o|da(ñ|n)ado).*": "Como administrador, debes ir a la pestaña 'Gestión de Daños'. Busca el ítem en la lista 'Daños Pendientes' y, cuando esté reparado o reemplazado, haz clic en 'Marcar Repuesto'. Esto lo devolverá al inventario disponible.",
+    
+    # --- Gestión de Auxiliares (Admin) ---
+    r".*c(o|ó)mo.*(agrego|crear).*(auxiliar|asistente).*": "Para agregar un nuevo auxiliar, el administrador debe ir a la pestaña 'Gestión de Auxiliares' y usar el formulario 'Agregar Nuevo Auxiliar' (a la derecha).",
+    
+    # --- Reportes (Admin) ---
+    r".*d(o|ó)nde.*(reporte|excel|predicciones).*": "Puedes ver los reportes en vivo en la pestaña 'Reportes'. Para un análisis de tendencias, ve a 'Predicciones' (el Dashboard de BI). También puedes descargar un reporte de Excel desde la pestaña 'Reportes'."
+}
+
+# 2. Creamos la función que busca la respuesta (Versión de Reglas)
+def get_bot_response(user_message):
+    user_message = user_message.lower() # Convertimos a minúsculas
+    now = datetime.now() # Obtenemos la hora actual una vez
+
+    # --- 1. Lógica Dinámica (Hora y Fecha) ---
+    if re.search(r".*qu(e|é) hora es.*|.*(dame|dime) la hora.*", user_message):
+        return f"¡Claro! Son las {now.strftime('%I:%M %p')}."
+
+    if re.search(r".*qu(e|é) d(i|í)a es hoy.*|.*(dame|dime) la fecha.*|.*fecha de hoy.*", user_message):
+        dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        dia_semana = dias[now.weekday()]
+        mes_anno = meses[now.month - 1]
+        return f"Hoy es {dia_semana}, {now.day} de {mes_anno} de {now.year}."
+
+    # --- 2. Lógica Estática (Base de Conocimiento) ---
+    # Ahora 'knowledge_base' SÍ está definido
+    for pattern, response in knowledge_base.items():
+        if re.search(pattern, user_message):
+            return response
+
+    # --- 3. Respuesta por Defecto ---
+    return "Lo siento, no entendí tu pregunta. ¿Puedes reformularla? También puedes consultar la sección de 'Soporte'."
+
+# 3. Creamos el endpoint (la "API") para el chat
+@app.route("/chat", methods=['POST'])
+def chat():
+    if 'user_id' not in session: # Proteger el endpoint
+        return jsonify({'response': 'Error: No autorizado'}), 401
+        
+    data = request.json
+    user_message = data.get('message')
+    
+    if not user_message:
+        return jsonify({'response': 'Error: No hay mensaje'}), 400
+        
+    bot_response = get_bot_response(user_message)
+    
+    return jsonify({'response': bot_response})
+
+# --- FIN: LÓGICA DEL CHATBOT ---
+# ====================================================================
+# ====================================================================
+# --- RUTAS PRINCIPALES ---
 # --- RUTAS PRINCIPALES ---
 @app.route("/login_page", methods=["GET", "POST"])
 def login_page(): # Nombre de función cambiado
-    # Si ya hay una sesión activa, redirige a la interfaz correspondiente
-    # (Esto evita mostrar el login si ya estás logueado)
     if 'user_id' in session:
         if session.get('user_rol') == 'admin':
             return redirect(url_for('interface_admin'))
         else:
             return redirect(url_for('interface_aux'))
 
-    # Si es método POST (envío del formulario)
     if request.method == "POST":
         usuario = request.form.get("usuario", "").strip()
         contrasena = request.form.get("contrasena", "").strip()
         
-        # Validación básica de campos vacíos
         if not usuario or not contrasena:
             flash("Ambos campos son obligatorios.", "danger")
-            # Redirige de vuelta a la PÁGINA DE LOGIN
             return redirect(url_for('login_page')) 
         
-        # Intenta autenticar al usuario (con lógica de bloqueo)
         es_valido, datos_usuario, mensaje = autenticar_con_bloqueo(usuario, contrasena)
         
-        # Si la autenticación es exitosa
         if es_valido:
-            # Configura la sesión
-            session.permanent = True # Para que aplique el timeout de inactividad
+            session.permanent = True
             session['user_id'] = datos_usuario['id']
             session['user_rol'] = 'admin' if datos_usuario['tipo'] == 0 else 'auxiliar'
             session['user_nombre'] = datos_usuario['nombre']
             session['login_time_iso'] = datetime.now().isoformat()
 
-            # Registra la actividad si es un auxiliar
             if session.get('user_rol') == 'auxiliar':
                 conn = get_db_connection()
                 if conn:
                     try:
                         cursor = conn.cursor()
+                        # --- ¡CORRECCIÓN! Volver a REGISTRO_ACTIVIDAD ---
                         cursor.execute("INSERT INTO REGISTRO_ACTIVIDAD (ID, ID_USUARIO, TIPO_ACCION) VALUES (registro_actividad_seq.nextval, :id_usr, 'INICIO_SESION')", id_usr=session['user_id'])
                         conn.commit()
                     except Exception as e: 
                         print(f"Error al registrar actividad: {e}")
                     finally:
                         if 'cursor' in locals() and cursor: cursor.close()
-                        if conn: conn.close() # Asegurar cierre
+                        if conn: conn.close()
 
-            # Redirige DIRECTAMENTE a la interfaz correspondiente (ya no hay welcome.html aquí)
             if datos_usuario['tipo'] == 0: 
-                return redirect(url_for("profile"))
+                return redirect(url_for("interface_admin"))
             else: 
                 return redirect(url_for("interface_aux"))
         
-        # Si la autenticación falla
         else:
             flash(mensaje, "danger")
-            # Redirige de vuelta a la PÁGINA DE LOGIN
             return redirect(url_for('login_page')) 
 
-    # Si es método GET (cargar la página por primera vez)
-    # Renderiza el formulario de login (tu plantilla inicioAdmin.html)
     return render_template("inicioAdmin.html")
 
 @app.route('/logout')
 def logout():
-    # ... (código sin cambios)
     alerta_guillermo = None
     if session.get('user_rol') == 'auxiliar' and session.get('user_id'):
         conn = get_db_connection()
@@ -217,6 +599,7 @@ def logout():
                     if prestamos_pendientes > 0:
                         alerta_guillermo = f"¡Alerta, Guillermo! Has cerrado sesión con {prestamos_pendientes} préstamo(s) activo(s)."
 
+                # --- ¡CORRECCIÓN! Volver a REGISTRO_ACTIVIDAD ---
                 cursor.execute("INSERT INTO REGISTRO_ACTIVIDAD (ID, ID_USUARIO, TIPO_ACCION, PRESTAMOS_PENDIENTES) VALUES (registro_actividad_seq.nextval, :id_usr, 'CIERRE_SESION', :pendientes)", id_usr=session['user_id'], pendientes=prestamos_pendientes)
                 conn.commit()
             except Exception as e: print(f"Error durante el logout: {e}")
@@ -229,74 +612,200 @@ def logout():
     flash("Has cerrado sesión exitosamente.", "success")
     return redirect(url_for('login_page'))
 
+
 @app.route('/profile')
 def profile():
     if 'user_id' not in session: 
         return redirect(url_for('login_page'))
 
-    # Obtener nombre y rol de la sesión
     user_info = {
         'nombre': session.get('user_nombre'),
         'rol': session.get('user_rol'),
-        'profile_pic_filename': None # Inicializar como None
+        'profile_pic_filename': None
     }
        
-    # Buscar el nombre del archivo de la foto en la BD
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT FOTO_PERFIL FROM USUARIOS WHERE ID = :user_id", user_id=session['user_id'])
             result = cursor.fetchone()
-            if result and result[0]: # Si hay un nombre de archivo guardado
+            if result and result[0]:
                 user_info['profile_pic_filename'] = result[0]
-        except Exception as e:
-            print(f"Error al obtener foto de perfil: {e}")
+        except Exception as e: print(f"Error al obtener foto de perfil: {e}")
         finally:
             if 'cursor' in locals() and cursor: cursor.close()
             if conn: conn.close()
 
     context_data = {
-        'user_info': user_info, # Pasamos toda la info, incluyendo el filename
+        'user_info': user_info,
         'usuario_rol': session.get('user_rol'), 
         'inactivity_limit': app.permanent_session_lifetime.total_seconds()
     }
     return render_template('profile.html', **context_data)
+# ====================================================================
+# --- INICIO: RUTA PARA CAMBIAR CONTRASEÑA (CORREGIDA) ---
+# ====================================================================
 
-# --- MANEJADOR DE ERRORES PARA ARCHIVOS GRANDES ---
+@app.route('/change_password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        flash("Tu sesión ha expirado.", "danger")
+        return redirect(url_for('login_page'))
+
+    # 1. Obtener datos del formulario
+    current_pass = request.form.get('current_password')
+    new_pass = request.form.get('new_password')
+    confirm_pass = request.form.get('confirm_password')
+    user_id = session['user_id']
+
+    # 2. Validaciones
+    if not current_pass or not new_pass or not confirm_pass:
+        flash("Todos los campos son obligatorios.", "danger")
+        return redirect(url_for('profile'))
+    if new_pass != confirm_pass:
+        flash("La nueva contraseña y la confirmación no coinciden.", "danger")
+        return redirect(url_for('profile'))
+    if len(new_pass) < 8:
+        flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
+        return redirect(url_for('profile'))
+
+    # 3. Lógica de Base de Datos
+    conn = get_db_connection() # autocommit=False
+    if not conn:
+        flash("Error de conexión con la base de datos.", "danger")
+        return redirect(url_for('profile'))
+    
+    try:
+        cursor = conn.cursor()
+        
+        # 4. Obtener la contraseña actual del usuario
+        cursor.execute("SELECT PASSWORD FROM USUARIOS WHERE ID = :id", id=user_id)
+        result = cursor.fetchone()
+        if not result:
+            flash("Error: Usuario no encontrado.", "danger")
+            # Dejamos que 'finally' limpie la conexión
+            return redirect(url_for('login_page'))
+        
+        pwd_db = result[0] 
+
+        # 5. Lógica de verificación
+        password_matches = False
+        if pwd_db and pwd_db.startswith('$2b$'):
+            password_matches = check_password(current_pass, pwd_db)
+        else:
+            # Compara en texto plano si la contraseña no es un hash
+            password_matches = (current_pass == pwd_db)
+
+        # 6. Verificar si la contraseña actual es correcta
+        if not password_matches:
+            flash("La contraseña actual es incorrecta.", "danger")
+            # --- ¡CORRECCIÓN AQUÍ! ---
+            # No cerramos la conexión aquí. Dejamos que 'finally' lo haga.
+            # cursor.close() <--- ELIMINADO
+            # conn.close()   <--- ELIMINADO
+            return redirect(url_for('profile'))
+
+        # 7. Si es correcta, hashear y guardar la NUEVA contraseña
+        hashed_new_password = hash_password(new_pass)
+        
+        cursor.execute("""
+            UPDATE USUARIOS 
+            SET PASSWORD = :hash_pw 
+            WHERE ID = :id
+        """, hash_pw=hashed_new_password, id=user_id)
+        
+        conn.commit()
+        
+        flash("¡Contraseña actualizada con éxito!", "success")
+        
+    except Exception as e:
+        conn.rollback() 
+        print(f"Error en change_password: {e}"); traceback.print_exc()
+        flash("Error interno al actualizar la contraseña.", "danger")
+    finally:
+        # 'finally' SIEMPRE se ejecutará, asegurando que cerremos todo.
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+
+    return redirect(url_for('profile'))
+# ====================================================================
+# --- FIN: RUTA PARA CAMBIAR CONTRASEÑA ---
+# ====================================================================
+
+# --- MANEJADOR DE ERROR 413 CORREGIDO ---
 @app.errorhandler(413)
 @app.errorhandler(RequestEntityTooLarge)
 def handle_request_entity_too_large(e):
-    flash('El archivo que intentaste subir es demasiado grande (Máximo 2MB).', 'danger')
-    # Intenta redirigir a 'profile' si es posible, si no a login
-    if 'user_id' in session:
+    # ... (código sin cambios) ...
+    if request.path == url_for('upload_profile_pic'):
+        return jsonify({'success': False, 'error': 'Archivo demasiado grande (Máx 2MB)'}), 413
+    flash('Archivo demasiado grande (Máx 2MB).', 'danger')
+    if 'user_id' in session: 
         return redirect(url_for('profile'))
-    else:
-         return redirect(url_for('login_page'))
+    else: 
+        return redirect(url_for('login_page'))
 
 # --- RUTAS DE NAVEGACIÓN (MODIFICADAS PARA PASAR TIMEOUT) ---
 @app.route("/interface_admin")
 def interface_admin():
-    if 'user_id' not in session: return redirect(url_for('login_page'))
-    # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
+    if 'user_id' not in session or session.get('user_rol') != 'admin':
+        flash("Acceso no autorizado.", "danger")
+        return redirect(url_for('login_page'))
+    
+    # --- INICIO DE LA MODIFICACIÓN ---
+    
+    # 1. Tu contexto original
     context_data = {
         'usuario_rol': session.get('user_rol'),
         'inactivity_limit': app.permanent_session_lifetime.total_seconds()
     }
-    return render_template("interfaceAdmin.html", **context_data)
-    # --- FIN ACTUALIZACIÓN ---
+    
+    # 2. Lógica para obtener la foto de perfil
+    profile_pic_filename = 'default_profile.png' # Valor por defecto
+    
+    conn = get_db_connection() # Usar la función de conexión
+    if conn:
+        try:
+            cursor = conn.cursor()
+            # Asumo que 'user_id' en sesión es el ID de la tabla USUARIOS
+            cursor.execute("SELECT FOTO_PERFIL FROM USUARIOS WHERE ID = :user_id", user_id=session['user_id'])
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if result and result[0]:
+                # Hay una foto en la BD, usamos ese nombre de archivo
+                profile_pic_filename = result[0]
+                
+                # Verificación extra: si el archivo no existe, volvemos al default
+                if not os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], profile_pic_filename)):
+                    print(f"Advertencia: La BD apunta a '{profile_pic_filename}' pero el archivo no existe. Usando default.")
+                    profile_pic_filename = 'default_profile.png'
+                    
+        except Exception as e:
+            print(f"Error al obtener foto de perfil: {e}")
+            traceback.print_exc()
+            # Si hay error de BD, nos quedamos con la foto por defecto
+    
+    # 3. Añadir la foto de perfil al contexto
+    context_data['profile_pic_filename'] = profile_pic_filename
+    
+    # 4. Renderizar usando tu nombre de template original y el contexto combinado
+    return render_template("interfaceAdmin.html", **context_data) 
+    # --- FIN DE LA MODIFICACIÓN ---
 
 @app.route("/interface_aux")
 def interface_aux():
-    if 'user_id' not in session: return redirect(url_for('login_page'))
-    # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite ---
+    if 'user_id' not in session or session.get('user_rol') == 'auxiliar':
+        flash("Acceso no autorizado.", "danger")
+        return redirect(url_for('login_page'))
     context_data = {
         'usuario_rol': session.get('user_rol'),
-        'login_time': session.get('login_time_iso'),
+        'login_time_iso': session.get('login_time_iso'),
         'inactivity_limit': app.permanent_session_lifetime.total_seconds()
     }
     return render_template("interfaceAux.html", **context_data)
-    # --- FIN ACTUALIZACIÓN ---
 
 # --- RUTA DE SOPORTE TÉCNICO ---
 @app.route('/soporte', methods=['GET', 'POST'])
@@ -384,26 +893,265 @@ def guardar_mensaje_soporte_db(nombre, correo, asunto, mensaje):
         if conn:
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
+def enviar_correo_con_adjunto(destinatario, asunto, contenido_html, pdf_bytes, nombre_archivo):
+    """
+    Envía un correo usando SendGrid CON un archivo adjunto (PDF).
+    """
+    SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+    if not SENDGRID_API_KEY:
+        print("--- ERROR (Correo Adjunto): La variable de entorno SENDGRID_API_KEY no está configurada. ---")
+        return False, "El servicio de correo no está configurado."
 
+    from_email = 'mirandaneyra1@gmail.com' # Tu correo verificado en SendGrid
+    
+    # 1. Crear el objeto Mail
+    message = Mail(
+        from_email=from_email,
+        to_emails=destinatario,
+        subject=asunto,
+        html_content=contenido_html
+    )
+    
+    # 2. Codificar el PDF (que está en bytes) a Base64
+    encoded_file = base64.b64encode(pdf_bytes).decode()
+    
+    # 3. Crear el objeto Attachment
+    attachedFile = Attachment(
+        FileContent(encoded_file),
+        FileName(nombre_archivo),
+        FileType('application/pdf'),
+        Disposition('attachment')
+    )
+    
+    # 4. Adjuntar el archivo al mensaje
+    message.attachment = attachedFile
+    
+    # 5. Enviar el correo
+    try:
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        
+        if 200 <= response.status_code < 300:
+            return True, None
+        else:
+            print(f"--- ERROR: SendGrid (Adjunto) devolvió un error. Código: {response.status_code}, Body: {response.body} ---")
+            return False, response.body
+            
+    except Exception as e:
+        print(f"--- ERROR EXCEPCIÓN (Adjunto): {e} ---")
+        traceback.print_exc()
+        return False, str(e)
+# ====================================================================
+# --- INICIO: LÓGICA DE RESTABLECER CONTRASEÑA ---
+# ====================================================================
+
+def enviar_correo_reset(email_destinatario, token):
+    """Envía un correo de reseteo usando SendGrid."""
+    SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+    if not SENDGRID_API_KEY:
+        print("--- ERROR: La variable de entorno SENDGRID_API_KEY no está configurada. ---")
+        return False, "El servicio de correo no está configurado."
+
+    # ¡IMPORTANTE! _external=True crea la URL completa (http://127.0.0.1:5000/...)
+    reset_url = url_for('reset_password', token=token, _external=True)
+
+    from_email = 'mirandaneyra1@gmail.com' # Tu correo de SendGrid
+    to_email = email_destinatario          # El correo del usuario
+    
+    html_content = f"""
+    <h3>Hola,</h3>
+    <p>Hemos recibido una solicitud para restablecer tu contraseña de LabFlow.</p>
+    <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+    <p style="text-align: center; margin: 20px 0;">
+        <a href="{reset_url}" style="background-color: #6a5acd; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px;">
+            Restablecer Contraseña
+        </a>
+    </p>
+    <p>Si no solicitaste esto, puedes ignorar este correo.</p>
+    <p><small>Este enlace expirará en 15 minutos.</small></p>
+    """
+    
+    message = Mail(
+        from_email=from_email,
+        to_emails=to_email,
+        subject="Restablece tu contraseña de LabFlow",
+        html_content=html_content
+    )
+    
+    try:
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        if 200 <= response.status_code < 300:
+            return True, None
+        else:
+            print(f"--- ERROR: SendGrid devolvió un error. Código: {response.status_code}, Body: {response.body} ---")
+            return False, response.body
+    except Exception as e:
+        traceback.print_exc()
+        return False, str(e)
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    """Página para solicitar el reseteo de contraseña."""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        if not email:
+            flash("El correo es obligatorio.", "danger")
+            return redirect(url_for('forgot_password'))
+
+        conn = get_db_connection()
+        if not conn:
+            flash("Error de conexión con la base de datos.", "danger")
+            return redirect(url_for('forgot_password'))
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT ID, USUARIO FROM USUARIOS WHERE EMAIL = :email", email=email)
+            user = cursor.fetchone()
+
+            if user:
+                user_id, user_nombre = user
+                # 1. Generar token
+                token = str(uuid.uuid4())
+                
+                # 2. Guardar token y expiración (15 minutos) en la BD
+                cursor.execute("""
+                    UPDATE USUARIOS
+                    SET RESET_TOKEN = :token,
+                        RESET_TOKEN_EXPIRES = SYSTIMESTAMP + NUMTODSINTERVAL(15, 'MINUTE')
+                    WHERE ID = :id
+                """, token=token, id=user_id)
+                conn.commit()
+                
+                # 3. Enviar correo
+                envio_ok, error_correo = enviar_correo_reset(email, token)
+                
+                if envio_ok:
+                    flash("Se ha enviado un enlace a tu correo. Revisa tu bandeja de entrada.", "success")
+                else:
+                    flash(f"Se encontró tu usuario, pero falló el envío del correo: {error_correo}", "danger")
+            
+            else:
+                # Por seguridad, no revelamos si el correo existe o no
+                flash("Si ese correo existe en nuestro sistema, se habrá enviado un enlace.", "success")
+                
+        except Exception as e:
+            conn.rollback()
+            print(f"Error en forgot_password: {e}"); traceback.print_exc()
+            flash("Error interno al procesar la solicitud.", "danger")
+        finally:
+            if 'cursor' in locals() and cursor: cursor.close()
+            if conn: conn.close()
+        
+        return redirect(url_for('forgot_password'))
+
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Página para ingresar la nueva contraseña."""
+    conn = get_db_connection()
+    if not conn:
+        flash("Error de conexión con la base de datos.", "danger")
+        return redirect(url_for('login_page'))
+    
+    user_id = None
+    usuario = None
+    
+    try:
+        cursor = conn.cursor()
+        # 1. Verificar si el token es válido Y NO ha expirado
+        cursor.execute("""
+            SELECT ID, USUARIO FROM USUARIOS
+            WHERE RESET_TOKEN = :token AND RESET_TOKEN_EXPIRES > SYSTIMESTAMP
+        """, token=token)
+        user = cursor.fetchone()
+
+        if not user:
+            flash("El enlace de reseteo es inválido o ha expirado.", "danger")
+            return redirect(url_for('login_page'))
+            
+        user_id, usuario = user
+
+        if request.method == 'POST':
+            new_pass = request.form.get('new_password')
+            confirm_pass = request.form.get('confirm_password')
+
+            if not new_pass or not confirm_pass or new_pass != confirm_pass:
+                flash("Las contraseñas no coinciden.", "danger")
+                return render_template('reset_password.html', token=token, usuario=usuario)
+            
+            if len(new_pass) < 8:
+                flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
+                return render_template('reset_password.html', token=token, usuario=usuario)
+
+            # 2. Hashear la nueva contraseña
+            hashed_new_password = hash_password(new_pass)
+            
+            # 3. Actualizar la contraseña e invalidar el token
+            cursor.execute("""
+                UPDATE USUARIOS
+                SET PASSWORD = :hash_pw,
+                    RESET_TOKEN = NULL,
+                    RESET_TOKEN_EXPIRES = NULL,
+                    INTENTOS_FALLIDOS = 0,  /* Desbloquear la cuenta */
+                    BLOQUEADO_HASTA = NULL
+                WHERE ID = :id
+            """, hash_pw=hashed_new_password, id=user_id)
+            
+            conn.commit()
+            
+            flash("¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.", "success")
+            return redirect(url_for('login_page'))
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en reset_password: {e}"); traceback.print_exc()
+        flash("Error interno al restablecer la contraseña.", "danger")
+        return redirect(url_for('login_page'))
+    finally:
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+
+    # Si es un GET y el token es válido, muestra la página de reseteo
+    return render_template('reset_password.html', token=token, usuario=usuario)
+
+# ====================================================================
+# --- FIN: LÓGICA DE RESTABLECER CONTRASEÑA ---
+# ====================================================================
+# --- RUTA DE REPORTES AVANZADA ---
+# --- RUTA DE REPORTES AVANZADA ---
+# --- RUTA DE REPORTES AVANZADA ---
 # --- RUTA DE REPORTES AVANZADA ---
 @app.route('/reportes')
 def reportes():
-    # ... (código sin cambios)
     if 'user_id' not in session or session.get('user_rol') != 'admin':
         flash('Acceso no autorizado.', 'danger'); return redirect(url_for('login_page'))
 
+    inactivity_limit_value = app.permanent_session_lifetime.total_seconds()
+
     conn = get_db_connection()
     if not conn:
-        flash("Error de conexión.", 'danger'); return render_template('reportes_avanzado.html', datos={}, usuario_rol=session.get('user_rol'))
+        flash("Error de conexión.", 'danger')
+        context_data = {
+            'datos': {}, 
+            'usuario_rol': session.get('user_rol'),
+            'inactivity_limit': inactivity_limit_value
+        }
+        return render_template('reportes_avanzado.html', **context_data)
 
     datos_dashboard = {}
     try:
         cursor = conn.cursor()
-
-        # ... (consultas sin cambios) ...
-        cursor.execute("SELECT NOMBRE, CANTIDAD_DISPONIBLE FROM MATERIALES WHERE ID_MATERIAL NOT IN (SELECT DISTINCT ID_MATERIAL FROM DETALLE_PRESTAMO)"); datos_dashboard['stock_muerto'] = rows_to_dicts(cursor, cursor.fetchall())
-        cursor.execute("SELECT m.NOMBRE, SUM(rd.CANTIDAD_DANADA) AS TOTAL_DANADO FROM REGISTRO_DANOS rd JOIN MATERIALES m ON rd.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL_DANADO DESC FETCH FIRST 5 ROWS ONLY"); datos_dashboard['top_danos'] = rows_to_dicts(cursor, cursor.fetchall())
-        cursor.execute("SELECT a.SEMESTRE, COUNT(p.ID_PRESTAMO) AS TOTAL_PRESTAMOS FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO GROUP BY a.SEMESTRE ORDER BY TOTAL_PRESTAMOS DESC FETCH FIRST 5 ROWS ONLY"); datos_dashboard['top_semestres'] = rows_to_dicts(cursor, cursor.fetchall())
+        
+        # ... (Tus otras consultas están bien) ...
+        cursor.execute("SELECT NOMBRE, CANTIDAD_DISPONIBLE FROM MATERIALES WHERE ID_MATERIAL NOT IN (SELECT DISTINCT ID_MATERIAL FROM DETALLE_PRESTAMO)")
+        datos_dashboard['stock_muerto'] = rows_to_dicts(cursor, cursor.fetchall())
+        cursor.execute("SELECT m.NOMBRE, SUM(rd.CANTIDAD_DANADA) AS TOTAL_DANADO FROM REGISTRO_DANOS rd JOIN MATERIALES m ON rd.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL_DANADO DESC FETCH FIRST 5 ROWS ONLY")
+        datos_dashboard['top_danos'] = rows_to_dicts(cursor, cursor.fetchall())
+        cursor.execute("SELECT a.SEMESTRE, COUNT(p.ID_PRESTAMO) AS TOTAL_PRESTAMOS FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO GROUP BY a.SEMESTRE ORDER BY TOTAL_PRESTAMOS DESC FETCH FIRST 5 ROWS ONLY")
+        datos_dashboard['top_semestres'] = rows_to_dicts(cursor, cursor.fetchall())
         query_prestamos_hoy = """
             SELECT p.ID_PRESTAMO, p.FECHA_HORA, p.ESTATUS,
                    u.USUARIO AS AUXILIAR,
@@ -414,16 +1162,23 @@ def reportes():
             WHERE p.FECHA_HORA >= TRUNC(LOCALTIMESTAMP)
             ORDER BY p.FECHA_HORA DESC
         """
-        cursor.execute(query_prestamos_hoy); datos_dashboard['prestamos_de_hoy'] = rows_to_dicts(cursor, cursor.fetchall())
-        cursor.execute("SELECT a.NOMBRE, a.NUMEROCONTROL, p.FECHA_HORA FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO WHERE p.ESTATUS = 'Activo' AND (LOCALTIMESTAMP - p.FECHA_HORA) > INTERVAL '1' HOUR ORDER BY p.FECHA_HORA ASC"); datos_dashboard['prestamos_vencidos'] = rows_to_dicts(cursor, cursor.fetchall())
-        cursor.execute("SELECT COUNT(*) FROM PRESTAMOS WHERE ESTATUS = 'Activo'");
-        activos_ahora = cursor.fetchone()[0];
+        cursor.execute(query_prestamos_hoy)
+        datos_dashboard['prestamos_de_hoy'] = rows_to_dicts(cursor, cursor.fetchall())
+        cursor.execute("SELECT a.NOMBRE, a.NUMEROCONTROL, p.FECHA_HORA FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO WHERE p.ESTATUS = 'Activo' AND (LOCALTIMESTAMP - p.FECHA_HORA) > INTERVAL '1' HOUR ORDER BY p.FECHA_HORA ASC")
+        datos_dashboard['prestamos_vencidos'] = rows_to_dicts(cursor, cursor.fetchall())
+        cursor.execute("SELECT COUNT(*) FROM PRESTAMOS WHERE ESTATUS = 'Activo'")
+        activos_ahora = cursor.fetchone()[0]
         datos_dashboard['activos_ahora'] = activos_ahora if activos_ahora else 0
-        cursor.execute("SELECT COUNT(*) FROM PRESTAMOS WHERE FECHA_HORA >= TRUNC(LOCALTIMESTAMP)");
-        total_hoy = cursor.fetchone()[0];
+        cursor.execute("SELECT COUNT(*) FROM PRESTAMOS WHERE FECHA_HORA >= TRUNC(LOCALTIMESTAMP)")
+        total_hoy = cursor.fetchone()[0]
         datos_dashboard['total_prestamos_hoy'] = total_hoy if total_hoy else 0
-        cursor.execute("SELECT USUARIO, INTENTOS_FALLIDOS FROM USUARIOS WHERE TIPO = 1 AND INTENTOS_FALLIDOS > 0 ORDER BY INTENTOS_FALLIDOS DESC"); datos_dashboard['logins_fallidos'] = rows_to_dicts(cursor, cursor.fetchall())
-        cursor.execute("SELECT m.NOMBRE, SUM(dp.CANTIDAD_PRESTADA) as TOTAL FROM DETALLE_PRESTAMO dp JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL DESC FETCH FIRST 5 ROWS ONLY"); datos_dashboard['top_materiales_pedidos'] = rows_to_dicts(cursor, cursor.fetchall())
+        cursor.execute("SELECT USUARIO, INTENTOS_FALLIDOS FROM USUARIOS WHERE TIPO = 1 AND INTENTOS_FALLIDOS > 0 ORDER BY INTENTOS_FALLIDOS DESC")
+        datos_dashboard['logins_fallidos'] = rows_to_dicts(cursor, cursor.fetchall())
+        cursor.execute("SELECT m.NOMBRE, SUM(dp.CANTIDAD_PRESTADA) as TOTAL FROM DETALLE_PRESTAMO dp JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL DESC FETCH FIRST 5 ROWS ONLY")
+        datos_dashboard['top_materiales_pedidos'] = rows_to_dicts(cursor, cursor.fetchall())
+        
+        # --- ¡CORRECCIÓN AQUÍ! ---
+        # Volver a REGISTRO_ACTIVIDAD
         query_auxiliares_activos = """
             WITH LastActivity AS (
                 SELECT r.ID_USUARIO, r.TIPO_ACCION, r.FECHA_HORA, u.USUARIO,
@@ -433,96 +1188,97 @@ def reportes():
         """
         cursor.execute(query_auxiliares_activos)
         datos_dashboard['auxiliares_activos'] = rows_to_dicts(cursor, cursor.fetchall())
+        # --- FIN CORRECCIÓN ---
 
     except Exception as e:
         flash(f"Error al generar reportes avanzados: {e}", "danger")
         traceback.print_exc()
+        datos_dashboard = {} 
     finally:
         if conn:
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
 
-    # --- ACTUALIZACIÓN (TIMEOUT): Pasar límite a la plantilla de reportes ---
     context_data = {
         'datos': datos_dashboard,
         'usuario_rol': session.get('user_rol'),
-        'inactivity_limit': app.permanent_session_lifetime.total_seconds()
+        'inactivity_limit': inactivity_limit_value
     }
     return render_template('reportes_avanzado.html', **context_data)
-    # --- FIN ACTUALIZACIÓN ---
+# --- FIN DE RUTA REPORTES ---
 
-
-# --- RUTA PARA DESCARGAR REPORTE EN EXCEL ---
-# --- RUTA PARA DESCARGAR REPORTE EN EXCEL ---
-# --- NUEVA RUTA: PROCESAR SUBIDA DE FOTO DE PERFIL ---
+# --- RUTA CORREGIDA PARA DEVOLVER JSON ---
 @app.route('/upload_profile_pic', methods=['POST'])
 def upload_profile_pic():
+    # 1. Validar Sesión
+    # Asumimos que el admin está cambiando su propia foto
     if 'user_id' not in session:
-        flash("Debes iniciar sesión para cambiar tu foto.", "danger")
-        return redirect(url_for('login_page'))
+        # Devuelve un error JSON, 401 = No Autorizado
+        return jsonify({'success': False, 'error': 'Sesión no válida o expirada'}), 401
 
-    # 1. Verificar si se envió un archivo
+    # 2. Validar Archivo
     if 'profile_pic' not in request.files:
-        flash('No se seleccionó ningún archivo.', 'warning')
-        return redirect(url_for('profile'))
-        
+        return jsonify({'success': False, 'error': 'No se encontró el archivo en la solicitud'})
+    
     file = request.files['profile_pic']
-
-    # 2. Verificar si el nombre del archivo está vacío (no se seleccionó nada)
+    
     if file.filename == '':
-        flash('No seleccionaste ningún archivo.', 'warning')
-        return redirect(url_for('profile'))
+        return jsonify({'success': False, 'error': 'No se seleccionó ningún archivo'})
 
-    # 3. Validar extensión y guardar
-    if file and allowed_file(file.filename):
-        # Generar un nombre de archivo seguro y único
+    # 3. Validar Extensión
+    if not (file and allowed_file(file.filename)):
+        return jsonify({'success': False, 'error': 'Tipo de archivo no permitido (Solo png, jpg, jpeg, gif)'})
+
+    # --- Si todo es válido, proceder a guardar ---
+    try:
         filename_base = secure_filename(file.filename)
         extension = filename_base.rsplit('.', 1)[1].lower()
-        # Usamos el ID de usuario + UUID para asegurar unicidad y evitar colisiones
         unique_filename = f"user_{session['user_id']}_{uuid.uuid4().hex}.{extension}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         
-        try:
-            # Antes de guardar, eliminar la foto anterior si existe
-            conn_check = get_db_connection()
-            if conn_check:
-                 cursor_check = conn_check.cursor()
-                 cursor_check.execute("SELECT FOTO_PERFIL FROM USUARIOS WHERE ID = :user_id", user_id=session['user_id'])
-                 old_filename_tuple = cursor_check.fetchone()
-                 cursor_check.close()
-                 conn_check.close()
-                 if old_filename_tuple and old_filename_tuple[0]:
-                     old_filepath = os.path.join(app.config['UPLOAD_FOLDER'], old_filename_tuple[0])
-                     if os.path.exists(old_filepath):
-                         os.remove(old_filepath)
-                         print(f"Foto anterior eliminada: {old_filepath}")
+        # Eliminar foto anterior (Tu lógica)
+        conn_check = get_db_connection()
+        if conn_check:
+             cursor_check = conn_check.cursor()
+             cursor_check.execute("SELECT FOTO_PERFIL FROM USUARIOS WHERE ID = :user_id", user_id=session['user_id'])
+             old_filename_tuple = cursor_check.fetchone()
+             cursor_check.close()
+             conn_check.close()
+             if old_filename_tuple and old_filename_tuple[0]:
+                 old_filepath = os.path.join(app.config['UPLOAD_FOLDER'], old_filename_tuple[0])
+                 if os.path.exists(old_filepath):
+                     os.remove(old_filepath)
+        else:
+            return jsonify({'success': False, 'error': 'Error de conexión a la BD (al verificar foto)'})
 
-            # Guardar el nuevo archivo
-            file.save(filepath)
+        # Guardar archivo nuevo
+        file.save(filepath)
+        
+        # Actualizar BD (Tu lógica)
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE USUARIOS SET FOTO_PERFIL = :filename WHERE ID = :user_id", 
+                           filename=unique_filename, user_id=session['user_id'])
+            conn.commit()
+            cursor.close()
+            conn.close()
             
-            # Actualizar la base de datos
-            conn = get_db_connection()
-            if conn:
-                cursor = conn.cursor()
-                cursor.execute("UPDATE USUARIOS SET FOTO_PERFIL = :filename WHERE ID = :user_id", 
-                               filename=unique_filename, user_id=session['user_id'])
-                conn.commit()
-                cursor.close()
-                conn.close()
-                flash('Foto de perfil actualizada correctamente.', 'success')
-            else:
-                 flash('Error de conexión al actualizar la base de datos.', 'danger')
+            # ¡ÉXITO! Devolver la nueva URL de la imagen
+            new_image_url = url_for('static', filename=f'profile_pics/{unique_filename}')
+            return jsonify({'success': True, 'new_image_url': new_image_url})
+        else:
+             return jsonify({'success': False, 'error': 'Error de conexión a la BD (al actualizar)'})
 
-        except RequestEntityTooLarge:
-             flash('El archivo es demasiado grande (Máximo 2MB).', 'danger')
-        except Exception as e:
-            flash(f'Ocurrió un error al subir el archivo: {e}', 'danger')
-            traceback.print_exc() # Para ver el error en la consola de Flask
-            
-        return redirect(url_for('profile'))
-    else:
-        flash('Tipo de archivo no permitido (solo png, jpg, jpeg, gif).', 'danger')
-        return redirect(url_for('profile'))
+    except Exception as e:
+        # Capturar cualquier otro error (incluyendo RequestEntityTooLarge si no se maneja por separado)
+        traceback.print_exc() # Imprime el error en la consola de Flask
+        # Comprobar si fue por tamaño de archivo
+        if isinstance(e, RequestEntityTooLarge):
+             return jsonify({'success': False, 'error': 'Archivo demasiado grande (Máx 2MB)'}), 413
+        return jsonify({'success': False, 'error': f'Error interno del servidor: {e}'})
+
+# --- MANEJADOR DE ERROR 413 CORREGIDO ---
     
 @app.route('/descargar_reporte_excel')
 def descargar_reporte_excel():
@@ -617,31 +1373,54 @@ def gestion_auxiliares():
 
 @app.route('/agregar_auxiliar', methods=['POST'])
 def agregar_auxiliar():
-    # ... (código sin cambios)
     if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login_page'))
+    
     usuario = request.form.get('usuario', '').strip()
     contrasena = request.form.get('contrasena', '').strip()
+    email = request.form.get('email', '').strip().lower() # <-- NUEVA LÍNEA
+
     if not usuario or not re.match(r"^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$", usuario):
         flash("El nombre de usuario es obligatorio y solo debe contener letras y espacios.", "warning")
         return redirect(url_for('gestion_auxiliares'))
+    
+    # <-- INICIO NUEVA VALIDACIÓN -->
+    if not email:
+        flash("El correo electrónico es obligatorio.", "warning")
+        return redirect(url_for('gestion_auxiliares'))
+    # <-- FIN NUEVA VALIDACIÓN -->
+        
     if not contrasena:
         flash("La contraseña es obligatoria.", "warning"); return redirect(url_for('gestion_auxiliares'))
-    resultado, mensaje = insertar_auxiliar_db(usuario, contrasena)
+    
+    # <-- CAMBIO AQUÍ: pasamos 'email' a la función -->
+    resultado, mensaje = insertar_auxiliar_db(usuario, contrasena, email)
+    
     flash(mensaje, "success" if resultado else "danger"); return redirect(url_for('gestion_auxiliares'))
 
 @app.route('/modificar_auxiliar', methods=['POST'])
 def modificar_auxiliar():
-    # ... (código sin cambios)
     if 'user_id' not in session or session.get('user_rol') != 'admin': return redirect(url_for('login_page'))
+    
     id_usuario = request.form.get('id_usuario')
     usuario = request.form.get('usuario', '').strip()
+    email = request.form.get('email', '').strip().lower() # <-- NUEVA LÍNEA
     contrasena = request.form.get('contrasena', '').strip()
+    
     if not id_usuario:
-         flash("Falta el ID del usuario a modificar.", "danger"); return redirect(url_for('gestion_auxiliares'))
+           flash("Falta el ID del usuario a modificar.", "danger"); return redirect(url_for('gestion_auxiliares'))
     if not usuario or not re.match(r"^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$", usuario):
         flash("El nombre de usuario es obligatorio y solo debe contener letras y espacios.", "warning")
         return redirect(url_for('gestion_auxiliares'))
-    resultado, mensaje = actualizar_auxiliar_db(id_usuario, usuario, contrasena)
+        
+    # <-- INICIO NUEVA VALIDACIÓN -->
+    if not email:
+        flash("El correo electrónico es obligatorio.", "warning")
+        return redirect(url_for('gestion_auxiliares'))
+    # <-- FIN NUEVA VALIDACIÓN -->
+        
+    # <-- CAMBIO AQUÍ: pasamos 'email' a la función -->
+    resultado, mensaje = actualizar_auxiliar_db(id_usuario, usuario, contrasena, email)
+    
     flash(mensaje, "success" if resultado else "danger"); return redirect(url_for('gestion_auxiliares'))
 
 @app.route('/eliminar_auxiliar', methods=['POST'])
@@ -669,12 +1448,12 @@ def reiniciar_sistema():
     return redirect(url_for('gestion_auxiliares'))
 
 def obtener_auxiliares_db():
-     # ... (código sin cambios)
     conn = get_db_connection()
     if not conn: return []
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT ID, USUARIO FROM USUARIOS WHERE TIPO = 1 ORDER BY USUARIO")
+        # <-- CAMBIO AQUÍ: seleccionamos EMAIL -->
+        cursor.execute("SELECT ID, USUARIO, EMAIL FROM USUARIOS WHERE TIPO = 1 ORDER BY USUARIO")
         return rows_to_dicts(cursor, cursor.fetchall())
     except Exception as e:
         print(f"Error al obtener auxiliares: {e}")
@@ -685,22 +1464,29 @@ def obtener_auxiliares_db():
              if 'cursor' in locals() and cursor: cursor.close()
              conn.close()
 
-def insertar_auxiliar_db(usuario, contrasena):
-     # ... (código sin cambios)
+def insertar_auxiliar_db(usuario, contrasena, email): # <-- CAMBIO: Acepta 'email'
     conn = get_db_connection()
     if not conn: return False, "Error de conexión."
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM USUARIOS WHERE USUARIO = :usr", usr=usuario)
+        
+        # <-- CAMBIO AQUÍ: Comprobar duplicado de usuario O email -->
+        cursor.execute("SELECT COUNT(*) FROM USUARIOS WHERE USUARIO = :usr OR EMAIL = :email", usr=usuario, email=email)
         if cursor.fetchone()[0] > 0:
-            return False, f"El usuario '{usuario}' ya existe."
+            return False, f"El usuario '{usuario}' o el correo '{email}' ya existen."
+        
         cursor.execute("SELECT NVL(MAX(ID), 0) + 1 FROM USUARIOS")
         nuevo_id_usuario = cursor.fetchone()[0]
+        
+        password_hasheada = hash_password(contrasena)
+        
+        # <-- CAMBIO AQUÍ: Insertar 'EMAIL' -->
         cursor.execute(
-            "INSERT INTO USUARIOS (ID, USUARIO, PASSWORD, TIPO) VALUES (:id_usr, :usr, :pwd, 1)",
+            "INSERT INTO USUARIOS (ID, USUARIO, PASSWORD, TIPO, EMAIL) VALUES (:id_usr, :usr, :pwd, 1, :email)",
             id_usr=nuevo_id_usuario,
             usr=usuario,
-            pwd=contrasena
+            pwd=password_hasheada,
+            email=email # <-- NUEVA LÍNEA
         )
         conn.commit()
         return True, f"Auxiliar '{usuario}' agregado (ID: {nuevo_id_usuario})."
@@ -710,22 +1496,33 @@ def insertar_auxiliar_db(usuario, contrasena):
         traceback.print_exc()
         return False, "Error interno al agregar."
     finally:
-        if conn:
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
 
-def actualizar_auxiliar_db(id_usuario, usuario, contrasena):
-     # ... (código sin cambios)
+def actualizar_auxiliar_db(id_usuario, usuario, contrasena, email): # <-- CAMBIO: Acepta 'email'
     conn = get_db_connection()
     if not conn: return False, "Error de conexión."
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM USUARIOS WHERE USUARIO = :usr AND ID != :id_usr", usr=usuario, id_usr=id_usuario)
-        if cursor.fetchone()[0] > 0: return False, f"El nombre '{usuario}' ya está en uso."
-        if contrasena:
-            cursor.execute("UPDATE USUARIOS SET USUARIO = :usr, PASSWORD = :pwd WHERE ID = :id_usr", usr=usuario, pwd=contrasena, id_usr=id_usuario)
-        else:
-            cursor.execute("UPDATE USUARIOS SET USUARIO = :usr WHERE ID = :id_usr", usr=usuario, id_usr=id_usuario)
+        
+        # <-- CAMBIO AQUÍ: Comprobar duplicados (usuario O email) que NO sean el usuario actual -->
+        cursor.execute("SELECT COUNT(*) FROM USUARIOS WHERE (USUARIO = :usr OR EMAIL = :email) AND ID != :id_usr", 
+                       usr=usuario, email=email, id_usr=id_usuario)
+        if cursor.fetchone()[0] > 0: 
+            return False, f"El nombre '{usuario}' o el correo '{email}' ya están en uso."
+        
+        if contrasena: # Si el admin escribió una nueva contraseña
+            password_hasheada = hash_password(contrasena)
+            
+            # <-- CAMBIO AQUÍ: Actualizar 'EMAIL' -->
+            cursor.execute("UPDATE USUARIOS SET USUARIO = :usr, PASSWORD = :pwd, EMAIL = :email WHERE ID = :id_usr", 
+                           usr=usuario, pwd=password_hasheada, email=email, id_usr=id_usuario)
+        else: # Si el admin solo cambió el nombre y/o email
+        
+            # <-- CAMBIO AQUÍ: Actualizar 'EMAIL' -->
+            cursor.execute("UPDATE USUARIOS SET USUARIO = :usr, EMAIL = :email WHERE ID = :id_usr", 
+                           usr=usuario, email=email, id_usr=id_usuario)
+            
         conn.commit()
         return (True, "Auxiliar actualizado.") if cursor.rowcount > 0 else (False, "No se encontró el auxiliar.")
     except Exception as e:
@@ -734,9 +1531,8 @@ def actualizar_auxiliar_db(id_usuario, usuario, contrasena):
         traceback.print_exc()
         return False, "Error interno al actualizar."
     finally:
-        if conn:
-             if 'cursor' in locals() and cursor: cursor.close()
-             conn.close()
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
 
 def eliminar_auxiliar_db(id_usuario):
      # ... (código sin cambios)
@@ -747,7 +1543,7 @@ def eliminar_auxiliar_db(id_usuario):
         cursor.execute("DELETE FROM USUARIOS WHERE ID = :id_usr AND TIPO = 1", id_usr=id_usuario)
         conn.commit()
         return (True, "Auxiliar eliminado.") if cursor.rowcount > 0 else (False, "No se encontró el auxiliar.")
-    except cx_Oracle.IntegrityError:
+    except oracledb.IntegrityError:
         conn.rollback(); return False, "No se puede eliminar, tiene registros asociados (préstamos, etc.)."
     except Exception as e:
         conn.rollback()
@@ -760,7 +1556,6 @@ def eliminar_auxiliar_db(id_usuario):
              conn.close()
 
 def reiniciar_registros_db():
-    # ... (código sin cambios)
     conn = get_db_connection()
     if not conn: return False, "Error de conexión."
     try:
@@ -768,6 +1563,7 @@ def reiniciar_registros_db():
         cursor.execute("DELETE FROM DETALLE_PRESTAMO")
         cursor.execute("DELETE FROM REGISTRO_DANOS")
         cursor.execute("DELETE FROM PRESTAMOS")
+        # --- ¡CORRECCIÓN AQUÍ! ---
         cursor.execute("DELETE FROM REGISTRO_ACTIVIDAD")
         cursor.execute("UPDATE MATERIALES SET CANTIDAD_DISPONIBLE = CANTIDAD, CANTIDAD_DANADA = 0")
         conn.commit()
@@ -1168,7 +1964,7 @@ def eliminar_material():
             p_uid=session['user_id'], p_mid=id_material, p_mnom=nombre_material, p_det=detalle)
         conn.commit()
         flash(f'Material ID {id_material} eliminado.', 'success')
-    except cx_Oracle.IntegrityError:
+    except oracledb.IntegrityError:
         conn.rollback()
         flash('Error: No se puede eliminar el material porque tiene préstamos o daños asociados.', 'danger')
     except Exception as e:
@@ -1358,7 +2154,7 @@ def registrar_prestamo():
             flash(f"Alumno con NC {no_control} no encontrado o está inactivo.", "danger"); return redirect(url_for('prestamos'))
         
         id_alumno = result[0]
-        id_prestamo_var = cursor.var(cx_Oracle.NUMBER)
+        id_prestamo_var = cursor.var(oracledb.NUMBER)
         cursor.execute("INSERT INTO PRESTAMOS (ID_ALUMNO, ID_MATERIA, ID_MAESTRO, ID_AUXILIAR, NUMERO_MESA, ESTATUS, FECHA_HORA) VALUES (:id_a, :id_m, :id_ma, :id_aux, :mesa, 'Activo', LOCALTIMESTAMP) RETURNING ID_PRESTAMO INTO :id_p_out",
                        id_a=id_alumno, id_m=request.form['materia'], id_ma=request.form['maestro'], id_aux=session['user_id'], mesa=request.form.get('mesa'), id_p_out=id_prestamo_var)
         id_nuevo_prestamo = id_prestamo_var.getvalue()[0]
@@ -1520,7 +2316,335 @@ def keepalive():
     session.modified = True
     return jsonify(success=True)
 # --- FIN NUEVA RUTA ---
+@app.route('/inventario/qr/<material_id>')
+def generate_qr(material_id):
+    """
+    Genera una imagen de código QR 2D para un ID de material.
+    """
+    if 'user_id' not in session: # Proteger la ruta
+        return "No autorizado", 401
 
+    try:
+        # --- LÓGICA DE QR REEMPLAZA A LA DE BARCODE ---
+        
+        # 1. Configurar el QR
+        qr = qrcode.QRCode(
+            version=1, # Complejidad (1 es el más simple)
+            error_correction=qrcode.constants.ERROR_CORRECT_L, # Nivel de corrección
+            box_size=10, # Tamaño de cada "pixel" del QR
+            border=4,  # Borde blanco
+        )
+        
+        # 2. Añadir el ID del material como datos
+        qr.add_data(material_id)
+        qr.make(fit=True)
+
+        # 3. Crear la imagen
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # 4. Crear un buffer en memoria
+        buffer = io.BytesIO()
+        
+        # 5. Guardar la imagen PNG en el buffer
+        img.save(buffer, 'PNG')
+        
+        # 6. Regresar al inicio del buffer
+        buffer.seek(0)
+        # --- FIN DE LA NUEVA LÓGICA ---
+
+        # 7. Enviar el buffer como un archivo de imagen
+        return send_file(buffer, mimetype='image/png')
+        
+    except Exception as e:
+        print(f"Error generando código QR: {e}")
+        return "Error al generar imagen", 500
+
+# --- FIN DEL CÓDIGO NUEVO ---
+@app.route('/api/get_alumno/<ncontrol>')
+def get_alumno_data(ncontrol):
+    """
+    API endpoint para obtener info de un alumno por Número de Control.
+    ¡CORREGIDO para usar las columnas de tu tabla ALUMNOS!
+    """
+    # Proteger el endpoint (puedes quitar esto si el kiosco no tiene sesión)
+    if 'user_id' not in session:
+       return jsonify({'error': 'No autorizado'}), 401
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Error de conexión a BD'}), 500
+        
+    try:
+        cursor = conn.cursor()
+        
+        # --- CORRECCIÓN ---
+        # Usamos las columnas de tu captura: NOMBRE, ESPECIALIDAD, ACTIVO
+        cursor.execute("""
+            SELECT NOMBRE, ESPECIALIDAD, ACTIVO 
+            FROM ALUMNOS 
+            WHERE NUMEROCONTROL = :ncontrol
+        """, ncontrol=ncontrol)
+        
+        alumno = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if alumno:
+            # --- CORRECCIÓN ---
+            # Tu columna ACTIVO es un NÚMERO (1 para sí, 0 para no)
+            if alumno[2] == 0:
+                 return jsonify({'error': 'Alumno inactivo'}), 403
+            
+            # Devolvemos los datos como JSON con los nombres correctos
+            return jsonify({
+                'NOMBRE': alumno[0],      # Columna NOMBRE
+                'ESPECIALIDAD': alumno[1], # Columna ESPECIALIDAD
+                'ESTATUS': 'Activo'     # Columna ACTIVO (es 1)
+            })
+        else:
+            return jsonify({'error': 'Alumno no encontrado'}), 404
+            
+    except Exception as e:
+        print(f"Error en /api/get_alumno: {e}")
+        traceback.print_exc()
+        if conn:
+            conn.close()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/log_entrada', methods=['POST'])
+def log_entrada_alumno():
+    """
+    API endpoint para registrar la entrada de un alumno (via escaneo).
+    Usa la tabla LOG_ACCESO que acabas de crear.
+    """
+    if 'user_id' not in session:
+       return jsonify({'error': 'No autorizado'}), 401
+       
+    data = request.json
+    ncontrol = data.get('ncontrol')
+    
+    if not ncontrol:
+        return jsonify({'error': 'Número de control no proporcionado'}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Error de conexión a BD'}), 500
+
+    try:
+        cursor = conn.cursor()
+        # Esta consulta ya es correcta para tu nueva tabla LOG_ACCESO
+        cursor.execute("""
+            INSERT INTO LOG_ACCESO (NUMEROCONTROL, FECHA_HORA_ENTRADA)
+            VALUES (:ncontrol, :fecha)
+            """,
+            ncontrol=ncontrol,
+            fecha=datetime.now()
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Entrada registrada'})
+        
+    except Exception as e:
+        # Manejar error de llave foránea (si el alumno no existe)
+        if 'ORA-02291' in str(e):
+             return jsonify({'error': 'Alumno no encontrado en la base de datos.'}), 404
+        
+        print(f"Error en /api/log_entrada: {e}")
+        traceback.print_exc()
+        if conn:
+            conn.close()
+        return jsonify({'error': str(e)}), 500
+
+# Ruta para MOSTRAR la página del kiosco
+@app.route('/kiosco')
+def kiosco_page():
+    if 'user_id' not in session: # Proteger el acceso al kiosco
+        flash("Acceso no autorizado.", "danger")
+        return redirect(url_for('login_page'))
+        
+    # Asume que el HTML de abajo lo guardas como 'registro_kiosk.html'
+    return render_template('registro_kiosk.html')
+
+# ====================================================================
+# --- INICIO: API DE AUTO-REGISTRO PARA KIOSKO ---
+# ====================================================================
+
+@app.route('/api/kiosko/verificar/<string:ncontrol>', methods=['GET'])
+def kiosko_verificar_alumno(ncontrol):
+    """
+    Verifica si un número de control es apto para registrarse.
+    1. Revisa que NO esté ya en LABSYS (tabla ALUMNOS).
+    2. Revisa que SÍ esté en la BD Maestra (MOCK_CONTROL_ESCOLAR) y esté ACTIVO.
+    """
+    
+    # NOTA: No validamos sesión aquí, ya que el kiosko es público
+    # para el auto-registro.
+    
+    # Limpiamos el ncontrol por si acaso
+    num_control_limpio = ncontrol.strip().upper()
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"status": "error", "mensaje": "Error interno del servidor (BD)."}), 500
+
+    cursor = conn.cursor()
+    try:
+        # 1. Comprobación 1: ¿Ya existe en MI sistema (LABSYS)?
+        cursor.execute("SELECT 1 FROM ALUMNOS WHERE NUMEROCONTROL = :num", num=num_control_limpio)
+        if cursor.fetchone():
+            return jsonify({"status": "error", "mensaje": "Este número de control ya está registrado en el sistema."}), 409 # 409 Conflict
+
+        # 2. Comprobación 2: ¿Existe en la BD "Maestra" (simulada) y está ACTIVO?
+        # (Usamos ESPECIALIDAD, como en tu tabla ALUMNOS)
+        cursor.execute("""
+            SELECT NOMBRE_COMPLETO, CORREO_INSTITUCIONAL, ESPECIALIDAD, SEMESTRE
+            FROM MOCK_CONTROL_ESCOLAR 
+            WHERE NUMEROCONTROL = :num AND ESTATUS = 'ACTIVO'
+        """, num=num_control_limpio)
+        
+        alumno_maestra = cursor.fetchone()
+        
+        if alumno_maestra:
+            # ¡ÉXITO! Encontramos al alumno. Lo mandamos al Kiosko.
+            datos_alumno = {
+                "nombre": alumno_maestra[0],
+                "correo": alumno_maestra[1],
+                "especialidad": alumno_maestra[2], # Coincide con tu BD
+                "semestre": alumno_maestra[3]
+            }
+            return jsonify({"status": "ok", "datos": datos_alumno}), 200
+        else:
+            # No se encontró en la BD maestra o está inactivo
+            return jsonify({"status": "error", "mensaje": "Número de control no encontrado o inactivo. Verifique con Control Escolar."}), 404 # 404 Not Found
+
+    except Exception as e:
+        print(f"Error Oracle en kiosko_verificar_alumno: {e}"); 
+        traceback.print_exc()
+        return jsonify({"status": "error", "mensaje": "Error al consultar la base de datos."}), 500
+    finally:
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/kiosko/registrar', methods=['POST'])
+def kiosko_registrar_alumno():
+    """
+    Recibe los datos del Kiosko (ncontrol y password) para crear el usuario final
+    en la tabla ALUMNOS de LABSYS.
+    """
+    data = request.get_json()
+    if not data or 'ncontrol' not in data or 'password' not in data:
+        return jsonify({"status": "error", "mensaje": "Datos incompletos. Se requiere 'ncontrol' y 'password'."}), 400
+
+    ncontrol = data['ncontrol'].strip().upper()
+    password_plano = data['password']
+
+    if len(password_plano) < 8:
+         return jsonify({"status": "error", "mensaje": "La contraseña debe tener al menos 8 caracteres."}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"status": "error", "mensaje": "Error interno del servidor (BD)."}), 500
+
+    cursor = conn.cursor()
+    try:
+        # --- RE-VALIDACIÓN (CRUCIAL) ---
+        # Volvemos a hacer las mismas validaciones que en la RUTA 1
+
+        # 1. ¿Ya existe en LABSYS?
+        cursor.execute("SELECT 1 FROM ALUMNOS WHERE NUMEROCONTROL = :num", num=ncontrol)
+        if cursor.fetchone():
+            return jsonify({"status": "error", "mensaje": "Este alumno ya fue registrado. Intente iniciar sesión."}), 409
+
+        # 2. ¿Existe en la BD Maestra y está ACTIVO?
+        cursor.execute("""
+            SELECT NOMBRE_COMPLETO, CORREO_INSTITUCIONAL, ESPECIALIDAD, SEMESTRE
+            FROM MOCK_CONTROL_ESCOLAR 
+            WHERE NUMEROCONTROL = :num AND ESTATUS = 'ACTIVO'
+        """, num=ncontrol)
+        
+        alumno_maestra = cursor.fetchone()
+        
+        if not alumno_maestra:
+            return jsonify({"status": "error", "mensaje": "No se puede registrar. Alumno no encontrado o inactivo."}), 404
+        
+        # --- Si pasa todas las validaciones, procedemos a REGISTRAR ---
+
+        # Hashear la contraseña
+        password_hasheada = hash_password(password_plano)
+        
+        # Extraer los datos de la consulta maestra
+        nombre_completo = alumno_maestra[0]
+        correo_inst = alumno_maestra[1]
+        especialidad = alumno_maestra[2] # Coincide con tu BD
+        semestre = alumno_maestra[3]
+
+        # 3. INSERTAR en MI sistema (LABSYS)
+        # (Usamos las columnas de tu tabla ALUMNOS + la nueva PASSWORD_HASH y ACTIVO=1)
+        cursor.execute("""
+            INSERT INTO ALUMNOS (
+                NUMEROCONTROL, NOMBRE, CORREO, ESPECIALIDAD, SEMESTRE, 
+                PASSWORD_HASH, ACTIVO
+            )
+            VALUES (:num, :nombre, :correo, :esp, :sem, :pass_hash, 1)
+        """, {
+            "num": ncontrol,
+            "nombre": nombre_completo,
+            "correo": correo_inst,
+            "esp": especialidad,
+            "sem": semestre,
+            "pass_hash": password_hasheada
+        })
+        
+        # Confirmar la transacción
+        conn.commit()
+        
+        return jsonify({"status": "ok", "mensaje": f"¡Bienvenido, {nombre_completo}! Registro completado."}), 201 # 201 Created
+
+    except oracledb.IntegrityError as e:
+        conn.rollback()
+        error, = e.args
+        print(f"Error de Integridad en Kiosko: {error.code} - {error.message}")
+        traceback.print_exc()
+        return jsonify({"status": "error", "mensaje": "Error: El alumno ya existe (Error de integridad)."}), 409
+    except Exception as e:
+        conn.rollback()
+        print(f"Error Oracle en kiosko_registrar_alumno: {e}"); 
+        traceback.print_exc()
+        return jsonify({"status": "error", "mensaje": "Error al registrar en la base de datos."}), 500
+    finally:
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+        
+def encriptar_pdf(pdf_bytes_sin_encriptar, password):
+    """Toma los bytes de un PDF y le añade una contraseña."""
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes_sin_encriptar))
+        writer = PdfWriter()
+
+        # Copia todas las páginas del PDF original al nuevo
+        for page in reader.pages:
+            writer.add_page(page)
+
+        # ¡Añade la contraseña!
+        writer.encrypt(password)
+
+        # Guarda el PDF encriptado en un buffer de memoria
+        buffer_encriptado = io.BytesIO()
+        writer.write(buffer_encriptado)
+        
+        # Regresa los bytes del nuevo PDF encriptado
+        return buffer_encriptado.getvalue()
+        
+    except Exception as e:
+        print(f"Error al encriptar PDF: {e}")
+        traceback.print_exc()
+        return None
+
+# ====================================================================
+# --- FIN: API DE AUTO-REGISTRO PARA KIOSKO ---
+# ====================================================================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)

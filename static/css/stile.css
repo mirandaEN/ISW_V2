@@ -1,140 +1,259 @@
-/* Fuente general */
-*{
-  font-family: 'Open Sans', sans-serif;
-}
-body {
+/* =================================================== */
+/* --- 00. RESET Y ESTILOS GLOBALES --- */
+/* =================================================== */
+* {
   margin: 0;
-  background: linear-gradient(rgba(4,9,30,0.7), rgba(4, 9, 30, 0.7)), url(/static/sources/fondo-login.png);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-.box{
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Evita el scroll en la página de login */
+}
+
+/* =================================================== */
+/* --- 01. LAYOUT PRINCIPAL (SPLIT SCREEN) --- */
+/* =================================================== */
+.login-wrapper {
   display: flex;
-  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* --- Columna Izquierda (Branding) --- */
+.login-branding {
+  flex-basis: 50%;
+  background: linear-gradient(-45deg, #1e1e2f 0%, #3a2a60 50%, #6a5acd 100%);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  min-height: 90vh;
-}
-
-.container{
-  width: 350px;
-
-display: flex;
-flex-direction: column;
-padding: 0 15px 0 15px;
-}
-
-span{
-  color: #fff;
-  font-size: small;
-  display: flex;
   justify-content: center;
-  padding: 10px 0 10px 0;
+  padding: 2rem;
+  color: #fff;
+  text-align: center;
 }
 
-header{
-  color: #fff;
-  font-size: 30px;
+.mascot-logo {
+  width: 300px;
+  height: 300px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
+}
+
+.labflow-logo-login {
+  width: 200px;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+
+.login-branding h2 {
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.login-branding p {
+  font-weight: 300;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.5rem;
+}
+
+
+/* --- Columna Derecha (Formulario) --- */
+.login-form-area {
+  flex-basis: 50%;
+  background: #18181b; /* Fondo oscuro moderno */
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 10px 0 10px 0;
-}
-
-.input-box .input{
-  height: 45px;
-  width: 87%;
-  border: none;
-  border-radius: 30px;
-  color: #fff;
-  font-size: 15px;
-  padding: 0 0 0 45px;
-  margin-top: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  outline: none;
-}
-
-i{
+  padding: 2rem;
   position: relative;
-  top: -33px;
-  left: 17px;
-  color: #fff;
+  overflow-y: auto; /* Permite scroll si el formulario es muy alto */
 }
 
-::-webkit-input-placeholder{
-  color: #fff;
+.logo {
+  width: 80px; /* Logo del ITS */
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  opacity: 0.7;
 }
 
-.submit{
+.form-container {
+  width: 100%;
+  max-width: 400px; /* Ancho máximo del formulario */
+}
+
+.login-form-area h1 {
+  color: #fff;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.login-form-area .subtitle {
+  color: #a1a1aa; /* Gris claro */
+  font-size: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* =================================================== */
+/* --- 02. ESTILOS DEL FORMULARIO (INPUTS FLOTANTES) --- */
+/* =================================================== */
+.input-group {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.input-group .input {
+  width: 100%;
   border: none;
-  border-radius: 30px;
-  font-size: 15px;
-  height: 45px;
+  border-bottom: 2px solid #3f3f46; /* Línea del input */
+  background: transparent;
+  color: #fff;
+  font-size: 1.1rem;
+  padding: 10px 4px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-group .input::placeholder {
+  color: transparent; /* Ocultamos el placeholder, usaremos la label */
+}
+
+.input-group label {
+  position: absolute;
+  top: 10px;
+  left: 5px;
+  color: #a1a1aa; /* Color de la label */
+  font-size: 1.1rem;
+  pointer-events: none;
+  transition: all 0.2s ease-out;
+}
+
+/* La magia del input flotante */
+.input-group .input:focus ~ label,
+.input-group .input:not(:placeholder-shown) ~ label {
+  top: -16px;
+  font-size: 0.85rem;
+  color: #6a5acd; /* Color morado al activar */
+}
+
+.input-group .input:focus {
+  border-color: #6a5acd; /* Línea morada al activar */
+}
+
+/* Botón de Iniciar Sesión */
+.submit {
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  height: 50px;
   outline: none;
   width: 100%;
-  color: #000;
-  background: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  background: #6a5acd; /* Botón morado */
   cursor: pointer;
-  margin-top: 10px;
-  transition: .3s;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
 }
 
-.submit:hover{
-  box-shadow: 1px 5px 7px 1px rgba(0,0,0,0.2);
-}
-.two-col{
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  color: #fff;
-  font-size: small;
-  margin-top: 10px;
+.submit:hover {
+  background: #5849a9; /* Morado más oscuro */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(106, 90, 205, 0.3);
 }
 
-.one{
-  display: flex;
+.forgot-password {
+  text-align: center;
+  margin-top: 1.5rem;
 }
 
-label{
+.forgot-password a {
+  color: #a1a1aa;
   text-decoration: none;
-
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
 }
-h1{
+
+.forgot-password a:hover {
   color: #fff;
-  font-size: 40px;
-  display: flex;
-  justify-content: left;
-  padding: 0;
-  margin-left: 20px;
+  text-decoration: underline;
 }
 
-.logo{
-  width: 100px;
-  position: absolute;
-  top: 0;
-  right: 0;
-  margin: 0;
-  padding-top: 10px;
-  padding-right: 10px;
-}
-
+/* =================================================== */
+/* --- 03. MENSAJES FLASH Y RESPONSIVE --- */
+/* =================================================== */
 .flash {
-  padding: 14px 16px;
-  margin: 15px auto;
-  width: 90%;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
   text-align: center;
 }
 
 .flash.success { 
-  background: #7e1c1c;
-  color: #fff; 
+  background: #166534; /* Verde oscuro */
+  color: #a7f3d0; /* Verde claro */
 }
-.flash.error, .flash { 
-  background: #5a5a5a; 
-  color: #fff; 
+
+.flash.danger { 
+  background: #991b1b; /* Rojo oscuro */
+  color: #fecaca; /* Rojo claro */
+}
+
+/* Responsive para tablets y móviles */
+@media (max-width: 900px) {
+  .login-wrapper {
+      flex-direction: column;
+  }
+
+  .login-branding {
+      flex-basis: auto;
+      height: 35vh; /* Se hace más pequeño, como un banner */
+      padding: 1rem;
+  }
+
+  .mascot-logo {
+      width: 120px; /* Reducimos la mascota */
+      height: 120px;
+      margin-bottom: 0.5rem;
+  }
+
+  .labflow-logo-login {
+      width: 150px;
+      margin-bottom: 0.5rem;
+  }
+
+  .login-branding h2 {
+      font-size: 1.1rem;
+  }
+  .login-branding p {
+      display: none; /* Ocultamos el texto secundario en móvil */
+  }
+
+  .login-form-area {
+      flex-basis: auto;
+      height: 65vh; /* Ocupa el resto */
+      padding: 2rem 1.5rem;
+      align-items: flex-start; /* Alineamos al inicio */
+      justify-content: flex-start;
+  }
+
+  .form-container {
+      margin-top: 1rem;
+  }
+
+  .logo {
+      width: 60px; /* Logo ITS más pequeño */
+      top: 1.5rem;
+      right: 1.5rem;
+  }
 }

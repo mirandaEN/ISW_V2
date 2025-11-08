@@ -8,7 +8,7 @@ dsn = 'localhost:1521/XEPDB1'      # service name de base de datos
 
 try:
     # Conectar a la base de datos
-    connection = cx_Oracle.connect(username, password, dsn)
+    connection = oracledb.connect(username, password, dsn)
     print("¡Conexión exitosa a Oracle!")
 
     # Crear un cursor para ejecutar consultas
@@ -22,7 +22,7 @@ try:
     for row in rows:
         print(f"ID: {row[0]}, Usuario: {row[1]}, Tipo: {row[2]}")
 
-except cx_Oracle.DatabaseError as e:
+except oracledb.DatabaseError as e:
     error, = e.args
     print(f"Error al conectar a Oracle: {error.message}")
 

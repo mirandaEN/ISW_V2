@@ -32,3 +32,44 @@ Ignorar archivos del sistema operativo de Mac.
 Ignorar carpetas de configuración de VS Code.
 
 .vscode/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Entorno virtual de Python
+venv/
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+
+# Archivo de secretos (API Keys, contraseñas de BD)
+.env
+
+# Archivos del sistema macOS
+.DS_Store
+
+# Cliente de Oracle (si lo tienes dentro de la carpeta)
+instantclient*

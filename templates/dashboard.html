@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Labflow</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        /* 1. Estilos de alerta para la tabla (Modo Claro) */
+        .table-danger-light {
+            --bs-table-bg: #f8d7da; 
+            --bs-table-color: #58151c;
+        }
+        .table-warning-light {
+            --bs-table-bg: #fff3cd;
+            --bs-table-color: #664d03;
+        }
+        #tabla-predictiva strong {
+            color: #b02a37;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        /* 2. Arreglo para cabecera de tabla en MODO CLARO */
+        .table-dark th {
+            color: #fff !important; 
+        }
+
+        /* ================================================== */
+        /* --- 3. REGLAS PARA MODO OSCURO --- */
+        /* ================================================== */
+
+        /* Arregla el fondo de la tarjeta en Modo Oscuro */
+        body.dark-mode main#inventarioContent .card {
+            background: rgba(30, 30, 45, 0.4) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+            color: #f0f0f0 !important;
+        }
+
+        /* Arregla los títulos H3 (para que sean morados) */
+        body.dark-mode main#inventarioContent .card h3 {
+            color: #6a5acd !important; /* Tu morado de acento */
+        }
+
+        /* Arregla el párrafo "text-muted" */
+        body.dark-mode main#inventarioContent .card p.text-muted {
+            color: #9ca3af !important; /* Un gris más claro */
+        }
+
+        /* Arregla el cabecero de la tabla (para que coincida con inventario) */
+        body.dark-mode main#inventarioContent .card .table-dark {
+            background-color: rgba(40, 40, 60, 0.5) !important; 
+            color: #fff !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+            --bs-table-bg: rgba(40, 40, 60, 0.5) !important; 
+        }
+        
+        /* Arregla el texto de la tabla */
+        body.dark-mode main#inventarioContent .card .table {
+            color: #f0f0f0;
+            --bs-table-bg: transparent; 
+        }
+        body.dark-mode main#inventarioContent .card .table td {
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+            color: #f0f0f0;
+        }
+        body.dark-mode main#inventarioContent .card .table-hover > tbody > tr:hover > * {
+            --bs-table-accent-bg: rgba(50, 50, 70, 0.4); 
+            color: #fff;
+        }
+
+        /* Estilos de alerta (Modo Oscuro) */
+        body.dark-mode .table-danger-light {
+            --bs-table-bg: rgba(248, 113, 129, 0.15); /* Fondo rojo translúcido */
+            --bs-table-color: #f1b0b7; /* Texto rojo claro */
+        }
+        body.dark-mode .table-warning-light {
+            --bs-table-bg: rgba(253, 186, 116, 0.1); /* Fondo amarillo translúcido */
+            --bs-table-color: #ffda6a; /* Texto amarillo claro */
+        }
+        body.dark-mode #tabla-predictiva strong {
+            color: #f87171; /* Rojo neón brillante */
+        }
+    </style>
+
+</head>
+<body> 
+    <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
+        <div class="container-fluid">
+          
+          <a class="navbar-brand fw-bold" href="{{ url_for('interface_admin') }}">
+              <i class="fas fa-flask me-1"></i>
+              Gestión Laboratorio
+          </a>
+          
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('interface_admin') }}">Inicio</a>
+                  </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_alumnos') }}">Alumnos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link"  href="{{ url_for('reportes') }}">Reportes</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('gestion_auxiliares') }}">Auxiliares</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="{{ url_for('mostrar_dashboard') }}">Predicciones</a>
+              </li>
+              
+            </ul>
+          </div>
+      </nav>
+
+    <main id="inventarioContent" style="max-width: 1400px; margin: 20px auto;">
+
+        <div class="toolbar" style="margin-bottom: 20px;">
+            <h1><i class="fas fa-chart-pie"></i> Dashboard de Inteligencia (BI)</h1>
+            <div class="actions">
+                <button id="btn-descargar-pdf" class="btn btn-primary" style="background-color: var(--color-acento-morado); border-color: var(--color-acento-morado);">
+                    <i class="fas fa-file-pdf me-2"></i>Descargar Reporte PDF
+                </button>
+            </div>
+        </div>
+
+        <div id="reporte-para-imprimir">
+    
+            <div class="card mb-4"> 
+                <div class="card-body">
+                    <h3 class="mt-2" style="color: var(--color-acento-morado);">🚨 Alertas de Mantenimiento Predictivo</h3>
+                    <p class="text-muted">Activos individuales que han superado el 80% de su vida útil estimada.</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Tipo</th>
+                                    <th>Uso Acumulado</th>
+                                    <th>Vida Estimada</th>
+                                    <th>% de Vida Consumida</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-predictiva">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="row">
+                <div class="col-lg-6 mb-4"> 
+                    <div class="card h-100"> 
+                        <div class="card-body">
+                            <h3 style="color: var(--color-acento-morado);">💸 Valor Total del Inventario (Stock)</h3>
+                            <canvas id="grafica-financiera"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4"> 
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 style="color: var(--color-acento-morado);">🔥 Top 5 Activos Más Usados</h3>
+                            <canvas id="grafica-top-activos"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div> 
+        </div> 
+    </main> 
+    
+    <div class="settings-fab-menu">
+        <div class="settings-options">
+            
+            <button class="settings-option" id="btn-night-mode" title="Modo Noche">
+                <i class="fas fa-moon"></i>
+            </button>
+    
+            <a href="{{ url_for('profile') }}" class="settings-option" title="Perfil">
+                <i class="fas fa-user"></i>
+            </a>
+            
+            <a href="{{ url_for('logout') }}" class="settings-option" title="Cerrar Sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+    
+        </div>
+    
+        <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
+            <i class="fas fa-cog"></i> 
+        </button>
+    </div>
+
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const settingsMenu = document.querySelector('.settings-fab-menu');
+            const settingsMainBtn = document.getElementById('btn-settings-main');
+            const nightModeBtn = document.getElementById('btn-night-mode');
+            const nightModeIcon = nightModeBtn.querySelector('i');
+    
+            // Sincroniza el ícono al cargar (tu JS ya puso la clase 'dark-mode' si es necesario)
+            if (document.body.classList.contains('dark-mode')) {
+                nightModeIcon.classList.remove('fa-moon');
+                nightModeIcon.classList.add('fa-sun');
+            }
+    
+            settingsMainBtn.addEventListener('click', function() {
+                settingsMenu.classList.toggle('active');
+            });
+    
+            nightModeBtn.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+    
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark');
+                    nightModeIcon.classList.remove('fa-moon');
+                    nightModeIcon.classList.add('fa-sun');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    nightModeIcon.classList.remove('fa-sun');
+                    nightModeIcon.classList.add('fa-moon');
+                }
+                
+                // Vuelve a dibujar las gráficas con los colores nuevos
+                renderDashboard();
+            });
+        });
+    </script>
+</body>
+</html>
