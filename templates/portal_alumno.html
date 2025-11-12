@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Portal - LabFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ================================================== */
+        /* --- 1. ARREGLO PARA MODO CLARO --- */
+        /* ================================================== */
+
+        /* Esto fuerza el texto del cabecero a ser blanco sobre el fondo oscuro */
+        .table-dark th {
+            color: #fff !important; 
+        }
+
+        /* ================================================== */
+        /* --- 2. REGLAS PARA MODO OSCURO --- */
+        /* ================================================== */
+
+        /* Arregla el fondo de las tarjetas en Modo Oscuro */
+        body.dark-mode main#inventarioContent .card {
+            background: rgba(30, 30, 45, 0.4) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+            color: #f0f0f0 !important;
+        }
+
+        /* Arregla los títulos H3 (para que sean morados) */
+        body.dark-mode main#inventarioContent .card h3 {
+            color: #6a5acd !important; /* Tu morado de acento */
+        }
+        
+        /* Arregla el texto de "adeudos" */
+        body.dark-mode .list-group-item-danger {
+            background-color: rgba(220, 53, 69, 0.15) !important;
+            color: #f1b0b7 !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        body.dark-mode .list-group-item-danger strong {
+             color: #fff !important;
+        }
+        /* ¡ESTE ES EL ARREGLO PARA EL TEXTO GRIS! */
+        body.dark-mode .list-group-item-danger .text-muted {
+            color: #f1b0b7 !important;
+            opacity: 0.8;
+        }
+
+        /* Arregla el cabecero de la tabla */
+        body.dark-mode main#inventarioContent .card .table-dark {
+            background-color: rgba(40, 40, 60, 0.5) !important; 
+            color: #fff !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+            --bs-table-bg: rgba(40, 40, 60, 0.5) !important; 
+        }
+        
+        /* Arregla el texto de la tabla */
+        body.dark-mode main#inventarioContent .card .table {
+            color: #f0f0f0;
+            --bs-table-bg: transparent; 
+        }
+        body.dark-mode main#inventarioContent .card .table td {
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+            color: #f0f0f0;
+        }
+        body.dark-mode main#inventarioContent .card .table-hover > tbody > tr:hover > * {
+            --bs-table-accent-bg: rgba(50, 50, 70, 0.4); 
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
+        <div class="container-fluid">
+          <a class="navbar-brand fw-bold" href="#">
+              <i class="fas fa-user-graduate me-1"></i>
+              Portal de Alumno
+          </a>
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+              </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main id="inventarioContent" style="max-width: 1400px; margin: 20px auto;">
+
+        <h1>Hola, {{ session.alumno_nombre }}</h1>
+        <p class="text-muted" style="margin-top: -1.5rem; margin-bottom: 1.5rem;">N° Control: {{ session.alumno_ncontrol }}</p>
+
+        <div class="row">
+            <div class="col-lg-4">
+                
+                {% if datos.ESTATUS_ACTIVO and not datos.adeudos %}
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-header"><h4><i class="fas fa-check-circle"></i> Estatus</h4></div>
+                        <div class="card-body">
+                            <h5 class="card-title">¡Todo en orden!</h5>
+                            <p class="card-text">Estás **Activo** y no tienes adeudos. Puedes solicitar material con normalidad.</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="card text-white bg-danger mb-3">
+                        <div class="card-header"><h4><i class="fas fa-times-circle"></i> Estatus</h4></div>
+                        <div class="card-body">
+                            <h5 class="card-title">¡Atención Requerida!</h5>
+                            <p class="card-text">Tu cuenta está **Bloqueada**. Revisa tus adeudos pendientes.</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-acento-morado);">
+                            <i class="fas fa-exclamation-triangle"></i> Mis Adeudos Pendientes
+                        </h3>
+                        {% if datos.adeudos %}
+                            <ul class="list-group list-group-flush">
+                            {% for item in datos.adeudos %}
+                                <li class="list-group-item list-group-item-danger">
+                                    <strong>{{ item.NOMBRE }} (x{{ item.CANTIDAD_DANADA }})</strong>
+                                    <small class="d-block text-muted">Reportado: {{ item.FECHA_REGISTRO[:10] if item.FECHA_REGISTRO else 'N/A' }}</small>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">¡Felicidades! No tienes ningún material dañado pendiente de reponer.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-8">
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-acento-morado);">
+                            <i class="fas fa-box-open"></i> Mis Préstamos Actuales
+                        </h3>
+                        {% if datos.prestamos_activos %}
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Cantidad</th>
+                                        <th>Fecha de Préstamo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for item in datos.prestamos_activos %} 
+                                    <tr>
+                                        <td>{{ item.NOMBRE }}</td>
+                                        <td>{{ item.CANTIDAD_PRESTADA }}</td>
+                                        <td>{{ item.FECHA_HORA[:16] if item.FECHA_HORA else 'N/A' }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                            <p class="text-muted">No tienes ningún material prestado en este momento.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-acento-morado);">
+                            <i class="fas fa-history"></i> Mi Historial Reciente (Últimos 20)
+                        </h3>
+                        {% if datos.historial %}
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Cantidad</th>
+                                        <th>Fecha de Devolución</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for item in datos.historial %}
+                                    <tr>
+                                        <td>{{ item.NOMBRE }}</td>
+                                        <td>{{ item.CANTIDAD_PRESTADA }}</td>
+                                        <td>{{ item.FECHA_DEVOLUCION[:10] if item.FECHA_DEVOLUCION else 'N/A' }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                            <p class="text-muted">No tienes préstamos devueltos en tu historial.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                </div>
+
+        </div> </main> 
+
+    <div class="settings-fab-menu">
+        <div class="settings-options">
+            <button class="settings-option" id="btn-night-mode" title="Modo Noche">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+        <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
+            <i class="fas fa-cog"></i> 
+        </button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const settingsMenu = document.querySelector('.settings-fab-menu');
+            const settingsMainBtn = document.getElementById('btn-settings-main');
+            const nightModeBtn = document.getElementById('btn-night-mode');
+            const nightModeIcon = nightModeBtn.querySelector('i');
+            const currentTheme = localStorage.getItem('theme'); 
+    
+            if (currentTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                nightModeIcon.classList.remove('fa-moon');
+                nightModeIcon.classList.add('fa-sun');
+            }
+    
+            settingsMainBtn.addEventListener('click', function() {
+                settingsMenu.classList.toggle('active');
+            });
+    
+            nightModeBtn.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+    
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark');
+                    nightModeIcon.classList.remove('fa-moon');
+                    nightModeIcon.classList.add('fa-sun');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    nightModeIcon.classList.remove('fa-sun');
+                    nightModeIcon.classList.add('fa-moon');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

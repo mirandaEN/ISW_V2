@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Alumno - LabFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile.css') }}">
+    
+    <style>
+        .flash {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .flash.warning {
+            color: #ffda6a; background-color: #4d3800; border: 1px solid #805b00;
+        }
+        .flash.danger {
+            color: #f1b0b7; background-color: #58151c; border: 1px solid #8c232e;
+        }
+    </style>
+</head>
+<body id="login-page-body">
+
+    <div class="login-wrapper">
+
+        <div class="login-branding">
+            <img src="{{ url_for('static', filename='sources/labflow-bot.png') }}" class="mascot-logo" alt="Mascota de LabFlow">
+            <h2>Portal de Alumno</h2>
+            <p>Consulta tu historial de préstamos, adeudos y tu estatus en el laboratorio.</p>
+        </div>
+
+        <div class="login-form-area">
+            <img class="logo" src="{{ url_for('static', filename='sources/labflow-LG.png') }}" alt="Logo LabFlow">
+
+            <div class="form-container">
+                <h1>Bienvenido</h1>
+                <p class="subtitle">Inicia sesión con tu Número de Control.</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, msg in messages %}
+                            <div class="flash {{ category }}">{{ msg }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form action="{{ url_for('portal_login') }}" method="post">
+                    
+                    <div class="input-group">
+                        <input type="text" class="input" id="ncontrol" name="ncontrol" placeholder=" " maxlength="9" required />
+                        <label for="ncontrol">Número de Control</label>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="password" class="input" id="contrasena" name="contrasena" placeholder=" " maxlength="50" required />
+                        <label for="contrasena">Contraseña (la que creaste en el kiosko)</label>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="submit" class="submit" value="Entrar al Portal" >
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

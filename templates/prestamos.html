@@ -90,28 +90,28 @@
             margin-bottom: 1.5rem;
         }
         
-        /* 7. MODIFICADO: Modal "Frosted Glass" */
-        .modal-content {
-            background-color: rgba(255, 255, 255, 0); /* Un poco más opaco para legibilidad */
-            backdrop-filter: blur(10px);
-            margin: 5% auto;
-            padding: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 90%;
-            max-width: 550px;
-            border-radius: 16px; /* Redondeado */
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Borde sutil */
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-            background-color: transparent; /* QUITAMOS el fondo amarillo */
+        /* =================================================== */
+        /* --- ESTILOS PARA EL HEADER DEL MODAL DE DAÑO --- */
+        /* =================================================== */
+
+        /* Modo Claro: Fondo de advertencia amarillo */
+        #danoModal .modal-header {
+            background-color: #b57afa; /* Amarillo de advertencia */
             color: #333;
+            border-bottom: 1px solid #e0c78f;
         }
-        .modal-header h2 { margin: 0; font-size: 1.4em; }
+        
+        /* Modo Oscuro: Fondo de peligro rojo */
+        body.dark-mode #danoModal .modal-header {
+            background-color: #b57afa !important; /* Rojo de peligro */
+            color: #fff !important;
+            border-bottom-color: #a71d2a !important;
+        }
+        
+        /* Arreglo para el botón de cierre en modo oscuro */
+        body.dark-mode #danoModal .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
 
         /* --- ESTILOS FUNCIONALES (Sin cambios de diseño) --- */
         .btn-principal {
@@ -203,6 +203,22 @@ body.dark-mode #placeholder-material {
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
+
+        body.dark-mode input[type="number"]::-webkit-inner-spin-button,
+        body.dark-mode input[type="number"]::-webkit-outer-spin-button {
+            filter: invert(1);
+        }
+        /* =================================================== */
+        /* --- ¡ARREGLO! Flechas de Input numérico en Modo Oscuro --- */
+        /* =================================================== */
+
+        /* Esto aplica la regla al body Y a los modales */
+        body.dark-mode input[type="number"]::-webkit-inner-spin-button,
+        body.dark-mode input[type="number"]::-webkit-outer-spin-button,
+        body.dark-mode .modal-content input[type="number"]::-webkit-inner-spin-button,
+        body.dark-mode .modal-content input[type="number"]::-webkit-outer-spin-button {
+            filter: invert(1);
+        }
     </style>
 </head>
 <body>
@@ -412,32 +428,41 @@ body.dark-mode #placeholder-material {
             </div>
         </div>
     
-    </div> <div id="danoModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-exclamation-triangle"></i> Reportar Daño</h2>
-                <button type="button" class="close" onclick="closeModal('danoModal')">&times;</button>
+    </div> 
+    <div class="modal fade" id="danoModal" tabindex="-1" aria-labelledby="danoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ url_for('registrar_dano') }}" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="danoModalLabel">
+                            <i class="fas fa-exclamation-triangle"></i> Reportar Daño
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="dano_id_prestamo" name="id_prestamo">
+                        
+                        <div class="form-group">
+                            <label for="dano_material">Material Dañado</label>
+                            <select id="dano_material" name="id_material" class="form-select" required>
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dano_cantidad">Cantidad Dañada</label>
+                            <input type="number" id="dano_cantidad" name="cantidad_danada" class="form-control" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dano_motivo">Motivo del Daño *</label>
+                            <textarea id="dano_motivo" name="motivo" class="form-control" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        
+                        <button type="submit" class="btn btn-danger btn-principal">Registrar Daño</button>
+                    </div>
+                </form>
             </div>
-            <form action="{{ url_for('registrar_dano') }}" method="POST">
-                <input type="hidden" id="dano_id_prestamo" name="id_prestamo">
-                <div class="form-group">
-                    <label for="dano_material">Material Dañado</label>
-                    <select id="dano_material" name="id_material" class="form-select" required>
-                        <option value="">Cargando...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="dano_cantidad">Cantidad Dañada</label>
-                    <input type="number" id="dano_cantidad" name="cantidad_danada" class="form-control" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="dano_motivo">Motivo del Daño *</label>
-                    <textarea id="dano_motivo" name="motivo" class="form-control" rows="3" required></textarea>
-                </div>
-                <div class="d-grid mt-4">
-                    <button type="submit" class="btn btn-danger btn-principal">Registrar Daño</button>
-                </div>
-            </form>
         </div>
     </div>
     <div class="settings-fab-menu">
@@ -505,18 +530,42 @@ body.dark-mode #placeholder-material {
     };
 
     window.openDanoModal = function(button) {
-        if (!danoModalInstance) { // Inicializar el modal de Bootstrap la primera vez
-            const modalEl = document.getElementById('danoModal');
-            if (modalEl) danoModalInstance = new bootstrap.Modal(modalEl);
-            else { console.error("Elemento modal #danoModal no encontrado."); return; }
+        
+        // 1. Busca el elemento del modal en el DOM
+        const modalEl = document.getElementById('danoModal');
+        if (!modalEl) {
+            console.error("Error: Elemento modal #danoModal no encontrado."); 
+            return;
         }
+
+        // 2. Crea una instancia de Bootstrap Modal
+        // (Usamos 'new' para asegurar que sea una instancia fresca)
+        const danoModalInstance = new bootstrap.Modal(modalEl);
+
+        // 3. Obtiene el ID del préstamo desde el botón
         const idPrestamo = button.getAttribute('data-id-prestamo');
-        const dIdInput = document.getElementById('dano_id_prestamo');
-        const dSelect = document.getElementById('dano_material');
-        const dQtyInput = document.getElementById('dano_cantidad');
-        if (!dIdInput || !dSelect || !dQtyInput) { console.error("openDanoModal: Elementos no encontrados."); return; }
-        dIdInput.value = idPrestamo; dSelect.innerHTML = '<option value="">Cargando...</option>'; dSelect.disabled = true;
-        dQtyInput.value = 1; dQtyInput.max = 1;
+        
+        // 4. --- ¡AQUÍ ESTÁ EL ARREGLO! ---
+        // Buscamos los inputs DENTRO del 'modalEl', no en 'document'
+        const dIdInput = modalEl.querySelector('#dano_id_prestamo');
+        const dSelect = modalEl.querySelector('#dano_material');
+        const dQtyInput = modalEl.querySelector('#dano_cantidad');
+        // --- FIN DEL ARREGLO ---
+
+        // 5. Verificamos que los encontramos
+        if (!dIdInput || !dSelect || !dQtyInput) { 
+            console.error("Error: Elementos (inputs/select) no encontrados dentro del modal."); 
+            return; 
+        }
+
+        // 6. Rellenamos los valores iniciales
+        dIdInput.value = idPrestamo; 
+        dSelect.innerHTML = '<option value="">Cargando...</option>'; 
+        dSelect.disabled = true;
+        dQtyInput.value = 1; 
+        dQtyInput.max = 1;
+
+        // 7. Buscamos los materiales del préstamo
         fetch(`/api/prestamo/${idPrestamo}/materiales`)
             .then(response => {
                 if (response.status === 404) return response.json().then(err => { throw new Error(err.error || 'No hay materiales activos.'); });
@@ -526,23 +575,28 @@ body.dark-mode #placeholder-material {
             .then(materiales => {
                 dSelect.innerHTML = '<option value="" selected disabled>Selecciona...</option>';
                 if (materiales && materiales.length > 0) {
-                    materiales.forEach(m => { const o = document.createElement('option'); o.value = m.ID_MATERIAL; o.textContent = `${m.NOMBRE} (Act: ${m.CANTIDAD_PRESTADA})`; o.dataset.max = m.CANTIDAD_PRESTADA; dSelect.appendChild(o); });
+                    materiales.forEach(m => { 
+                        const o = document.createElement('option'); 
+                        o.value = m.ID_MATERIAL; 
+                        o.textContent = `${m.NOMBRE} (Act: ${m.CANTIDAD_PRESTADA})`; 
+                        o.dataset.max = m.CANTIDAD_PRESTADA; 
+                        dSelect.appendChild(o); 
+                    });
                     dSelect.disabled = false;
-                    danoModalInstance.show(); // Usar API de Bootstrap
-                } else { throw new Error('No se encontraron materiales activos.'); }
+                    danoModalInstance.show(); // ¡Mostramos el modal!
+                } else { 
+                    throw new Error('No se encontraron materiales activos.'); 
+                }
             })
-            .catch(error => { console.error('Error modal daño:', error); alert(error.message || 'No se pudo cargar lista.'); });
+            .catch(error => { 
+                console.error('Error modal daño:', error); 
+                alert(error.message || 'No se pudo cargar lista.'); 
+            });
     };
     
     // Función closeModal AHORA ES MANEJADA POR BOOTSTRAP (data-bs-dismiss)
     // Pero la dejamos por si acaso o para JS
-    window.closeModal = function(modalId) {
-         const modalEl = document.getElementById(modalId);
-         if (modalEl) {
-             const instance = bootstrap.Modal.getInstance(modalEl);
-             if (instance) instance.hide();
-         }
-    };
+    
 
     window.actualizarListaVisual = function() {
         const listaEl = document.getElementById('listaMaterialSeleccionado'); const inputEl = document.getElementById('materialesSeleccionadosInput'); const placeholderEl = document.getElementById('placeholder-material'); const tablaBodyEl = document.getElementById('tablaMaterialesBody');

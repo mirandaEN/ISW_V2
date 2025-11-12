@@ -149,6 +149,12 @@
         .btn-submit { background-color: var(--color-activo); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
         
         #logModal .table-responsive { max-height: 500px; }
+        body.dark-mode input[type="number"]::-webkit-inner-spin-button,
+        body.dark-mode input[type="number"]::-webkit-outer-spin-button,
+        body.dark-mode .modal-content input[type="number"]::-webkit-inner-spin-button,
+        body.dark-mode .modal-content input[type="number"]::-webkit-outer-spin-button {
+            filter: invert(1);
+        }
     </style>
 </head>
 <body> 
@@ -411,6 +417,23 @@
         <button class="settings-main-btn" id="btn-settings-main" title="Ajustes">
             <i class="fas fa-cog"></i> </button>
     </div>
+    <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #ffc107; color: #333;">
+                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Tu sesión está a punto de expirar.</p>
+                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión</button>
+                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar</button>
+                </div>
+            </div>
+        </div>
+   </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -614,6 +637,13 @@
                 }
             });
         });
+    </script>
+    <script>
+        // --- SCRIPT INACTIVIDAD (sin cambios) ---
+        const inactivityLimitSeconds = {{ inactivity_limit | default(300) }};
+        const warningTimeSeconds = 60;
+        let inactivityTimer, warningTimer, countdownValue, inactivityModal, isWarningModalShown = false;
+        function initializeModalInstance(){if(!inactivityModal){const e=document.getElementById("inactivityModal");e?inactivityModal=new bootstrap.Modal(e,{backdrop:"static",keyboard:!1}):console.error("Modal element #inactivityModal not found!")}}function handleUserActivity(){clearTimeout(inactivityTimer),isWarningModalShown&&hideInactivityWarning(),inactivityTimer=setTimeout(showInactivityWarning,(inactivityLimitSeconds-warningTimeSeconds)*1e3)}function showInactivityWarning(){isWarningModalShown=!0,countdownValue=warningTimeSeconds;const e=document.getElementById("inactiveTimeLeft");if(!e)return;e.textContent=countdownValue,initializeModalInstance();if(!inactivityModal)return;try{inactivityModal.show()}catch(e){return void console.error("Error showing modal:",e)}clearInterval(warningTimer),warningTimer=setInterval(()=>{countdownValue--,e&&(e.textContent=countdownValue),countdownValue<=0&&forceLogout()},1e3)}function hideInactivityWarning(){if(isWarningModalShown&&inactivityModal)try{const e=document.getElementById("inactivityModal"),t=bootstrap.Modal.getInstance(e);e&&t&&e.classList.contains("show")&&t.hide()}catch(e){console.error("Error hiding modal:",e)}isWarningModalShown=!1,clearInterval(warningTimer)}async function resetInactivityTimer(){hideInactivityWarning();try{const e=await fetch("{{ url_for('keepalive') }}");if(!e.ok)return console.warn("Server session seems expired. Redirecting to login."),void forceLogout();handleUserActivity()}catch(e){console.error("Error calling keepalive:",e),handleUserActivity()}}function forceLogout(){clearTimeout(inactivityTimer),clearInterval(warningTimer),window.location.href="{{ url_for('logout') }}?reason=inactivity"}document.addEventListener("click",handleUserActivity,!0),document.addEventListener("mousemove",handleUserActivity,!0),document.addEventListener("keypress",handleUserActivity,!0),document.addEventListener("scroll",handleUserActivity,!0),document.addEventListener("DOMContentLoaded",()=>{initializeModalInstance(),handleUserActivity()});
     </script>
     
     </body>

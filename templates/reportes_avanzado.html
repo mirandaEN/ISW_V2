@@ -1,235 +1,285 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes - Laboratorio</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
-    </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
-        <div class="container-fluid">
-          
-          <a class="navbar-brand fw-bold" href="{{ url_for('interface_admin') }}">
-              <i class="fas fa-flask me-1"></i>
-              Gestión Laboratorio
-          </a>
-          
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          
-          <div class="collapse navbar-collapse" id="navbarNavDropdown">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('interface_admin') }}">Inicio</a>
-                  </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('gestion_alumnos') }}">Alumnos</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('gestion_auxiliares') }}">Auxiliares</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="{{ url_for('reportes') }}">Reportes</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('mostrar_dashboard') }}">Predicciones</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-      
-    <div class="flash-messages-container-local">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, msg in messages %}
-                    <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
-                        {{ msg }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-
-    <header class="main-header">
-        <div class="header-content">
-            <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo ITS" class="logo">
-            <div class="header-text">
-                <h1>Instituto Tecnológico de Saltillo</h1>
-                <h2>Reportes y Estadísticas</h2>
-            </div>
-        </div>
-        <div class="header-actions">
-            
-            <a href="{{ url_for('descargar_reporte_excel') }}" class="excel-btn">
-                <i class="fas fa-file-excel me-1"></i> Descargar Excel
-            </a>
-        </div>
-    </header>
-
-    <main class="dashboard-grid">
-    
-        <div class="card kpi-card">
-            <h3><i class="fas fa-plug"></i> Préstamos Activos</h3>
-            <div class="kpi-value">{{ datos.activos_ahora }}</div>
-            <div class="kpi-label">Materiales en uso ahora</div>
-        </div>
-
-        <div class="card kpi-card">
-            <h3><i class="fas fa-calendar-day"></i> Préstamos Hoy</h3>
-            <div class="kpi-value">{{ datos.total_prestamos_hoy }}</div>
-            <div class="kpi-label">Vales generados hoy</div>
-        </div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reportes - Laboratorio</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         
-        <div class="card grid-col-span-2">
-            <h3><i class="fas fa-user-clock"></i> Auxiliares Activos</h3>
-            <ul id="lista-auxiliares-activos" class="list">
-                {% if datos.auxiliares_activos %}
-                    {% for aux in datos.auxiliares_activos %}
-                    <li>
-                        <span>{{ aux.USUARIO }}</span>
-                        <span class="value timer" data-login-time="{{ aux.FECHA_HORA }}">Calculando...</span>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/stile_inadmin.css') }}">
+        
+        <style>
+            .filter-container {
+                padding: 10px;
+                background-color: rgba(0, 0, 0, 0.03);
+                border-radius: 5px;
+            }
+            body.dark-mode .filter-container {
+                background-color: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .filter-container input::placeholder {
+                 color: #999;
+            }
+            body.dark-mode .filter-container input::placeholder {
+                color: #888 !important;
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-custom-guindo sticky-top shadow-sm">
+            <div class="container-fluid">
+              
+              <a class="navbar-brand fw-bold" href="{{ url_for('interface_admin') }}">
+                  <i class="fas fa-flask me-1"></i>
+                  Gestión Laboratorio
+              </a>
+              
+              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+              
+              <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('interface_admin') }}">Inicio</a>
+                      </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('prestamos') }}">Préstamos</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('gestion_danos') }}">Daños</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('gestion_alumnos') }}">Alumnos</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('gestion_auxiliares') }}">Auxiliares</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('soporte') }}">Soporte</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{{ url_for('reportes') }}">Reportes</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('mostrar_dashboard') }}">Predicciones</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </nav>
+          
+        <div class="flash-messages-container-local">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                        <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show" role="alert">
+                            {{ msg }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+    
+        <header class="main-header">
+            <div class="header-content">
+                <img src="{{ url_for('static', filename='sources/itislogo.png') }}" alt="Logo ITS" class="logo">
+                <div class="header-text">
+                    <h1>Instituto Tecnológico de Saltillo</h1>
+                    <h2>Reportes y Estadísticas</h2>
+                </div>
+            </div>
+            <div class="header-actions">
+                
+                <a href="{{ url_for('descargar_reporte_excel') }}" class="excel-btn">
+                    <i class="fas fa-file-excel me-1"></i> Descargar Excel
+                </a>
+            </div>
+        </header>
+    
+        <main class="dashboard-grid">
+        
+            <div class="card kpi-card">
+                <h3><i class="fas fa-plug"></i> Préstamos Activos</h3>
+                <div class="kpi-value">{{ datos.activos_ahora }}</div>
+                <div class="kpi-label">Materiales en uso ahora</div>
+            </div>
+            <div class="card kpi-card">
+                <h3><i class="fas fa-calendar-day"></i> Préstamos Hoy</h3>
+                <div class="kpi-value">{{ datos.total_prestamos_hoy }}</div>
+                <div class="kpi-label">Vales generados hoy</div>
+            </div>
+            
+            <div class="card grid-col-span-2">
+                <h3><i class="fas fa-user-clock"></i> Auxiliares Activos</h3>
+                
+                <div class="filter-container mb-2 p-2">
+                    <input type="text" id="filtroAuxiliares" class="form-control form-control-sm" placeholder="Buscar auxiliar por nombre...">
+                </div>
+    
+                <ul id="lista-auxiliares-activos" class="list">
+                    {% if datos.auxiliares_activos %}
+                        {% for aux in datos.auxiliares_activos %}
+                        <li class="fila-filtrable-auxiliar" data-nombre="{{ aux.USUARIO.upper() }}">
+                            <span>{{ aux.USUARIO }}</span>
+                            <span class="value timer" data-login-time="{{ aux.FECHA_HORA }}">Calculando...</span>
+                        </li>
+                        {% endfor %}
+                        <li id="no-auxiliar-encontrado" style="display: none; justify-content: center;" class="text-muted fst-italic">No se encontraron auxiliares.</li>
+                    {% else %}
+                        <li style="justify-content: center;" class="text-muted fst-italic">No hay auxiliares activos.</li>
+                    {% endif %}
+                </ul>
+            </div>
+    
+            <div class="card grid-col-span-2">
+                <h3><i class="fas fa-history"></i> Préstamos Recientes (Hoy)</h3>
+                
+                <div class="filter-container mb-2 p-2">
+                    <input type="text" id="filtroPrestamos" class="form-control form-control-sm" placeholder="Buscar por Alumno, No. Control o Estatus...">
+                </div>
+    
+                <div class="table-wrapper">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>ID Vale</th><th>Hora</th><th>Alumno</th><th>No. Control</th><th>Auxiliar</th><th>Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-prestamos-recientes"> {% if datos.prestamos_de_hoy %}
+                                {% for prestamo in datos.prestamos_de_hoy %}
+                                <tr class="fila-filtrable-prestamos" 
+                                    data-nombre="{{ prestamo.ALUMNO.upper() }}" 
+                                    data-control="{{ prestamo.NUMEROCONTROL }}" 
+                                    data-estatus="{{ (prestamo.ESTATUS or 'N/A').upper() }}">
+                                    <td>{{ prestamo.ID_PRESTAMO }}</td>
+                                    <td>{{ prestamo.FECHA_HORA[11:19] if prestamo.FECHA_HORA else 'N/A' }}</td>
+                                    <td>{{ prestamo.ALUMNO }}</td>
+                                    <td>{{ prestamo.NUMEROCONTROL }}</td>
+                                    <td>{{ prestamo.AUXILIAR }}</td>
+                                    <td>
+                                        {% set status = prestamo.ESTATUS or 'Desconocido' %}
+                                        <span class="status-dot {{ status }}"></span>
+                                        {{ status }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr id="no-prestamo-encontrado" style="display: none;"><td colspan="6" class="text-center text-muted fst-italic py-3">No se encontraron préstamos.</td></tr>
+                            {% else %}
+                                <tr><td colspan="6" class="text-center text-muted fst-italic py-3">No se han registrado préstamos hoy.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+    
+            <div class="card">
+                <h3><i class="fas fa-star"></i> Top 5 Materiales Más Pedidos</h3>
+                <div class="chart-container">
+                    <canvas id="topMaterialesChart"></canvas>
+                </div>
+                {% if not datos.top_materiales_pedidos %}
+                 <p class="text-center text-muted fst-italic mt-3">No hay datos suficientes para mostrar el gráfico.</p>
+                {% endif %}
+            </div>
+    
+            <div class="card">
+                <h3><i class="fas fa-exclamation-triangle text-warning"></i> Préstamos Vencidos (+1 hora)</h3>
+                
+                <div class="filter-container mb-2 p-2">
+                    <input type="text" id="filtroVencidos" class="form-control form-control-sm" placeholder="Buscar por Alumno o No. Control...">
+                </div>
+    
+                {% if datos.prestamos_vencidos %}
+                <ul id="lista-prestamos-vencidos" class="list"> {% for item in datos.prestamos_vencidos %}
+                    <li class="fila-filtrable-vencidos" 
+                        data-nombre="{{ item.NOMBRE.upper() }}"
+                        data-control="{{ item.NUMEROCONTROL }}">
+                        <span>{{ item.NOMBRE }} ({{ item.NUMEROCONTROL }})</span>
+                        <span class="date">Inició: {{ item.FECHA_HORA[:16] if item.FECHA_HORA else 'N/A' }}</span>
                     </li>
                     {% endfor %}
+                    <li id="no-vencido-encontrado" style="display: none; justify-content: center;" class="text-muted fst-italic">No se encontraron préstamos.</li>
+                </ul>
                 {% else %}
-                    <li style="justify-content: center;" class="text-muted fst-italic">No hay auxiliares activos.</li>
+                <p class="text-muted fst-italic">No hay préstamos vencidos actualmente.</p>
                 {% endif %}
-            </ul>
-        </div>
-
-        <div class="card grid-col-span-2">
-            <h3><i class="fas fa-history"></i> Préstamos Recientes (Hoy)</h3>
-            <div class="table-wrapper">
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>ID Vale</th><th>Hora</th><th>Alumno</th><th>No. Control</th><th>Auxiliar</th><th>Estatus</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if datos.prestamos_de_hoy %}
-                            {% for prestamo in datos.prestamos_de_hoy %}
-                            <tr>
-                                <td>{{ prestamo.ID_PRESTAMO }}</td>
-                                <td>{{ prestamo.FECHA_HORA[11:19] if prestamo.FECHA_HORA else 'N/A' }}</td>
-                                <td>{{ prestamo.ALUMNO }}</td>
-                                <td>{{ prestamo.NUMEROCONTROL }}</td>
-                                <td>{{ prestamo.AUXILIAR }}</td>
-                                <td>
-                                    {% set status = prestamo.ESTATUS or 'Desconocido' %}
-                                    <span class="status-dot {{ status }}"></span>
-                                    {{ status }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr><td colspan="6" class="text-center text-muted fst-italic py-3">No se han registrado préstamos hoy.</td></tr>
-                        {% endif %}
-                    </tbody>
-                </table>
             </div>
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-star"></i> Top 5 Materiales Más Pedidos</h3>
+    
+            <div class="card">
+                <h3><i class="fas fa-layer-group"></i> Top 5 Semestres (Préstamos)</h3>
+                {% if datos.top_semestres %}
+                <ul class="list">
+                    {% for item in datos.top_semestres %}
+                    <li><span>{{ item.SEMESTRE }}° Semestre</span> <span class="value">{{ item.TOTAL_PRESTAMOS }}</span></li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted fst-italic">No hay datos de préstamos.</p>
+                {% endif %}
+            </div>
             
-            <div class="chart-container">
-                <canvas id="topMaterialesChart"></canvas>
+            <div class="card">
+                <h3><i class="fas fa-heart-broken text-danger"></i> Top 5 Materiales Dañados</h3>
+                {% if datos.top_danos %}
+                <ul class="list">
+                    {% for item in datos.top_danos %}
+                    <li><span>{{ item.NOMBRE }}</span> <span class="value">{{ item.TOTAL_DANADO }}</span></li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted fst-italic">No se han registrado daños.</p>
+                {% endif %}
             </div>
-   
-            {% if not datos.top_materiales_pedidos %}
-             <p class="text-center text-muted fst-italic mt-3">No hay datos suficientes para mostrar el gráfico.</p>
-            {% endif %}
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-exclamation-triangle text-warning"></i> Préstamos Vencidos (+1 hora)</h3>
-            {% if datos.prestamos_vencidos %}
-            <ul class="list">
-                {% for item in datos.prestamos_vencidos %}
-                <li>
-                    <span>{{ item.NOMBRE }} ({{ item.NUMEROCONTROL }})</span>
-                    <span class="date">Inició: {{ item.FECHA_HORA[:16] if item.FECHA_HORA else 'N/A' }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted fst-italic">No hay préstamos vencidos actualmente.</p>
-            {% endif %}
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-layer-group"></i> Top 5 Semestres (Préstamos)</h3>
-            {% if datos.top_semestres %}
-            <ul class="list">
-                {% for item in datos.top_semestres %}
-                <li><span>{{ item.SEMESTRE }}° Semestre</span> <span class="value">{{ item.TOTAL_PRESTAMOS }}</span></li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted fst-italic">No hay datos de préstamos.</p>
-            {% endif %}
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-heart-broken text-danger"></i> Top 5 Materiales Dañados</h3>
-            {% if datos.top_danos %}
-            <ul class="list">
-                {% for item in datos.top_danos %}
-                <li><span>{{ item.NOMBRE }}</span> <span class="value">{{ item.TOTAL_DANADO }}</span></li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted fst-italic">No se han registrado daños.</p>
-            {% endif %}
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-archive text-secondary"></i> Materiales Nunca Prestados</h3>
-            {% if datos.stock_muerto %}
-            <ul class="list" style="max-height: 200px; overflow-y: auto;">
-                {% for item in datos.stock_muerto %}
-                <li><span>{{ item.NOMBRE }}</span> <span class="value">Stock: {{ item.CANTIDAD_DISPONIBLE }}</span></li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted fst-italic">Todos los materiales han sido prestados.</p>
-            {% endif %}
-        </div>
-        
-        <div class="card">
-            <h3><i class="fas fa-user-lock text-warning"></i> Logins Fallidos (Auxiliares)</h3>
-            {% if datos.logins_fallidos %}
-            <ul class="list">
-                {% for item in datos.logins_fallidos %}
-                <li><span>{{ item.USUARIO }}</span> <span class="value">{{ item.INTENTOS_FALLIDOS }} intentos</span></li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted fst-italic">No hay registros de intentos fallidos.</p>
-            {% endif %}
-        </div>
-
-    </main> 
+    
+            <div class="card">
+                <h3><i class="fas fa-archive text-secondary"></i> Materiales Nunca Prestados</h3>
+                
+                <div class="filter-container mb-2 p-2">
+                    <input type="text" id="filtroStockMuerto" class="form-control form-control-sm" placeholder="Buscar material...">
+                </div>
+    
+                {% if datos.stock_muerto %}
+                <ul id="lista-stock-muerto" class="list" style="max-height: 200px; overflow-y: auto;"> {% for item in datos.stock_muerto %}
+                    <li class="fila-filtrable-stock" data-nombre="{{ item.NOMBRE.upper() }}">
+                        <span>{{ item.NOMBRE }}</span> <span class="value">Stock: {{ item.CANTIDAD_DISPONIBLE }}</span>
+                    </li>
+                    {% endfor %}
+                    <li id="no-stock-encontrado" style="display: none; justify-content: center;" class="text-muted fst-italic">No se encontraron materiales.</li>
+                </ul>
+                {% else %}
+                <p class="text-muted fst-italic">Todos los materiales han sido prestados.</p>
+                {% endif %}
+            </div>
+            
+            <div class="card">
+                <h3><i class="fas fa-user-lock text-warning"></i> Logins Fallidos (Auxiliares)</h3>
+                
+                <div class="filter-container mb-2 p-2">
+                    <input type="text" id="filtroLogins" class="form-control form-control-sm" placeholder="Buscar auxiliar...">
+                </div>
+    
+                {% if datos.logins_fallidos %}
+                <ul id="lista-logins-fallidos" class="list"> {% for item in datos.logins_fallidos %}
+                    <li class="fila-filtrable-logins" data-nombre="{{ item.USUARIO.upper() }}">
+                        <span>{{ item.USUARIO }}</span> <span class="value">{{ item.INTENTOS_FALLIDOS }} intentos</span>
+                    </li>
+                    {% endfor %}
+                    <li id="no-login-encontrado" style="display: none; justify-content: center;" class="text-muted fst-italic">No se encontraron auxiliares.</li>
+                </ul>
+                {% else %}
+                <p class="text-muted fst-italic">No hay registros de intentos fallidos.</p>
+                {% endif %}
+            </div>
+    
+        </main>
     
     <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
          <div class="modal-dialog modal-dialog-centered">
@@ -367,50 +417,122 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // --- 1. REFERENCIAS A LOS ELEMENTOS ---
+            // --- 1. LÓGICA DE FILTROS MÚLTIPLES ---
+            
+            /**
+             * Función genérica para crear un filtro de búsqueda en una lista o tabla.
+             * @param {string} inputId - El ID del <input> de búsqueda.
+             * @param {string} listContainerId - El ID del <ul> o <tbody> que contiene las filas.
+             * @param {string} rowSelector - El selector CSS para cada fila (ej: '.fila-filtrable').
+             * @param {Array<string>} dataAttributes - Un array de 'data-attributes' por los que buscar (ej: ['data-nombre', 'data-control']).
+             * @param {string} noResultsId - El ID del <li> o <tr> de "No encontrado".
+             */
+            function setupFilter(inputId, listContainerId, rowSelector, dataAttributes, noResultsId) {
+                const input = document.getElementById(inputId);
+                const container = document.getElementById(listContainerId);
+                const noResultsElement = document.getElementById(noResultsId);
+
+                if (!input || !container) {
+                    // console.warn(`Filtro no inicializado: Faltan ${inputId} o ${listContainerId}`);
+                    return;
+                }
+
+                input.addEventListener('keyup', function() {
+                    const texto = input.value.toUpperCase().trim();
+                    const filas = container.querySelectorAll(rowSelector);
+                    let itemsVisibles = 0;
+
+                    filas.forEach(fila => {
+                        let encontrado = false;
+                        
+                        // Si no hay texto, mostrar todo
+                        if (texto === '') {
+                            encontrado = true;
+                        } else {
+                            // Buscar en cada atributo de datos
+                            for (const attr of dataAttributes) {
+                                const valor = fila.getAttribute(attr) || '';
+                                if (valor.includes(texto)) {
+                                    encontrado = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Mostrar u ocultar la fila
+                        fila.style.display = encontrado ? "" : "none";
+                        // Re-ajustar display para <li> (flex) vs <tr> (table-row)
+                        if (encontrado && fila.tagName === 'LI') {
+                            fila.style.display = "flex";
+                        } else if (encontrado && fila.tagName === 'TR') {
+                            fila.style.display = "table-row";
+                        }
+
+                        if (encontrado) {
+                            itemsVisibles++;
+                        }
+                    });
+
+                    // Mostrar/Ocultar el mensaje "No se encontraron"
+                    if (noResultsElement) {
+                        let displayStyle = 'none';
+                        if (itemsVisibles === 0 && filas.length > 0) {
+                            displayStyle = (noResultsElement.tagName === 'LI') ? 'flex' : 'table-row';
+                        }
+                        noResultsElement.style.display = displayStyle;
+                    }
+                });
+            }
+
+            // Configurar todos los filtros de la página
+            setupFilter('filtroAuxiliares', 'lista-auxiliares-activos', '.fila-filtrable-auxiliar', ['data-nombre'], 'no-auxiliar-encontrado');
+            setupFilter('filtroPrestamos', 'tabla-prestamos-recientes', '.fila-filtrable-prestamos', ['data-nombre', 'data-control', 'data-estatus'], 'no-prestamo-encontrado');
+            setupFilter('filtroVencidos', 'lista-prestamos-vencidos', '.fila-filtrable-vencidos', ['data-nombre', 'data-control'], 'no-vencido-encontrado');
+            setupFilter('filtroStockMuerto', 'lista-stock-muerto', '.fila-filtrable-stock', ['data-nombre'], 'no-stock-encontrado');
+            setupFilter('filtroLogins', 'lista-logins-fallidos', '.fila-filtrable-logins', ['data-nombre'], 'no-login-encontrado');
+
+            
+            // --- 2. LÓGICA DEL MENÚ FLOTANTE (TU CÓDIGO) ---
             const settingsMenu = document.querySelector('.settings-fab-menu');
             const settingsMainBtn = document.getElementById('btn-settings-main');
             const nightModeBtn = document.getElementById('btn-night-mode');
             const nightModeIcon = nightModeBtn.querySelector('i');
             const currentTheme = localStorage.getItem('theme'); // Revisa el tema guardado
     
-            // --- 2. APLICAR TEMA AL CARGAR LA PÁGINA ---
             if (currentTheme === 'dark') {
                 document.body.classList.add('dark-mode');
                 nightModeIcon.classList.remove('fa-moon');
-                nightModeIcon.classList.add('fa-sun'); // Pone el sol si ya está oscuro
+                nightModeIcon.classList.add('fa-sun');
             }
     
-            // --- 3. LÓGICA PARA ABRIR/CERRAR EL MENÚ DE "BOLITAS" ---
-            settingsMainBtn.addEventListener('click', function() {
-                settingsMenu.classList.toggle('active');
-            });
+            if (settingsMainBtn) {
+                settingsMainBtn.addEventListener('click', function() {
+                    settingsMenu.classList.toggle('active');
+                });
+            }
     
-            // --- 4. LÓGICA PARA EL BOTÓN DE MODO NOCHE ---
-            nightModeBtn.addEventListener('click', function() {
-                // Activa/desactiva la clase en el BODY
-                document.body.classList.toggle('dark-mode');
+            if (nightModeBtn) {
+                nightModeBtn.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
     
-                // Guarda la preferencia en el navegador
-                if (document.body.classList.contains('dark-mode')) {
-                    localStorage.setItem('theme', 'dark'); // Guardar como oscuro
-                    nightModeIcon.classList.remove('fa-moon');
-                    nightModeIcon.classList.add('fa-sun'); // Cambia a icono de sol
-                } else {
-                    localStorage.setItem('theme', 'light'); // Guardar como claro
-                    nightModeIcon.classList.remove('fa-sun');
-                    nightModeIcon.classList.add('fa-moon'); // Cambia a icono de luna
-                }
-                
-                // --- ¡IMPORTANTE! ---
-                // Vuelve a dibujar el gráfico con los colores correctos
-                initializeReportesScripts(); 
-            });
+                    if (document.body.classList.contains('dark-mode')) {
+                        localStorage.setItem('theme', 'dark');
+                        nightModeIcon.classList.remove('fa-moon');
+                        nightModeIcon.classList.add('fa-sun');
+                    } else {
+                        localStorage.setItem('theme', 'light');
+                        nightModeIcon.classList.remove('fa-sun');
+                        nightModeIcon.classList.add('fa-moon');
+                    }
+                    
+                    // Vuelve a dibujar el gráfico con los colores correctos
+                    initializeReportesScripts(); 
+                });
+            }
             
-            // Vuelve a dibujar el gráfico si el tema ya era oscuro al cargar
-             if (currentTheme === 'dark') {
-                 initializeReportesScripts();
-             }
+            // --- 3. INICIALIZACIÓN DE LA PÁGINA (TU CÓDIGO) ---
+            initializeReportesScripts();
+             
         });
     </script>
     </body>

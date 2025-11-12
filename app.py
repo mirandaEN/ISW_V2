@@ -1,9 +1,11 @@
-# ¡Nuevas importaciones!
-from werkzeug.utils import secure_filename
-from werkzeug.exceptions import RequestEntityTooLarge # Para límite de tamaño
-import uuid # Para nombres de archivo únicos
-from dotenv import load_dotenv
 import os
+os.environ['PKG_CONFIG_PATH'] = '/opt/homebrew/lib/pkgconfig'
+os.environ['DYLD_LIBRARY_PATH'] = '/opt/homebrew/lib'
+
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge 
+import uuid
+from dotenv import load_dotenv
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
@@ -1282,43 +1284,112 @@ def upload_profile_pic():
     
 @app.route('/descargar_reporte_excel')
 def descargar_reporte_excel():
-    # Verifica que el usuario sea admin
+    # 1. Verifica que el usuario sea admin
     if session.get('user_rol') != 'admin':
         return "Acceso no autorizado.", 403
 
-    # Intenta conectar a la BD
+    # 2. Intenta conectar a la BD
     conn = get_db_connection()
     if not conn:
         flash("Error de conexión para generar el reporte.", "danger")
         return redirect(url_for('reportes'))
 
     try:
-        # Prepara el archivo Excel en memoria
+        # 3. Prepara el archivo Excel en memoria
         output = io.BytesIO()
         writer = pd.ExcelWriter(output, engine='openpyxl') 
 
-        # --- HOJAS DE REPORTE EXISTENTES ---
+        # ====================================================================
+        # --- ¡NUEVA! HOJA 1: RESUMEN DE KPIs ---
+        # ====================================================================
+        cursor = conn.cursor()
         
-        # 1. Préstamos Vencidos
+        # KPI 1: Préstamos Activos
+        cursor.execute("SELECT COUNT(*) FROM PRESTAMOS WHERE ESTATUS = 'Activo'")
+        activos_ahora = cursor.fetchone()[0] or 0
+        
+        # KPI 2: Préstamos Hoy
+        cursor.execute("SELECT COUNT(*) FROM PRESTAMOS WHERE FECHA_HORA >= TRUNC(LOCALTIMESTAMP)")
+        total_hoy = cursor.fetchone()[0] or 0
+        
+        # KPI 3: Total Alumnos Activos (Extra)
+        cursor.execute("SELECT COUNT(*) FROM ALUMNOS WHERE ACTIVO = 1")
+        total_alumnos = cursor.fetchone()[0] or 0
+
+        # KPI 4: Total Materiales Dañados (Extra)
+        cursor.execute("SELECT SUM(CANTIDAD_DANADA) FROM MATERIALES")
+        total_danados = cursor.fetchone()[0] or 0
+        
+        # Crear el DataFrame para el Resumen
+        kpi_data = {
+            'Métrica': [
+                'Préstamos Activos (en este momento)', 
+                'Préstamos Totales Generados Hoy',
+                'Total de Alumnos Activos',
+                'Unidades de Material Dañadas (Pendientes)'
+            ],
+            'Valor': [
+                activos_ahora, 
+                total_hoy,
+                total_alumnos,
+                total_danados
+            ]
+        }
+        pd.DataFrame(kpi_data).to_excel(writer, sheet_name='Resumen', index=False)
+        
+        # (Ya no necesitamos el cursor para lo demás)
+        cursor.close()
+
+        # ====================================================================
+        # --- ¡NUEVA! HOJA 2: PRÉSTAMOS RECIENTES (HOY) ---
+        # ====================================================================
+        query_prestamos_hoy = """
+            SELECT p.ID_PRESTAMO, p.FECHA_HORA, p.ESTATUS,
+                   u.USUARIO AS AUXILIAR,
+                   a.NOMBRE AS ALUMNO, a.NUMEROCONTROL
+            FROM PRESTAMOS p
+            JOIN USUARIOS u ON p.ID_AUXILIAR = u.ID
+            JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO
+            WHERE p.FECHA_HORA >= TRUNC(LOCALTIMESTAMP)
+            ORDER BY p.FECHA_HORA DESC
+        """
+        pd.read_sql(query_prestamos_hoy, conn).to_excel(writer, sheet_name='Prestamos Recientes (Hoy)', index=False)
+
+        # ====================================================================
+        # --- ¡NUEVA! HOJA 3: AUXILIARES ACTIVOS ---
+        # ====================================================================
+        query_auxiliares_activos = """
+            WITH LastActivity AS (
+                SELECT r.ID_USUARIO, r.TIPO_ACCION, r.FECHA_HORA, u.USUARIO,
+                       ROW_NUMBER() OVER(PARTITION BY r.ID_USUARIO ORDER BY r.FECHA_HORA DESC) as rn
+                FROM REGISTRO_ACTIVIDAD r JOIN USUARIOS u ON r.ID_USUARIO = u.ID WHERE u.TIPO = 1
+            ) SELECT USUARIO, FECHA_HORA FROM LastActivity WHERE rn = 1 AND TIPO_ACCION = 'INICIO_SESION' ORDER BY FECHA_HORA ASC
+        """
+        pd.read_sql(query_auxiliares_activos, conn).to_excel(writer, sheet_name='Auxiliares Activos', index=False)
+
+        # ====================================================================
+        # --- HOJAS DE REPORTE EXISTENTES (LAS QUE YA TENÍAS) ---
+        # ====================================================================
+        
+        # Hoja 4: Préstamos Vencidos
         pd.read_sql("SELECT a.NOMBRE, a.NUMEROCONTROL, p.FECHA_HORA FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO WHERE p.ESTATUS = 'Activo' AND (LOCALTIMESTAMP - p.FECHA_HORA) > INTERVAL '1' HOUR ORDER BY p.FECHA_HORA ASC", conn).to_excel(writer, sheet_name='Prestamos Vencidos', index=False)
         
-        # 2. Materiales Más Dañados
+        # Hoja 5: Materiales Más Dañados
         pd.read_sql("SELECT m.NOMBRE, SUM(rd.CANTIDAD_DANADA) AS TOTAL_DANADO FROM REGISTRO_DANOS rd JOIN MATERIALES m ON rd.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL_DANADO DESC", conn).to_excel(writer, sheet_name='Materiales Mas Danados', index=False)
         
-        # 3. Top Materiales Pedidos
+        # Hoja 6: Top Materiales Pedidos
         pd.read_sql("SELECT m.NOMBRE, SUM(dp.CANTIDAD_PRESTADA) as TOTAL FROM DETALLE_PRESTAMO dp JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL GROUP BY m.NOMBRE ORDER BY TOTAL DESC FETCH FIRST 5 ROWS ONLY", conn).to_excel(writer, sheet_name='Top Materiales Pedidos', index=False)
         
-        # 4. Stock Muerto (Materiales nunca prestados)
+        # Hoja 7: Stock Muerto (Materiales nunca prestados)
         pd.read_sql("SELECT NOMBRE, CANTIDAD_DISPONIBLE FROM MATERIALES WHERE ID_MATERIAL NOT IN (SELECT DISTINCT ID_MATERIAL FROM DETALLE_PRESTAMO)", conn).to_excel(writer, sheet_name='Stock Muerto', index=False)
         
-        # 5. Uso por Semestre
+        # Hoja 8: Uso por Semestre
         pd.read_sql("SELECT a.SEMESTRE, COUNT(p.ID_PRESTAMO) AS TOTAL_PRESTAMOS FROM PRESTAMOS p JOIN ALUMNOS a ON p.ID_ALUMNO = a.ID_ALUMNO GROUP BY a.SEMESTRE ORDER BY TOTAL_PRESTAMOS DESC", conn).to_excel(writer, sheet_name='Uso por Semestre', index=False)
         
-        # 6. Logins Fallidos de Auxiliares
+        # Hoja 9: Logins Fallidos de Auxiliares
         pd.read_sql("SELECT USUARIO, INTENTOS_FALLIDOS FROM USUARIOS WHERE TIPO = 1 AND INTENTOS_FALLIDOS > 0 ORDER BY INTENTOS_FALLIDOS DESC", conn).to_excel(writer, sheet_name='Logins Fallidos Auxiliares', index=False)
 
-        # --- ¡NUEVA HOJA PARA ALUMNOS! ---
-        # 7. Lista Completa de Alumnos
+        # Hoja 10: Lista Completa de Alumnos (La que mencionaste)
         query_alumnos = """
             SELECT 
                 NOMBRE, 
@@ -1331,13 +1402,12 @@ def descargar_reporte_excel():
             ORDER BY NOMBRE
         """
         pd.read_sql(query_alumnos, conn).to_excel(writer, sheet_name='Lista Alumnos', index=False)
-        # --- FIN DE NUEVA HOJA ---
 
-        # Cierra el escritor de Excel y prepara el archivo para descarga
+        # 4. Cierra el escritor de Excel y prepara el archivo para descarga
         writer.close() 
         output.seek(0) # Regresa al inicio del archivo en memoria
 
-        # Envía el archivo al navegador
+        # 5. Envía el archivo al navegador
         return send_file(
             output, 
             download_name='Reporte_Laboratorio.xlsx', 
@@ -2173,7 +2243,7 @@ def registrar_prestamo():
 
 @app.route('/devolver_prestamo', methods=['POST'])
 def devolver_prestamo():
-     # ... (código sin cambios)
+
     if 'user_id' not in session: return redirect(url_for('login_page'))
     id_prestamo = request.form.get('id_prestamo')
     if not id_prestamo:
@@ -2645,6 +2715,222 @@ def encriptar_pdf(pdf_bytes_sin_encriptar, password):
 # ====================================================================
 # --- FIN: API DE AUTO-REGISTRO PARA KIOSKO ---
 # ====================================================================
+def autenticar_alumno(ncontrol, contrasena):
+    """
+    Verifica las credenciales de un alumno contra la tabla ALUMNOS.
+    """
+    conn = get_db_connection()
+    if not conn: 
+        return (False, None, "Error de conexión con la base de datos.")
+    
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Buscar al alumno por N° de Control y que esté ACTIVO
+        cursor.execute("""
+            SELECT ID_ALUMNO, NOMBRE, PASSWORD_HASH, ACTIVO 
+            FROM ALUMNOS 
+            WHERE NUMEROCONTROL = :nc
+            """, nc=ncontrol)
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return (False, None, "Número de control o contraseña incorrectos.")
 
+        id_db, nombre_db, pwd_db_hash, activo_db = row
+
+        # 2. Verificar que la cuenta esté activa
+        if activo_db == 0:
+            return (False, None, "Esta cuenta de alumno está inactiva. Contacta al administrador.")
+
+        # 3. Verificar la contraseña hasheada
+        # Usamos la misma función 'check_password' que usas para los admins
+        if check_password(contrasena, pwd_db_hash):
+            # ¡Éxito!
+            datos_alumno = {'id': id_db, 'nombre': nombre_db, 'ncontrol': ncontrol}
+            return (True, datos_alumno, "Acceso concedido.")
+        else:
+            # Contraseña incorrecta
+            return (False, None, "Número de control o contraseña incorrectos.")
+
+    except Exception as e:
+        print(f"Error Oracle en autenticar_alumno: {e}"); 
+        traceback.print_exc()
+        return (False, None, "Error de base de datos. Revisa la consola.")
+    finally:
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+
+
+
+
+
+
+def autenticar_alumno(ncontrol, contrasena):
+    """
+    Verifica las credenciales de un alumno contra la tabla ALUMNOS.
+    """
+    conn = get_db_connection()
+    if not conn: 
+        return (False, None, "Error de conexión con la base de datos.")
+    
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Buscar al alumno por N° de Control y que esté ACTIVO
+        cursor.execute("""
+            SELECT ID_ALUMNO, NOMBRE, PASSWORD_HASH, ACTIVO 
+            FROM ALUMNOS 
+            WHERE NUMEROCONTROL = :nc
+            """, nc=ncontrol)
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return (False, None, "Número de control o contraseña incorrectos.")
+
+        # ¡OJO! Asumo que tu tabla ALUMNOS tiene estas columnas
+        id_db, nombre_db, pwd_db_hash, activo_db = row
+
+        # 2. Verificar que la cuenta esté activa
+        if activo_db == 0:
+            return (False, None, "Esta cuenta de alumno está inactiva. Contacta al administrador.")
+
+        # 3. Verificar la contraseña hasheada
+        # Usamos la misma función 'check_password' que usas para los admins
+        if check_password(contrasena, pwd_db_hash):
+            # ¡Éxito!
+            datos_alumno = {'id': id_db, 'nombre': nombre_db, 'ncontrol': ncontrol}
+            return (True, datos_alumno, "Acceso concedido.")
+        else:
+            # Contraseña incorrecta
+            return (False, None, "Número de control o contraseña incorrectos.")
+
+    except Exception as e:
+        print(f"Error Oracle en autenticar_alumno: {e}"); 
+        traceback.print_exc()
+        # ¡IMPORTANTE! Revisa si tu tabla ALUMNOS ya tiene la columna PASSWORD_HASH
+        if 'PASSWORD_HASH' in str(e):
+            print("ERROR GRAVE: La tabla 'ALUMNOS' no parece tener la columna 'PASSWORD_HASH'.")
+            return (False, None, "Error de configuración del portal. Contacta al admin.")
+        return (False, None, "Error de base de datos. Revisa la consola.")
+    finally:
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+
+
+@app.route("/portal/login", methods=["GET", "POST"])
+def portal_login():
+    """
+    Página de inicio de sesión PARA ALUMNOS.
+    """
+    if request.method == "POST":
+        ncontrol = request.form.get("ncontrol", "").strip().upper()
+        contrasena = request.form.get("contrasena", "").strip()
+        
+        if not ncontrol or not contrasena:
+            flash("Ambos campos son obligatorios.", "danger")
+            return redirect(url_for('portal_login'))
+        
+        es_valido, datos_alumno, mensaje = autenticar_alumno(ncontrol, contrasena)
+        
+        if es_valido:
+            # --- ¡IMPORTANTE! Creamos una sesión de ALUMNO ---
+            session.permanent = True
+            session['alumno_id'] = datos_alumno['id']
+            session['alumno_nombre'] = datos_alumno['nombre']
+            session['alumno_ncontrol'] = datos_alumno['ncontrol']
+            
+            # Redirigir al portal principal del alumno
+            return redirect(url_for("portal_alumno"))
+        else:
+            flash(mensaje, "danger")
+            return redirect(url_for('portal_login'))
+
+    # Si es GET, solo muestra la página de login
+    # (Asegúrate de haber creado 'portal_login.html' en tu carpeta 'templates')
+    return render_template("portal_login.html")
+
+
+@app.route("/portal")
+def portal_alumno():
+    """
+    La página principal del portal del alumno, protegida por sesión.
+    """
+    # 1. Seguridad: Verificar que un alumno haya iniciado sesión
+    if 'alumno_id' not in session:
+        flash("Por favor, inicia sesión para acceder a tu portal.", "warning")
+        return redirect(url_for('portal_login'))
+
+    conn = get_db_connection()
+    if not conn:
+        flash("Error de conexión.", 'danger')
+        return render_template("portal_alumno.html", datos={})
+
+    # 2. Recopilar todos los datos para las "tarjetas"
+    datos_portal = {}
+    alumno_id = session['alumno_id']
+    
+    try:
+        cursor = conn.cursor()
+
+        # Tarjeta 1: Estatus del Alumno
+        cursor.execute("SELECT ACTIVO FROM ALUMNOS WHERE ID_ALUMNO = :id", id=alumno_id)
+        estatus = cursor.fetchone()
+        datos_portal['ESTATUS_ACTIVO'] = (estatus[0] == 1) if estatus else False
+
+        # Tarjeta 2: Préstamos Actuales
+        sql_activos = """
+            SELECT p.ID_PRESTAMO, m.NOMBRE, dp.CANTIDAD_PRESTADA, p.FECHA_HORA
+            FROM PRESTAMOS p
+            JOIN DETALLE_PRESTAMO dp ON p.ID_PRESTAMO = dp.ID_PRESTAMO
+            JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL
+            WHERE p.ID_ALUMNO = :id AND p.ESTATUS = 'Activo'
+            ORDER BY p.FECHA_HORA DESC
+        """
+        cursor.execute(sql_activos, id=alumno_id)
+        datos_portal['prestamos_activos'] = rows_to_dicts(cursor, cursor.fetchall())
+        
+        # Tarjeta 3: Adeudos y Daños Pendientes
+        sql_adeudos = """
+            SELECT m.NOMBRE, rd.CANTIDAD_DANADA, rd.FECHA_REGISTRO
+            FROM REGISTRO_DANOS rd
+            JOIN PRESTAMOS p ON rd.ID_PRESTAMO = p.ID_PRESTAMO
+            JOIN MATERIALES m ON rd.ID_MATERIAL = m.ID_MATERIAL
+            WHERE p.ID_ALUMNO = :id AND rd.ESTATUS_REPOSICION = 'PENDIENTE'
+            ORDER BY rd.FECHA_REGISTRO DESC
+        """
+        cursor.execute(sql_adeudos, id=alumno_id)
+        datos_portal['adeudos'] = rows_to_dicts(cursor, cursor.fetchall())
+
+        # Tarjeta 4: Historial de Préstamos (Devueltos)
+        sql_historial = """
+            SELECT p.ID_PRESTAMO, m.NOMBRE, dp.CANTIDAD_PRESTADA, p.FECHA_DEVOLUCION
+            FROM PRESTAMOS p
+            JOIN DETALLE_PRESTAMO dp ON p.ID_PRESTAMO = dp.ID_PRESTAMO
+            JOIN MATERIALES m ON dp.ID_MATERIAL = m.ID_MATERIAL
+            WHERE p.ID_ALUMNO = :id AND p.ESTATUS = 'Devuelto'
+            ORDER BY p.FECHA_DEVOLUCION DESC
+            FETCH FIRST 20 ROWS ONLY
+        """
+        cursor.execute(sql_historial, id=alumno_id)
+        datos_portal['historial'] = rows_to_dicts(cursor, cursor.fetchall())
+
+    except Exception as e:
+        print(f"Error al cargar datos del portal: {e}")
+        traceback.print_exc()
+        flash("Error al cargar los datos de tu portal.", "danger")
+    finally:
+        if 'cursor' in locals() and cursor: cursor.close()
+        if conn: conn.close()
+
+    # 3. Renderizar la plantilla con los datos
+    # (Asegúrate de haber creado 'portal_alumno.html' en tu carpeta 'templates')
+    return render_template("portal_alumno.html", datos=datos_portal)
+
+# ====================================================================
+# --- FIN: LÓGICA DEL PORTAL DE ALUMNO ---
+# ====================================================================
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)

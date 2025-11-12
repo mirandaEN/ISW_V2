@@ -10,8 +10,39 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Arreglo para los mensajes flash en la página de login */
+        .flash {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        /* Mensaje de advertencia (amarillo) */
+        .flash.warning {
+            color: #ffda6a; /* Texto amarillo claro */
+            background-color: #4d3800; /* Fondo amarillo oscuro */
+            border: 1px solid #805b00;
+        }
+
+        /* Mensaje de error (rojo) */
+        .flash.danger {
+            color: #f1b0b7; 
+            background-color: #58151c; 
+            border: 1px solid #8c232e;
+        }
+
+        /* Mensaje de éxito (verde) */
+        .flash.success {
+            color: #a3cfbb; 
+            background-color: #1a4233; 
+            border: 1px solid #2a684b;
+        }
+    </style>
 </head>
-<body>
+<body id="login-page-body">
 
     <!-- Contenedor principal para el layout de dos columnas -->
     <div class="login-wrapper">
@@ -28,7 +59,7 @@
         <div class="login-form-area">
             
             <!-- Logo del ITS -->
-            <img class="logo" src="/static/sources/itislogo.png" alt="Logo ITS">
+            <img class="logo" src="/static/sources/labflow-LG.png" alt="Logo ITS">
 
             <div class="form-container">
                 <h1>Inicia Sesión</h1>

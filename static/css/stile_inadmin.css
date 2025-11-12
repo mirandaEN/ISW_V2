@@ -2374,3 +2374,34 @@ body.dark-mode #chat-welcome-screen h2 {
 body.dark-mode #chat-welcome-screen p {
     color: #ccc;
 }
+
+/* =================================================== */
+/* --- 21. ARREGLO PARA ALERTAS EN PÁGINA DE LOGIN --- */
+/* =================================================== */
+
+/* La página de login es oscura por defecto, pero no usa 'body.dark-mode'.
+Forzamos a que las alertas SÍ usen los estilos de modo oscuro aquí.
+*/
+
+#login-page-body .alert-warning {
+    color: #ffda6a; /* Texto amarillo claro */
+    background-color: #4d3800; /* Fondo amarillo oscuro */
+    border-color: #805b00;
+}
+
+#login-page-body .alert-danger {
+    color: #f1b0b7; 
+    background-color: #58151c; 
+    border-color: #8c232e;
+}
+
+#login-page-body .alert-success {
+    color: #a3cfbb; 
+    background-color: #1a4233; 
+    border-color: #2a684b;
+}
+
+#login-page-body .alert {
+    /* Opcional: añade un borde morado para que resalte más */
+    border: 1px solid #6a5acd; 
+}

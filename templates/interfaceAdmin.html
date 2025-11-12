@@ -167,23 +167,24 @@
                     </div>
     
             </div> </div>
+    
     <div class="modal fade" id="inactivityModal" tabindex="-1" aria-labelledby="inactivityModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-         <div class="modal-dialog modal-dialog-centered">
-             <div class="modal-content">
-                 <div class="modal-header">
-                     <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
-                 </div>
-                 <div class="modal-body">
-                     <p>Tu sesión está a punto de expirar.</p>
-                     <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
-                 </div>
-                 <div class="modal-footer">
-                     <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión</button>
-                     <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar</button>
-                 </div>
-             </div>
-         </div>
-    </div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #ffc107; color: #333;">
+                    <h5 class="modal-title" id="inactivityModalLabel">Advertencia de Inactividad</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Tu sesión está a punto de expirar.</p>
+                    <p>Tiempo restante: <strong id="inactiveTimeLeft">60</strong> segundos.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="forceLogout()">Cerrar Sesión</button>
+                    <button type="button" class="btn btn-primary" onclick="resetInactivityTimer()">Continuar</button>
+                </div>
+            </div>
+        </div>
+   </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
